@@ -1,0 +1,798 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}</style>
+<title>Mes comptes perso</title>
+<meta name="theme-color" content="#0E6B5C">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Comptes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: colonne unique de 560px max, bandeau mois en haut, barre d'onglets fixe en bas, feuilles modales par le bas. */
+:root{
+  --bg:#F2F5F3; --surface:#FFFFFF; --ink:#15231F; --muted:#5C6C66; --line:#DCE3DF;
+  --accent:#0E6B5C; --accent-ink:#FFFFFF; --accent-soft:#DDEFEA;
+  --ok:#1E7F4F; --warn:#A8690F; --bad:#B3372B; --bad-soft:#F7E2DE; --warn-soft:#F8EBD3;
+  --font-display:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
+  --font-body:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1715; --surface:#16221F; --ink:#E6EFEB; --muted:#93A59E; --line:#26362F;
+    --accent:#3CC2A6; --accent-ink:#04231C; --accent-soft:#1B3A33;
+    --ok:#5BD08F; --warn:#E2B04E; --bad:#F08B7E; --bad-soft:#3A201C; --warn-soft:#3A2F15;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1715; --surface:#16221F; --ink:#E6EFEB; --muted:#93A59E; --line:#26362F;
+  --accent:#3CC2A6; --accent-ink:#04231C; --accent-soft:#1B3A33;
+  --ok:#5BD08F; --warn:#E2B04E; --bad:#F08B7E; --bad-soft:#3A201C; --warn-soft:#3A2F15;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.4;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:0 96px;-webkit-tap-highlight-color:transparent}
+.wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:14px;padding-top:14px}
+h1,h2,h3{font-family:var(--font-display);margin:0;text-wrap:balance}
+h2{font-size:17px;letter-spacing:.01em}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.top .app{font-family:var(--font-display);font-weight:700;font-size:20px}
+.monthnav{display:flex;align-items:center;gap:2px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:2px}
+.monthnav button{border:0;background:none;width:36px;height:36px;border-radius:50%;font-size:20px;line-height:1;color:var(--ink)}
+.monthnav button:active{background:var(--accent-soft)}
+.monthnav span{min-width:118px;text-align:center;font-weight:600}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.hero{background:var(--accent);color:var(--accent-ink);border:0;gap:6px}
+.hero .lbl{font-size:13px;opacity:.85;letter-spacing:.04em;text-transform:uppercase}
+.hero .big{font-family:var(--font-display);font-weight:700;font-size:40px;line-height:1.05}
+.hero .sub{font-size:13px;opacity:.85}
+.hero input{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);color:var(--accent-ink);border-radius:10px;padding:8px 10px;width:150px;text-align:right}
+.hero input::placeholder{color:var(--accent-ink);opacity:.6}
+.herorow{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+
+.banner{background:var(--warn-soft);color:var(--ink);border:1px solid var(--warn);border-radius:12px;padding:10px 12px;font-size:13px}
+.rows{display:flex;flex-direction:column}
+.row{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line);min-width:0}
+.row:first-child{border-top:0}
+.row .main{flex:1;min-width:0}
+.row .t{font-weight:500;overflow-wrap:anywhere}
+.row .s{font-size:12.5px;color:var(--muted)}
+.row .amt{font-weight:600}
+.pos{color:var(--ok)} .neg{color:var(--bad)}
+.rowbtn{background:none;border:0;text-align:left;padding:0;flex:1;min-width:0}
+.chip{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+.chip.bad{background:var(--bad-soft);color:var(--bad)}
+.chk{width:28px;height:28px;border-radius:50%;border:2px solid var(--line);background:none;flex:none;display:grid;place-items:center;color:var(--accent-ink)}
+.chk.on{background:var(--accent);border-color:var(--accent)}
+.chk svg{width:14px;height:14px;opacity:0}
+.chk.on svg{opacity:1}
+
+.env{display:flex;flex-direction:column;gap:5px;padding:8px 0;border-top:1px solid var(--line)}
+.env:first-child{border-top:0}
+.env .h{display:flex;justify-content:space-between;gap:8px}
+.bar{height:8px;border-radius:999px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:999px}
+.bar i.warn{background:var(--warn)} .bar i.bad{background:var(--bad)}
+
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 12px;font-size:13.5px}
+.seg button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+label.f input,label.f select,label.f textarea{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px;color:var(--ink);font-size:16px;width:100%;min-width:0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{border:0;border-radius:12px;padding:13px 16px;font-weight:600;background:var(--accent);color:var(--accent-ink);font-size:15px}
+.btn.ghost{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
+.btn.danger{background:var(--bad-soft);color:var(--bad)}
+.btn.sm{padding:8px 12px;font-size:13.5px;border-radius:10px}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.info{font-size:13px;background:var(--accent-soft);color:var(--accent);border-radius:10px;padding:8px 10px}
+.info.bad{background:var(--bad-soft);color:var(--bad)}
+details summary{cursor:pointer;font-weight:600;list-style:none;display:flex;justify-content:space-between;gap:8px}
+details summary::-webkit-details-marker{display:none}
+.kv{display:flex;justify-content:space-between;gap:10px;padding:5px 0;font-size:14px}
+.kv.tot{border-top:1px solid var(--line);font-weight:600;margin-top:4px;padding-top:8px}
+
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);
+  display:flex;justify-content:center;
+  padding:6px max(8px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px));z-index:20}
+nav.tabs .in{display:flex;width:100%;max-width:560px}
+nav.tabs button{flex:1;border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;font-size:11.5px;color:var(--muted);min-width:0}
+nav.tabs button svg{width:22px;height:22px}
+nav.tabs button.on{color:var(--accent);font-weight:600}
+nav.tabs button.add span.pl{background:var(--accent);color:var(--accent-ink);width:44px;height:44px;border-radius:50%;display:grid;place-items:center;margin-top:-18px;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+nav.tabs button.add{color:var(--ink)}
+
+#sheetbg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:40;display:flex;align-items:flex-end;justify-content:center}
+#sheet{background:var(--surface);width:100%;max-width:560px;border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));max-height:88%;overflow:auto;display:flex;flex-direction:column;gap:12px}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:9px 14px;border-radius:999px;font-size:13.5px;z-index:50;max-width:90%}
+.empty{padding:14px 0;color:var(--muted);font-size:14px}
+</style>
+
+
+</head>
+<body>
+<div class="wrap" id="main"></div>
+<nav class="tabs" id="tabs"><div class="in"></div></nav>
+<div id="sheetbg" hidden><div id="sheet" role="dialog" aria-modal="true"></div></div>
+<div id="toast" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+"use strict";
+/* ============ Constantes ============ */
+const KEY = "mes-comptes-perso-v1";
+const MOIS = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+const MC = ["Janv","Févr","Mars","Avr","Mai","Juin","Juil","Août","Sept","Oct","Nov","Déc"];
+const TYPES = ["Dépense","Revenu","Versement sur Livret A","Retrait du Livret A","Avance (à rembourser)"];
+const TYPE_SHORT = {"Dépense":"Dépense","Revenu":"Revenu","Versement sur Livret A":"Vers. Livret A","Retrait du Livret A":"Retrait Livret A","Avance (à rembourser)":"Avance"};
+const CATS_EXC = ["Impôts","Santé","Voiture","Maison / travaux","Enfants","Cadeaux","Vacances","Autre","Remboursement","Envois LIVRET A"];
+
+/* ============ Utilitaires ============ */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const eur = n => new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR"}).format(Number(n)||0);
+const isNum = v => typeof v === "number" && isFinite(v);
+const N = v => isNum(v) ? v : 0;
+const uid = () => "a" + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const pad = n => String(n).padStart(2,"0");
+const todayIso = () => { const d = new Date(); return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); };
+const parseNum = s => { const t = String(s).replace(/\s/g,"").replace(",","."); const v = parseFloat(t); return isFinite(v) ? v : null; };
+function serialToIso(s){ const d = new Date(Math.floor(s + 1e-6 - 25569) * 86400000); return d.toISOString().slice(0,10); }
+function isoToSerial(iso){ const [y,m,d] = iso.split("-").map(Number); return Math.round(Date.UTC(y,m-1,d)/86400000) + 25569; }
+function anyToIso(v){
+  if (isNum(v)) return serialToIso(v);
+  if (v instanceof Date) return v.getFullYear()+"-"+pad(v.getMonth()+1)+"-"+pad(v.getDate());
+  const s = String(v ?? "").trim();
+  let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/); if (m) return m[1]+"-"+m[2]+"-"+m[3];
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/); if (m) return m[3]+"-"+pad(m[2])+"-"+pad(m[1]);
+  return "";
+}
+const frDate = iso => iso ? iso.slice(8,10)+"/"+iso.slice(5,7) : "";
+
+/* ============ Données ============ */
+let S = null, memCopy = null;
+function load(){ try { const t = localStorage.getItem(KEY); if (t) return JSON.parse(t); } catch(e){} return memCopy; }
+function persist(){ memCopy = S; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} }
+
+function emptyData(){
+  return { v:1, demo:false,
+    settings:{ solde:null, livretDepart:0, envelopes:[], cats:CATS_EXC.slice() },
+    journal:[], fixRev:[], fixCh:[], epargne:emptyEpargne() };
+}
+function emptyEpargne(){ return {dateDepart:"", envA:"Épargne", envB:"", manuel:[], poches:[], futur:[]}; }
+function demoData(){
+  const d = emptyData(); const now = new Date(); const y = now.getFullYear(), m = now.getMonth();
+  const day = n => y+"-"+pad(m+1)+"-"+pad(Math.min(n, new Date(y,m+1,0).getDate()));
+  d.demo = true;
+  d.settings.solde = 1840.50; d.settings.livretDepart = 3200;
+  d.settings.envelopes = [
+    {n:"Nourriture", b:450, m:Array(12).fill(null)}, {n:"Essence", b:120, m:Array(12).fill(null)},
+    {n:"Restaurant", b:80, m:Array(12).fill(null)}, {n:"Divers", b:100, m:Array(12).fill(null)},
+    {n:"Épargne", b:150, m:Array(12).fill(null)} ];
+  const J = (date,type,cat,lib,mt,pt) => ({id:uid(),date,type,cat,lib,montant:mt,pointe:pt?"x":"",note:"",remb:"",upd:Date.now()});
+  d.journal = [
+    J(day(2),"Dépense","Nourriture","Courses (exemple)",86.40,true),
+    J(day(4),"Dépense","Essence","Plein (exemple)",58.20,true),
+    J(day(7),"Dépense","Restaurant","Pizzeria (exemple)",34.00,false),
+    J(day(9),"Dépense","Nourriture","Marché (exemple)",41.75,false),
+    J(day(5),"Versement sur Livret A","","Virement Livret A (exemple)",150,true) ];
+  const R = (n,t,mt,j) => ({id:uid(),n,t,montant:mt,jour:j,m:Array(12).fill("")});
+  d.fixRev = [R("Salaire (exemple)","Salaire",2400,3), R("Allocations (exemple)","Allocations",180,10)];
+  d.fixCh = [R("Prêt immobilier (exemple)","Emprunts",780,5), R("Assurance auto (exemple)","Assurances",55,8),
+             R("Internet (exemple)","Abonnements",30,12), R("Électricité (exemple)","Énergie / eau",95,20)];
+  d.fixRev[0].m[m] = "x"; d.fixCh[0].m[m] = "x";
+  d.epargne = {dateDepart:y+"-01-01", envA:"Épargne", envB:"",
+    manuel:[{id:uid(), date:day(3), lib:"Versement (exemple)", montant:200, pq:"Versement épargne"}],
+    poches:[{id:uid(), n:"Taxe foncière", f:300}],
+    futur:[{id:uid(), date:y+"-11-15", lib:"Impôt (exemple)", sortie:120, entree:0, fait:""}]};
+  return d;
+}
+
+/* ============ Calculs (mêmes règles que le classeur) ============ */
+const live = () => S.journal.filter(j => !j.del);
+function inMonth(j,m,y){ return +j.date.slice(0,4) === y && +j.date.slice(5,7) === m+1; }
+function fixCalc(rows,m,y){
+  const nj = new Date(y,m+1,0).getDate(); const today = new Date(); today.setHours(0,0,0,0);
+  let prevu = 0, passe = 0;
+  for (const r of rows){
+    const c = r.m[m], d = N(r.montant);
+    prevu += isNum(c) ? c : d;
+    const fut = r.jour ? new Date(y,m,Math.min(r.jour,nj)) > today : false;
+    if (c === "x") passe += d; else if (isNum(c) && !fut) passe += c;
+  }
+  return {prevu, passe};
+}
+function fixState(r,m,y){
+  const c = r.m[m]; const nj = new Date(y,m+1,0).getDate(); const today = new Date(); today.setHours(0,0,0,0);
+  const dp = r.jour ? new Date(y,m,Math.min(r.jour,nj)) : null;
+  if (c === "x") return {k:"ok", t:"pointé", amt:N(r.montant)};
+  if (isNum(c)) return dp && dp > today ? {k:"wait", t:"à venir (montant saisi)", amt:c} : {k:"ok", t:"pointé (montant saisi)", amt:c};
+  if (!dp) return {k:"wait", t:"à venir", amt:N(r.montant)};
+  return dp < today ? {k:"late", t:"à pointer", amt:N(r.montant)} : {k:"wait", t:"à venir", amt:N(r.montant)};
+}
+function calc(m,y){
+  const J = live().filter(j => inMonth(j,m,y));
+  const sum = (f) => J.filter(f).reduce((a,j) => a + N(j.montant), 0);
+  const envs = S.settings.envelopes.map(e => {
+    const bud = isNum(e.m[m]) ? e.m[m] : N(e.b);
+    const dep = sum(j => j.type === "Dépense" && j.cat === e.n);
+    return {n:e.n, bud, dep, reste:bud-dep};
+  });
+  const rev = fixCalc(S.fixRev,m,y), ch = fixCalc(S.fixCh,m,y);
+  const revExc = sum(j => j.type === "Revenu");
+  const depEpargne = sum(j => j.type === "Dépense" && j.cat === "Épargne");
+  const depJournal = sum(j => j.type === "Dépense") - depEpargne;
+  const vers = sum(j => j.type === "Versement sur Livret A"), ret = sum(j => j.type === "Retrait du Livret A");
+  const epargne = vers - ret + depEpargne;
+  const solde = S.settings.solde;
+  const d11 = Math.max(0, rev.prevu - rev.passe);
+  const avances = live().filter(j => j.type === "Avance (à rembourser)" && !j.remb && j.pointe === "x").reduce((a,j) => a + N(j.montant), 0);
+  const d12 = sum(j => j.type === "Revenu" && j.pointe !== "x") + avances;
+  const d13 = Math.max(0, ch.prevu - ch.passe);
+  const d14 = sum(j => j.type === "Dépense" && j.pointe !== "x");
+  const d15 = sum(j => j.type === "Versement sur Livret A" && j.pointe !== "x") - sum(j => j.type === "Retrait du Livret A" && j.pointe !== "x");
+  const d16 = N(solde) + d11 + d12 - d13 - d14 - d15;
+  const d17 = envs.reduce((a,e) => a + Math.max(0,e.reste), 0);
+  return { envs, rev, ch, revExc, depJournal, epargne, d11, d12, d13, d14, d15, d16, d17, d18:d16-d17,
+    revenus: rev.prevu + revExc, depenses: ch.prevu + depJournal, resultat: rev.prevu + revExc - ch.prevu - depJournal - epargne };
+}
+function livretCalc(){
+  const e = S.epargne, dep = e.dateDepart || "0000-00-00", low = x => String(x || "").trim().toLowerCase();
+  const moves = [];
+  for (const m of e.manuel){ const pq = String(m.pq || ""); const vers = /^Versement/.test(pq) || pq === "Ajustement (+)";
+    moves.push({id:m.id, kind:"S", date:m.date || todayIso(), lib:m.lib, vers:vers ? N(m.montant) : 0, ret:vers ? 0 : N(m.montant),
+      org:/^Ajustement/.test(pq) ? "Ajustement" : vers ? "Versement" : pq === "Grosse dépense" ? "Grosse dépense" : "Poche " + pq}); }
+  for (const j of live()){
+    if (j.pointe !== "x" || !(j.date > dep)) continue;
+    const env = j.type === "Dépense" && (j.cat === e.envA || (e.envB && j.cat === e.envB) || j.cat === "Envois LIVRET A");
+    const v = env || j.type === "Versement sur Livret A", r = j.type === "Retrait du Livret A";
+    if (!v && !r) continue;
+    moves.push({id:j.id, kind:"J", date:j.date, lib:j.lib, vers:v ? N(j.montant) : 0, ret:r ? N(j.montant) : 0,
+      org:env ? (j.cat === "Envois LIVRET A" ? "Envoi depuis Mois" : "Enveloppe " + j.cat) : r ? "Vers compte courant" : "Depuis compte courant"}); }
+  for (const f of e.futur){ if (f.fait === "x" && (N(f.sortie) || N(f.entree)))
+    moves.push({id:f.id, kind:"F", date:f.date || todayIso(), lib:f.lib, vers:N(f.entree), ret:N(f.sortie), org:"FUTUR"}); }
+  const solde = N(S.settings.livretDepart) + moves.reduce((a,m) => a + m.vers - m.ret, 0);
+  const poches = e.poches.filter(p => p.n).map(p => {
+    const mis = N(p.f) + live().filter(j => j.type === "Dépense" && j.cat === "Envois LIVRET A" && low(j.lib) === low(p.n) && j.pointe === "x" && j.date > dep).reduce((a,j) => a + N(j.montant), 0);
+    const util = e.manuel.filter(m => low(m.pq) === low(p.n)).reduce((a,m) => a + N(m.montant), 0);
+    return {id:p.id, n:p.n, mis, util, reste:mis - util}; });
+  const pochesReste = poches.reduce((a,p) => a + p.reste, 0), aMoi = solde - pochesReste;
+  const sorties = e.futur.filter(f => f.fait !== "x").reduce((a,f) => a + N(f.sortie), 0);
+  const entrees = e.futur.filter(f => f.fait !== "x").reduce((a,f) => a + N(f.entree), 0);
+  return {solde, moves, poches, pochesReste, aMoi, entrees, sorties, prevu:aMoi + entrees - sorties};
+}
+const livretSolde = () => livretCalc().solde;
+
+/* ============ Import / export Excel ============ */
+function cell(ws, a){ const c = ws && ws[a]; return c ? c.v : undefined; }
+function hash(s){ let h = 5381; for (let i=0;i<s.length;i++) h = ((h<<5)+h+s.charCodeAt(i))|0; return (h>>>0).toString(36); }
+function parseClasseur(wb){
+  const sh = n => wb.Sheets[n];
+  const out = emptyData();
+  const P = sh("Paramètres"), F = sh("Fixes"), J = sh("Journal"), E = sh("Épargne"), M = sh("Mois"), L = sh("Listes");
+  if (!J && !P && !F) throw new Error("Feuilles « Journal », « Paramètres » et « Fixes » introuvables.");
+  const cols = "FGHIJKLMNOPQ";
+  if (P){
+    for (let r=6; r<=22; r++){
+      const n = cell(P,"E"+r); if (n === undefined || String(n).trim() === "") continue;
+      const m = []; for (const c of "GHIJKLMNOPQR"){ const v = cell(P,c+r); m.push(isNum(v) ? v : null); }
+      out.settings.envelopes.push({n:String(n).trim(), b:N(cell(P,"F"+r)), m});
+    }
+    const s = cell(P,"C6"); if (isNum(s)) out.settings.solde = s;
+  }
+  if (M){ const s = cell(M,"H3"); if (isNum(s)) out.settings.solde = s; }
+  if (E){ const l = cell(E,"C70"); if (isNum(l)) out.settings.livretDepart = l; }
+  if (E){
+    const ep = out.epargne; const d0 = cell(E,"C71"); if (d0) ep.dateDepart = anyToIso(d0);
+    const a = cell(E,"C72"); if (a) ep.envA = String(a).trim(); const b = cell(E,"C73"); if (b) ep.envB = String(b).trim();
+    for (let r=12; r<=511; r++){ const mt = cell(E,"U"+r); if (!isNum(mt)) continue;
+      ep.manuel.push({id:uid(), date:anyToIso(cell(E,"S"+r)), lib:String(cell(E,"T"+r) ?? ""), montant:mt, pq:String(cell(E,"V"+r) ?? "").trim()}); }
+    for (let r=32; r<=39; r++){ const n = cell(E,"B"+r); if (n === undefined || !String(n).trim()) continue; ep.poches.push({id:uid(), n:String(n).trim(), f:N(cell(E,"F"+r))}); }
+    for (let r=46; r<=64; r++){ const so = cell(E,"D"+r), en = cell(E,"E"+r), li = cell(E,"C"+r);
+      if (!(N(so) || N(en))) continue; ep.futur.push({id:uid(), date:anyToIso(cell(E,"B"+r)), lib:String(li ?? ""), sortie:N(so), entree:N(en), fait:String(cell(E,"F"+r) ?? "").trim().toLowerCase() === "x" ? "x" : ""}); }
+  }
+  if (L){ const cats = []; for (let r=2;r<=30;r++){ const v = cell(L,"D"+r); if (v !== undefined && String(v).trim()) cats.push(String(v).trim()); } if (cats.length) out.settings.cats = cats; }
+  const readFix = (ws, r1, r2) => { const rows = [];
+    for (let r=r1; r<=r2; r++){
+      const n = cell(ws,"B"+r); if (n === undefined || String(n).trim() === "") continue;
+      const m = []; for (const c of cols){ const v = cell(ws,c+r); m.push(isNum(v) ? v : (String(v ?? "").trim().toLowerCase() === "x" ? "x" : "")); }
+      const j = cell(ws,"E"+r);
+      rows.push({id:uid(), n:String(n).trim(), t:String(cell(ws,"C"+r) ?? "").trim(), montant:N(cell(ws,"D"+r)), jour:isNum(j) ? j : null, m});
+    } return rows; };
+  if (F){ out.fixRev = readFix(F,6,13); out.fixCh = readFix(F,18,56); }
+  if (J){
+    const seen = {}; const ref = J["!ref"] ? XLSX.utils.decode_range(J["!ref"]).e.r + 1 : 300;
+    for (let r=5; r<=Math.min(ref,5000); r++){
+      const type = cell(J,"C"+r), mt = cell(J,"F"+r), dt = cell(J,"B"+r);
+      if (!type || !isNum(mt) || dt === undefined || dt === "") continue;
+      const iso = anyToIso(dt); if (!iso) continue;
+      const rem = cell(J,"K"+r);
+      const o = {date:iso, type:String(type).trim(), cat:String(cell(J,"D"+r) ?? "").trim(), lib:String(cell(J,"E"+r) ?? "").trim(),
+        montant:mt, pointe:String(cell(J,"G"+r) ?? "").trim().toLowerCase() === "x" ? "x" : "", note:String(cell(J,"H"+r) ?? ""),
+        remb: rem ? anyToIso(rem) : "", upd:0};
+      const base = hash([o.date,o.type,o.cat,o.lib,o.montant].join("|")); seen[base] = (seen[base]||0) + 1;
+      o.id = "x" + base + "-" + seen[base];
+      out.journal.push(o);
+    }
+  }
+  return out;
+}
+function parseEchange(wb){
+  const ws = wb.Sheets["Journal_appli"]; if (!ws) return null;
+  const rows = XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:""}); const out = {rows:[], settings:null, fixRev:null, fixCh:null};
+  for (let i=1;i<rows.length;i++){
+    const r = rows[i]; if (!r[0] || !r[1]) continue;
+    out.rows.push({id:String(r[0]), date:anyToIso(r[1]), type:String(r[2]).trim(), cat:String(r[3]).trim(), lib:String(r[4]), montant:N(Number(r[5])),
+      pointe:String(r[6]).toLowerCase() === "x" ? "x" : "", note:String(r[7] ?? ""), remb:r[8] ? anyToIso(r[8]) : "",
+      upd:Number(r[9]) || 0, del:!!r[10]});
+  }
+  const sheetRows = n => wb.Sheets[n] ? XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:""}) : null;
+  const num = v => { if (isNum(v)) return v; const x = parseNum(v); return x === null ? null : x; };
+  const reg = sheetRows("Reglages_appli"), env = sheetRows("Enveloppes_appli"), fx = sheetRows("Fixes_appli");
+  const lv = sheetRows("Livret_appli"), po = sheetRows("Poches_appli"), fu = sheetRows("Futur_appli");
+  if (reg || lv || po || fu){ out.epargne = emptyEpargne();
+    if (reg) for (const r of reg){ const k = String(r[0]).trim().toLowerCase();
+      if (k === "livretdatedepart" && r[1] !== "") out.epargne.dateDepart = anyToIso(r[1]);
+      else if (k === "enveloppelivret" && String(r[1]).trim()) out.epargne.envA = String(r[1]).trim();
+      else if (k === "enveloppe2livret") out.epargne.envB = String(r[1]).trim(); }
+    if (lv) for (let i=1;i<lv.length;i++){ const r = lv[i]; if (!isNum(Number(r[2])) || r[2] === "") continue;
+      out.epargne.manuel.push({id:uid(), date:r[0] === "" ? "" : anyToIso(r[0]), lib:String(r[1]), montant:Number(r[2]), pq:String(r[3]).trim()}); }
+    if (po) for (let i=1;i<po.length;i++){ const r = po[i]; if (!String(r[0]).trim()) continue; out.epargne.poches.push({id:uid(), n:String(r[0]).trim(), f:N(num(r[1]))}); }
+    if (fu) for (let i=1;i<fu.length;i++){ const r = fu[i]; if (!(N(num(r[2])) || N(num(r[3])))) continue;
+      out.epargne.futur.push({id:uid(), date:r[0] === "" ? "" : anyToIso(r[0]), lib:String(r[1]), sortie:N(num(r[2])), entree:N(num(r[3])), fait:String(r[4]).trim().toLowerCase() === "x" ? "x" : ""}); }
+  }
+  if (reg || env){
+    const st = {solde:null, livretDepart:0, envelopes:[], cats:CATS_EXC.slice()};
+    if (reg) for (const r of reg){ const k = String(r[0]).trim().toLowerCase(); const v = num(r[1]);
+      if (k === "soldecompte") st.solde = v; else if (k === "livretadepart") st.livretDepart = N(v); }
+    if (env) for (let i=1;i<env.length;i++){ const r = env[i]; if (!String(r[0]).trim()) continue;
+      st.envelopes.push({n:String(r[0]).trim(), b:N(num(r[1])), m:Array.from({length:12},(_,k) => { const v = num(r[2+k]); return v === null || r[2+k] === "" ? null : v; })}); }
+    out.settings = st;
+  }
+  if (fx){
+    out.fixRev = []; out.fixCh = [];
+    for (let i=1;i<fx.length;i++){ const r = fx[i]; if (!String(r[1]).trim()) continue;
+      const m = Array.from({length:12},(_,k) => { const v = r[5+k]; if (isNum(v)) return v; return String(v).trim().toLowerCase() === "x" ? "x" : (num(v) ?? ""); });
+      const j = num(r[4]);
+      const o = {id:uid(), n:String(r[1]).trim(), t:String(r[2]).trim(), montant:N(num(r[3])), jour:(j >= 1 && j <= 31) ? j : null, m};
+      (/^rev/i.test(String(r[0]).trim()) ? out.fixRev : out.fixCh).push(o); }
+  }
+  return out;
+}
+function mergeJournal(incoming){
+  const byId = new Map(S.journal.map(j => [j.id,j])); let add = 0, upd = 0;
+  for (const j of incoming){
+    const cur = byId.get(j.id);
+    if (!cur){ S.journal.push(j); byId.set(j.id,j); add++; }
+    else if ((j.upd||0) > (cur.upd||0)){ Object.assign(cur,j); upd++; }
+  }
+  return {add, upd};
+}
+function buildEchange(){
+  const head = ["ID","Date","Type","Catégorie / enveloppe","Libellé","Montant","Pointé","Note","Remboursé le","Modifié","Supprimé"];
+  const aoa = [head].concat(S.journal.map(j => [j.id, isoToSerial(j.date), j.type, j.cat, j.lib, j.montant, j.pointe, j.note, j.remb ? isoToSerial(j.remb) : "", j.upd||0, j.del ? 1 : ""]));
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  for (let r=1;r<aoa.length;r++){ for (const c of ["B","I"]){ const a = ws[c+(r+1)]; if (a && isNum(a.v)){ a.t = "n"; a.z = "dd/mm/yyyy"; } } }
+  ws["!cols"] = [{wch:14},{wch:12},{wch:22},{wch:22},{wch:30},{wch:11},{wch:7},{wch:24},{wch:12},{wch:14},{wch:10}];
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Journal_appli");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["Clé","Valeur"],["SoldeCompte", isNum(S.settings.solde) ? S.settings.solde : ""],["LivretADepart", N(S.settings.livretDepart)],
+    ["LivretDateDepart", S.epargne.dateDepart ? isoToSerial(S.epargne.dateDepart) : ""],["EnveloppeLivret", S.epargne.envA],["Enveloppe2Livret", S.epargne.envB]]), "Reglages_appli");
+  const dsh = (head, rows, dcols) => { const w = XLSX.utils.aoa_to_sheet([head].concat(rows)); for (let r=1;r<=rows.length;r++) for (const c of dcols){ const a = w[c+(r+1)]; if (a && isNum(a.v)) a.z = "dd/mm/yyyy"; } return w; };
+  XLSX.utils.book_append_sheet(wb, dsh(["Date","Libellé","Montant","Pour quoi"], S.epargne.manuel.map(m => [m.date ? isoToSerial(m.date) : "", m.lib, m.montant, m.pq]), ["A"]), "Livret_appli");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["Poche","Mis de côté (saisi à la main)"]].concat(S.epargne.poches.map(p => [p.n, N(p.f)]))), "Poches_appli");
+  XLSX.utils.book_append_sheet(wb, dsh(["Date prévue","Libellé","Sortie (-)","Entrée (+)","Fait ?"], S.epargne.futur.map(f => [f.date ? isoToSerial(f.date) : "", f.lib, f.sortie || "", f.entree || "", f.fait]), ["A"]), "Futur_appli");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["Enveloppe","Budget"].concat(MC)].concat(S.settings.envelopes.map(e => [e.n, N(e.b)].concat(e.m.map(v => isNum(v) ? v : ""))))), "Enveloppes_appli");
+  const fx = [["Sens","Libellé","Type / Famille","Montant","Jour"].concat(MC)];
+  S.fixRev.forEach(r => fx.push(["Revenu", r.n, r.t, N(r.montant), r.jour || ""].concat(r.m)));
+  S.fixCh.forEach(r => fx.push(["Charge", r.n, r.t, N(r.montant), r.jour || ""].concat(r.m)));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(fx), "Fixes_appli");
+  return XLSX.write(wb,{type:"array",bookType:"xlsx"});
+}
+async function saveFile(name, data, mime){
+  let dl = null; try { dl = window.claude && window.claude.use ? await window.claude.use("downloads") : null; } catch(e){}
+  if (dl){ try { await dl.save({filename:name, data}); toast("Fichier prêt : " + name); } catch(e){ if (e && e.code !== "declined") toast("Enregistrement impossible"); } return; }
+  try { const file = new File([data], name, {type:mime});
+    if (navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:name}); toast("Fichier partagé : " + name); return; } }
+  catch(e){ if (e && e.name === "AbortError") return; }
+  const url = URL.createObjectURL(new Blob([data],{type:mime})); const a = document.createElement("a");
+  a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 4000);
+  toast("Fichier prêt : " + name);
+}
+
+/* ============ Vue ============ */
+const now0 = new Date();
+const V = { tab:"home", m:now0.getMonth(), y:now0.getFullYear(), hidePast:true, editId:null, draft:null, pending:null, msg:"", wipe:false };
+let toastTimer;
+function toast(t){ const el = $("#toast"); el.textContent = t; el.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => el.hidden = true, 2600); }
+
+const ICON = {
+  home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>',
+  month:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
+  add:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  fix:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>',
+  set:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3.9a7 7 0 0 0-2-1.2L14.2 3h-4l-.4 2.6a7 7 0 0 0-2 1.2l-2.3-.9-2 3.4 2 1.5A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.3-.9c.6.5 1.3.9 2 1.2l.4 2.6h4l.4-2.6c.7-.3 1.4-.7 2-1.2l2.3.9 2-3.4-2-1.5c.1-.4.1-.8.1-1.2z"/></svg>',
+  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>'
+};
+function renderTabs(){
+  const T = [["home","Accueil"],["month","Mois"],["add","Ajouter"],["fix","Fixes"],["set","Réglages"]];
+  $("#tabs .in").innerHTML = T.map(([k,l]) => k === "add"
+    ? `<button class="add ${V.tab===k?"on":""}" data-act="tab" data-v="${k}" aria-label="${l}"><span class="pl">${ICON[k]}</span><span>${l}</span></button>`
+    : `<button class="${(V.tab===k || (k==="home" && V.tab==="sav"))?"on":""}" data-act="tab" data-v="${k}">${ICON[k]}<span>${l}</span></button>`).join("");
+}
+function monthNav(){
+  return `<div class="monthnav"><button data-act="mprev" aria-label="Mois précédent">‹</button><span>${MOIS[V.m]} ${V.y}</span><button data-act="mnext" aria-label="Mois suivant">›</button></div>`;
+}
+function topbar(){ return `<div class="top"><div class="app">Mes comptes perso</div>${monthNav()}</div>` + (S.demo ? `<div class="banner">Données d'exemple. Importez votre classeur Excel dans <b>Réglages</b> pour travailler avec vos vrais comptes.</div>` : ""); }
+
+function viewHome(){
+  const c = calc(V.m,V.y); const L = livretCalc(); const soldeVal = S.settings.solde;
+  const envHtml = c.envs.length ? c.envs.map(e => {
+    const p = e.bud > 0 ? Math.min(100, Math.round(e.dep / e.bud * 100)) : (e.dep > 0 ? 100 : 0);
+    const cls = e.dep > e.bud ? "bad" : (e.bud > 0 && e.dep / e.bud >= .8 ? "warn" : "");
+    return `<div class="env"><div class="h"><span>${esc(e.n)}</span><span class="num ${e.reste<0?"neg":""}">${eur(e.reste)} <span class="muted small">/ ${eur(e.bud)}</span></span></div><div class="bar"><i class="${cls}" style="width:${p}%"></i></div></div>`;
+  }).join("") : `<div class="empty">Aucune enveloppe. Ajoutez-en dans Réglages.</div>`;
+  const kv = (l,v,neg) => `<div class="kv"><span>${l}</span><span class="num">${neg?"− ":"+ "}${eur(v)}</span></div>`;
+  return topbar() + `
+  <div class="card hero">
+    <div class="lbl">Reste à vivre après enveloppes</div>
+    <div class="big num">${isNum(soldeVal) ? eur(c.d18) : "—"}</div>
+    <div class="herorow"><span class="sub">${isNum(soldeVal) ? "Solde banque, fixes à venir et enveloppes déduits" : "Saisissez le solde de votre compte pour le calculer"}</span>
+      <input id="solde" inputmode="decimal" placeholder="Solde banque (€)" value="${isNum(soldeVal) ? String(soldeVal).replace(".",",") : ""}" aria-label="Solde actuel du compte"></div>
+  </div>
+  <div class="card"><details><summary><span>Détail du calcul</span><span class="muted small">voir</span></summary>
+    <div style="margin-top:8px">
+      <div class="kv"><span>Solde actuel du compte</span><span class="num">${eur(N(soldeVal))}</span></div>
+      ${kv("Revenus fixes pas encore reçus",c.d11)}${kv("Revenus et remboursements à venir",c.d12)}
+      ${kv("Charges fixes pas encore passées",c.d13,1)}${kv("Dépenses du journal non pointées",c.d14,1)}
+      ${kv("Épargne non pointée",c.d15,1)}
+      <div class="kv tot"><span>Reste à vivre actuel</span><span class="num">${eur(c.d16)}</span></div>
+      ${kv("Reste dans les enveloppes",c.d17,1)}
+      <div class="kv tot"><span>Reste à vivre après enveloppes</span><span class="num">${eur(c.d18)}</span></div>
+    </div></details></div>
+  <div class="card"><h2>Enveloppes de ${MOIS[V.m].toLowerCase()}</h2><div>${envHtml}</div></div>
+  <div class="card"><div class="top"><h2>Épargne</h2><button class="btn sm" data-act="gosav">Détail</button></div>
+    <div class="kv"><span>Livret A</span><span class="num">${eur(L.solde)}</span></div>
+    <div class="kv"><span>Livret A vraiment à moi</span><span class="num">${eur(L.aMoi)}</span></div>
+    <div class="kv"><span>Épargne du mois</span><span class="num">${eur(c.epargne)}</span></div>
+    <div class="kv"><span>Résultat prévu du mois</span><span class="num ${c.resultat<0?"neg":"pos"}">${eur(c.resultat)}</span></div></div>`;
+}
+
+function fixRowHtml(kind,r){
+  const st = fixState(r,V.m,V.y); const on = st.k === "ok";
+  const chip = st.k === "late" ? "bad" : (st.k === "wait" ? "warn" : "");
+  return `<div class="row"><button class="chk ${on?"on":""}" data-act="fixtoggle" data-k="${kind}" data-id="${r.id}" aria-label="Pointer ${esc(r.n)}">${ICON.check}</button>
+    <button class="rowbtn" data-act="fixmonth" data-k="${kind}" data-id="${r.id}"><div class="t">${esc(r.n)}</div>
+    <div class="s">${r.jour ? "le " + r.jour + " · " : ""}<span class="chip ${chip}">${st.t}</span></div></button>
+    <div class="amt num">${eur(st.amt)}</div></div>`;
+}
+function viewMonth(){
+  const c = calc(V.m,V.y);
+  const show = (kind,rows) => rows.filter(r => !V.hidePast || fixState(r,V.m,V.y).k !== "ok");
+  const revRows = show("rev",S.fixRev), chRows = show("ch",S.fixCh);
+  const J = live().filter(j => inMonth(j,V.m,V.y)).sort((a,b) => b.date.localeCompare(a.date) || b.upd - a.upd);
+  const jHtml = J.length ? J.map(j => {
+    const sign = j.type === "Revenu" || j.type === "Retrait du Livret A" ? 1 : -1;
+    const wait = j.type === "Avance (à rembourser)" && !j.remb;
+    return `<div class="row"><button class="chk ${j.pointe==="x"?"on":""}" data-act="jtoggle" data-id="${j.id}" aria-label="Pointer">${ICON.check}</button>
+      <button class="rowbtn" data-act="jedit" data-id="${j.id}"><div class="t">${esc(j.lib || j.cat || j.type)}</div>
+      <div class="s">${frDate(j.date)} · ${esc(j.cat || TYPE_SHORT[j.type])}${wait ? ' · <span class="chip warn">à rembourser</span>' : ""}</div></button>
+      <div class="amt num ${sign>0?"pos":""}">${sign>0?"+":"−"} ${eur(j.montant)}</div></div>`;
+  }).join("") : `<div class="empty">Aucune opération ce mois-ci.</div>`;
+  const kv = (l,v,cl) => `<div class="kv"><span>${l}</span><span class="num ${cl||""}">${eur(v)}</span></div>`;
+  return topbar() + `
+  <div class="card"><h2>Bilan du mois</h2>
+    ${kv("Revenus",c.revenus)}${kv("Dépenses (fixes + journal)",c.depenses)}${kv("Épargne",c.epargne)}
+    <div class="kv tot"><span>Résultat prévu</span><span class="num ${c.resultat<0?"neg":"pos"}">${eur(c.resultat)}</span></div></div>
+  <div class="card"><div class="top"><h2>Fixes et revenus</h2>
+    <div class="seg"><button class="${V.hidePast?"on":""}" data-act="hidepast">Masquer les pointés</button></div></div>
+    <div class="small muted">Touchez le rond pour pointer. Touchez la ligne pour saisir un montant différent ce mois-ci.</div>
+    <div><div class="small muted" style="margin-top:4px">Revenus</div><div class="rows">${revRows.length ? revRows.map(r => fixRowHtml("rev",r)).join("") : '<div class="empty">Rien à pointer.</div>'}</div></div>
+    <div><div class="small muted">Charges fixes</div><div class="rows">${chRows.length ? chRows.map(r => fixRowHtml("ch",r)).join("") : '<div class="empty">Rien à pointer.</div>'}</div></div></div>
+  <div class="card"><h2>Opérations du mois</h2><div class="rows">${jHtml}</div></div>`;
+}
+
+function catOptions(sel){
+  const all = S.settings.envelopes.map(e => e.n).concat(S.settings.cats.filter(c => !S.settings.envelopes.some(e => e.n === c)));
+  return `<option value="">—</option>` + all.map(c => `<option ${c===sel?"selected":""}>${esc(c)}</option>`).join("");
+}
+function viewAdd(){
+  const ed = V.editId ? S.journal.find(j => j.id === V.editId) : null;
+  const d = V.draft || (ed ? {date:ed.date,type:ed.type,cat:ed.cat,lib:ed.lib,mont:String(ed.montant).replace(".",","),pt:ed.pointe==="x",note:ed.note,remb:ed.remb}
+                           : {date:todayIso(),type:"Dépense",cat:"",lib:"",mont:"",pt:true,note:"",remb:""});
+  V.draft = d;
+  const livret = d.type.indexOf("Livret") >= 0;
+  return `<div class="top"><div class="app">${ed ? "Modifier l'opération" : "Ajouter une opération"}</div></div>
+  <div class="card">
+    <div class="seg" id="types">${TYPES.map(t => `<button data-act="type" data-v="${esc(t)}" class="${d.type===t?"on":""}">${esc(TYPE_SHORT[t])}</button>`).join("")}</div>
+    <div class="grid2">
+      <label class="f">Date<input id="f-date" type="date" value="${esc(d.date)}"></label>
+      <label class="f">Montant (€)<input id="f-mont" inputmode="decimal" placeholder="0,00" value="${esc(d.mont)}"></label>
+    </div>
+    <label class="f">Catégorie / enveloppe<select id="f-cat" ${livret?"disabled":""}>${catOptions(livret ? "" : d.cat)}</select></label>
+    <div class="info" id="f-info" hidden></div>
+    <label class="f">Libellé<input id="f-lib" placeholder="Courses, Vinted…" value="${esc(d.lib)}"></label>
+    <div class="grid2">
+      <label class="f">Déjà passé en banque ?<select id="f-pt"><option value="1" ${d.pt?"selected":""}>Oui</option><option value="0" ${d.pt?"":"selected"}>Non</option></select></label>
+      ${d.type === "Avance (à rembourser)" ? `<label class="f">Remboursé le<input id="f-remb" type="date" value="${esc(d.remb)}"></label>` : "<div></div>"}
+    </div>
+    <label class="f">Note<input id="f-note" value="${esc(d.note)}"></label>
+    <div class="btns"><button class="btn" data-act="save" style="flex:1">${ed ? "Enregistrer les modifications" : "Enregistrer"}</button>
+      ${ed ? `<button class="btn danger" data-act="jdel">Supprimer</button>` : `<button class="btn ghost" data-act="clear">Effacer</button>`}</div>
+  </div>`;
+}
+function collectDraft(){
+  if (!$("#f-date")) return;
+  const d = V.draft || {};
+  d.date = $("#f-date").value; d.mont = $("#f-mont").value; d.cat = $("#f-cat").disabled ? "" : $("#f-cat").value;
+  d.lib = $("#f-lib").value; d.pt = $("#f-pt").value === "1"; d.note = $("#f-note").value;
+  if ($("#f-remb")) d.remb = $("#f-remb").value;
+  V.draft = d;
+}
+function updateInfo(){
+  const el = $("#f-info"); if (!el) return; collectDraft(); const d = V.draft;
+  const env = S.settings.envelopes.find(e => e.n === d.cat); const mt = parseNum(d.mont);
+  if (d.type !== "Dépense" || !env || !d.date){ el.hidden = true; return; }
+  const m = +d.date.slice(5,7) - 1, y = +d.date.slice(0,4);
+  const row = calc(m,y).envs.find(e => e.n === env.n); if (!row){ el.hidden = true; return; }
+  let reste = row.reste; if (V.editId){ const ed = S.journal.find(j => j.id === V.editId); if (ed && ed.type === "Dépense" && ed.cat === env.n && inMonth(ed,m,y)) reste += N(ed.montant); }
+  const apres = reste - (mt || 0);
+  el.hidden = false; el.classList.toggle("bad", apres < 0);
+  el.textContent = "Reste dans l'enveloppe ce mois : " + eur(reste) + (mt ? " · après cette dépense : " + eur(apres) : "");
+}
+
+function viewSav(){
+  const L = livretCalc(), e = S.epargne;
+  const moves = L.moves.slice().sort((a,b) => b.date.localeCompare(a.date)).slice(0,30);
+  return `<div class="top"><button class="btn ghost sm" data-act="tab" data-v="home">‹ Accueil</button><div class="app">Épargne</div></div>
+  <div class="card hero"><div class="lbl">Livret A vraiment à moi</div><div class="big num">${eur(L.aMoi)}</div>
+    <div class="sub">Livret A ${eur(L.solde)} moins poches réservées ${eur(L.pochesReste)}</div></div>
+  <div class="card"><div class="kv"><span>Épargne prévue (après FUTUR)</span><span class="num">${eur(L.prevu)}</span></div>
+    <div class="small muted">Départ : ${eur(S.settings.livretDepart)}${e.dateDepart ? " au " + e.dateDepart.slice(8,10) + "/" + e.dateDepart.slice(5,7) + "/" + e.dateDepart.slice(0,4) : ""}. Les mouvements pointés du journal après cette date s'ajoutent automatiquement.</div></div>
+  <div class="card"><div class="top"><h2>Mouvements du Livret A</h2><button class="btn sm" data-act="lvnew">Ajouter</button></div>
+    <div class="rows">${moves.length ? moves.map(m => `<div class="row"><button class="rowbtn" ${m.kind === "S" ? `data-act="lvedit" data-id="${m.id}"` : "disabled"}><div class="t">${esc(m.lib || m.org)}</div><div class="s">${frDate(m.date)} · ${esc(m.org)}</div></button>
+      <div class="amt num ${m.vers ? "pos" : "neg"}">${m.vers ? "+ " + eur(m.vers) : "− " + eur(m.ret)}</div></div>`).join("") : '<div class="empty">Aucun mouvement.</div>'}</div></div>
+  <div class="card"><div class="top"><h2>Poches (argent qui n'est pas à moi)</h2><button class="btn sm" data-act="pochenew">Ajouter</button></div>
+    <div class="rows">${L.poches.length ? L.poches.map(p => `<div class="row"><button class="rowbtn" data-act="pocheedit" data-id="${p.id}"><div class="t">${esc(p.n)}</div><div class="s">mis de côté ${eur(p.mis)} · utilisé ${eur(p.util)}</div></button><div class="amt num">${eur(p.reste)}</div></div>`).join("") : '<div class="empty">Aucune poche.</div>'}</div></div>
+  <div class="card"><div class="top"><h2>FUTUR : sorties et entrées à venir</h2><button class="btn sm" data-act="futnew">Ajouter</button></div>
+    <div class="rows">${e.futur.length ? e.futur.map(f => `<div class="row"><button class="chk ${f.fait === "x" ? "on" : ""}" data-act="futtoggle" data-id="${f.id}" aria-label="Fait">${ICON.check}</button>
+      <button class="rowbtn" data-act="futedit" data-id="${f.id}"><div class="t">${esc(f.lib)}</div><div class="s">${f.date ? frDate(f.date) : "sans date"}${f.fait === "x" ? " · fait" : ""}</div></button>
+      <div class="amt num ${N(f.entree) ? "pos" : "neg"}">${N(f.entree) ? "+ " + eur(f.entree) : "− " + eur(f.sortie)}</div></div>`).join("") : '<div class="empty">Rien de prévu.</div>'}</div></div>`;
+}
+function sheetLivret(id){
+  const m = id ? e_manuel(id) : {date:todayIso(), lib:"", montant:"", pq:"Versement épargne"};
+  const opts = ["Versement épargne","Grosse dépense"].concat(S.epargne.poches.map(p => p.n), ["Ajustement (+)","Ajustement (-)"]);
+  openSheet(`<h2>${id ? "Modifier" : "Nouveau"} mouvement du Livret A</h2>
+    <label class="f">Pour quoi<select id="l-pq">${opts.map(o => `<option ${o === m.pq ? "selected" : ""}>${esc(o)}</option>`).join("")}</select></label>
+    <label class="f">Libellé<input id="l-lib" value="${esc(m.lib)}"></label>
+    <div class="grid2"><label class="f">Montant (€)<input id="l-mt" inputmode="decimal" value="${m.montant === "" ? "" : String(m.montant).replace(".",",")}"></label>
+    <label class="f">Date<input id="l-date" type="date" value="${esc(m.date)}"></label></div>
+    <div class="small muted">« Versement… » fait entrer l'argent sur le Livret A, tout le reste le fait sortir.</div>
+    <div class="btns"><button class="btn" data-act="lv-save" data-id="${id||""}" style="flex:1">Enregistrer</button>${id ? `<button class="btn danger" data-act="lv-del" data-id="${id}">Supprimer</button>` : ""}<button class="btn ghost" data-act="sheetclose">Fermer</button></div>`);
+}
+const e_manuel = id => S.epargne.manuel.find(x => x.id === id);
+function sheetPoche(id){
+  const p = id ? S.epargne.poches.find(x => x.id === id) : {n:"", f:""};
+  openSheet(`<h2>${id ? "Modifier" : "Nouvelle"} poche</h2>
+    <label class="f">Nom<input id="p-n" value="${esc(p.n)}"></label>
+    <label class="f">Mis de côté à la main (€)<input id="p-f" inputmode="decimal" value="${p.f === "" ? "" : String(p.f).replace(".",",")}"></label>
+    <div class="small muted">S'ajoute aux dépenses « Envois LIVRET A » pointées, dont le libellé porte le nom de la poche.</div>
+    <div class="btns"><button class="btn" data-act="po-save" data-id="${id||""}" style="flex:1">Enregistrer</button>${id ? `<button class="btn danger" data-act="po-del" data-id="${id}">Supprimer</button>` : ""}<button class="btn ghost" data-act="sheetclose">Fermer</button></div>`);
+}
+function sheetFutur(id){
+  const f = id ? S.epargne.futur.find(x => x.id === id) : {date:"", lib:"", sortie:"", entree:"", fait:""};
+  const sv = v => v ? String(v).replace(".",",") : "";
+  openSheet(`<h2>${id ? "Modifier" : "Nouvelle"} ligne FUTUR</h2>
+    <label class="f">Libellé<input id="u-lib" value="${esc(f.lib)}"></label>
+    <label class="f">Date prévue<input id="u-date" type="date" value="${esc(f.date)}"></label>
+    <div class="grid2"><label class="f">Sortie (−) €<input id="u-so" inputmode="decimal" value="${sv(f.sortie)}"></label><label class="f">Entrée (+) €<input id="u-en" inputmode="decimal" value="${sv(f.entree)}"></label></div>
+    <div class="btns"><button class="btn" data-act="fu-save" data-id="${id||""}" style="flex:1">Enregistrer</button>${id ? `<button class="btn danger" data-act="fu-del" data-id="${id}">Supprimer</button>` : ""}<button class="btn ghost" data-act="sheetclose">Fermer</button></div>`);
+}
+function viewFix(){
+  const list = (kind,rows,title) => `<div class="card"><div class="top"><h2>${title}</h2><button class="btn sm" data-act="fixnew" data-k="${kind}">Ajouter</button></div>
+    <div class="rows">${rows.length ? rows.map(r => `<div class="row"><button class="rowbtn" data-act="fixedit" data-k="${kind}" data-id="${r.id}"><div class="t">${esc(r.n)}</div><div class="s">${esc(r.t)}${r.jour ? " · le " + r.jour : ""}</div></button><div class="amt num">${eur(r.montant)}</div></div>`).join("") : '<div class="empty">Aucune ligne.</div>'}</div>
+    <div class="kv tot"><span>Total prévu par mois</span><span class="num">${eur(rows.reduce((a,r) => a + N(r.montant),0))}</span></div></div>`;
+  return `<div class="top"><div class="app">Revenus et charges fixes</div></div>` + list("rev",S.fixRev,"Revenus fixes") + list("ch",S.fixCh,"Charges fixes");
+}
+
+function viewSet(){
+  const p = V.pending;
+  const pend = p ? `<div class="card" style="border-color:var(--accent)"><h2>Fichier lu : ${esc(p.name)}</h2>
+    <div class="small">${p.kind === "classeur"
+      ? `${p.data.journal.length} opération(s), ${p.data.fixRev.length} revenu(s) fixe(s), ${p.data.fixCh.length} charge(s) fixe(s), ${p.data.settings.envelopes.length} enveloppe(s).`
+      : p.kind === "echange" ? `${p.rows.length} ligne(s) de journal${p.full.settings ? ", " + p.full.settings.envelopes.length + " enveloppe(s)" : ""}${p.full.epargne ? ", épargne (" + p.full.epargne.manuel.length + " mouvement(s), " + p.full.epargne.poches.length + " poche(s), " + p.full.epargne.futur.length + " ligne(s) FUTUR)" : ""}${p.full.fixRev ? ", " + p.full.fixRev.length + " revenu(s) fixe(s), " + p.full.fixCh.length + " charge(s) fixe(s)" : ""}.`
+      : `${p.rows.length} ligne(s) de journal.`}</div>
+    <div class="btns">${p.kind === "classeur" || (p.kind === "echange" && (p.full.settings || p.full.fixRev || p.full.epargne)) ? `<button class="btn" data-act="imp-replace">Remplacer mes données</button><button class="btn ghost" data-act="imp-merge">Fusionner le journal</button>` : `<button class="btn" data-act="imp-merge">Fusionner</button>`}
+    <button class="btn ghost" data-act="imp-cancel">Annuler</button></div></div>` : "";
+  return `<div class="top"><div class="app">Réglages</div></div>${V.msg ? `<div class="info">${esc(V.msg)}</div>` : ""}${pend}
+  <div class="card"><h2>Synchroniser avec Excel</h2>
+    <div class="small muted">Le fichier d'échange contient toutes les opérations avec un identifiant. Importez-le à nouveau pour fusionner : les lignes déjà connues sont mises à jour, les nouvelles sont ajoutées.</div>
+    <div class="btns"><button class="btn" data-act="exp-journal">Exporter le journal (.xlsx)</button>
+    <button class="btn ghost" data-act="exp-json">Sauvegarde complète (.json)</button></div>
+    <label class="f">Importer un fichier (classeur .xlsm / .xlsx, journal d'échange, sauvegarde .json)<input id="file" type="file" accept=".xlsm,.xlsx,.json,.xls"></label></div>
+  <div class="card"><h2>Compte et épargne</h2><div class="grid2">
+    <label class="f">Solde du compte (€)<input id="s-solde" inputmode="decimal" value="${isNum(S.settings.solde) ? String(S.settings.solde).replace(".",",") : ""}"></label>
+    <label class="f">Livret A au départ (€)<input id="s-livret" inputmode="decimal" value="${String(N(S.settings.livretDepart)).replace(".",",")}"></label>
+    <label class="f">Date de ce solde du Livret<input id="s-ldate" type="date" value="${esc(S.epargne.dateDepart)}"></label>
+    <label class="f">Enveloppe versée sur le Livret<select id="s-lenv"><option value="">—</option>${S.settings.envelopes.map(e => `<option ${e.n === S.epargne.envA ? "selected" : ""}>${esc(e.n)}</option>`).join("")}</select></label></div></div>
+  <div class="card"><div class="top"><h2>Enveloppes (budget mensuel)</h2><button class="btn sm" data-act="envnew">Ajouter</button></div>
+    <div class="small muted">Les budgets propres à un mois, importés du classeur, sont conservés.</div>
+    ${S.settings.envelopes.map((e,i) => `<div class="grid2" style="grid-template-columns:1fr 110px auto;align-items:end">
+      <label class="f">Nom<input data-env="n" data-i="${i}" value="${esc(e.n)}"></label>
+      <label class="f">Budget<input data-env="b" data-i="${i}" inputmode="decimal" value="${String(N(e.b)).replace(".",",")}"></label>
+      <button class="btn danger sm" data-act="envdel" data-i="${i}" aria-label="Supprimer">✕</button></div>`).join("")}</div>
+  <div class="card"><h2>Données</h2>
+    ${V.wipe ? `<div class="small">Cette action efface tout ce qui est stocké sur cet appareil.</div><div class="btns"><button class="btn danger" data-act="wipe-yes">Oui, tout effacer</button><button class="btn ghost" data-act="wipe-no">Annuler</button></div>`
+             : `<div class="btns"><button class="btn ghost" data-act="wipe">Tout effacer</button></div>`}</div>`;
+}
+
+function render(){
+  renderTabs();
+  const main = $("#main");
+  main.innerHTML = V.tab === "home" ? viewHome() : V.tab === "month" ? viewMonth() : V.tab === "add" ? viewAdd() : V.tab === "fix" ? viewFix() : V.tab === "sav" ? viewSav() : viewSet();
+  if (V.tab === "add") updateInfo();
+  window.scrollTo(0,0);
+}
+
+/* ============ Feuilles modales ============ */
+function openSheet(html){ $("#sheet").innerHTML = html; $("#sheetbg").hidden = false; }
+function closeSheet(){ $("#sheetbg").hidden = true; $("#sheet").innerHTML = ""; }
+const findFix = (k,id) => (k === "rev" ? S.fixRev : S.fixCh).find(r => r.id === id);
+
+function sheetMonth(k,id){
+  const r = findFix(k,id); const c = r.m[V.m];
+  openSheet(`<h2>${esc(r.n)} · ${MOIS[V.m]}</h2>
+    <div class="small muted">Montant habituel : ${eur(r.montant)}. Saisissez un montant différent pour ce mois seulement (vide = montant habituel).</div>
+    <label class="f">Montant de ce mois (€)<input id="m-val" inputmode="decimal" value="${isNum(c) ? String(c).replace(".",",") : ""}"></label>
+    <div class="btns"><button class="btn" data-act="sm-save" data-k="${k}" data-id="${id}" style="flex:1">Enregistrer</button>
+    <button class="btn ghost" data-act="sm-reset" data-k="${k}" data-id="${id}">Non pointé</button><button class="btn ghost" data-act="sheetclose">Fermer</button></div>`);
+}
+function sheetFix(k,id){
+  const r = id ? findFix(k,id) : {n:"",t:"",montant:"",jour:""};
+  openSheet(`<h2>${id ? "Modifier" : "Nouvelle"} ligne ${k === "rev" ? "de revenu" : "de charge"}</h2>
+    <label class="f">Libellé<input id="x-n" value="${esc(r.n)}"></label>
+    <label class="f">${k === "rev" ? "Type" : "Famille"}<input id="x-t" value="${esc(r.t)}" placeholder="${k === "rev" ? "Salaire, Allocations…" : "Emprunts, Assurances, Abonnements…"}"></label>
+    <div class="grid2"><label class="f">Montant habituel (€)<input id="x-m" inputmode="decimal" value="${r.montant === "" ? "" : String(r.montant).replace(".",",")}"></label>
+    <label class="f">Jour du mois<input id="x-j" inputmode="numeric" value="${r.jour || ""}"></label></div>
+    <div class="btns"><button class="btn" data-act="fx-save" data-k="${k}" data-id="${id||""}" style="flex:1">Enregistrer</button>
+    ${id ? `<button class="btn danger" data-act="fx-del" data-k="${k}" data-id="${id}">Supprimer</button>` : ""}<button class="btn ghost" data-act="sheetclose">Fermer</button></div>`);
+}
+
+/* ============ Actions ============ */
+function setMonth(d){ V.m += d; if (V.m < 0){ V.m = 11; V.y--; } if (V.m > 11){ V.m = 0; V.y++; } render(); }
+function saveOp(){
+  collectDraft(); const d = V.draft; const mt = parseNum(d.mont);
+  if (!d.date) return toast("Choisissez une date");
+  if (!mt || mt <= 0) return toast("Saisissez un montant supérieur à 0");
+  const o = {date:d.date,type:d.type,cat:d.type.indexOf("Livret")>=0 ? "" : d.cat,lib:d.lib.trim(),montant:Math.round(mt*100)/100,pointe:d.pt?"x":"",note:d.note,remb:d.type==="Avance (à rembourser)" ? (d.remb||"") : "",upd:Date.now()};
+  if (V.editId){ Object.assign(S.journal.find(j => j.id === V.editId), o); toast("Opération modifiée"); }
+  else { S.journal.push(Object.assign({id:uid()},o)); toast("Enregistré : " + eur(o.montant)); }
+  if (S.demo && !V.editId) { /* l'exemple reste affiché jusqu'à l'import */ }
+  V.m = +d.date.slice(5,7)-1; V.y = +d.date.slice(0,4);
+  V.editId = null; V.draft = null; persist(); V.tab = "month"; render();
+}
+async function onFile(file){
+  try {
+    if (/\.json$/i.test(file.name)){
+      const obj = JSON.parse(await file.text()); if (!obj || !obj.settings || !Array.isArray(obj.journal)) throw new Error("Sauvegarde non reconnue.");
+      V.pending = {kind:"json", name:file.name, data:obj, rows:obj.journal};
+    } else {
+      const wb = XLSX.read(await file.arrayBuffer(),{type:"array",sheets:["Journal","Paramètres","Fixes","Épargne","Mois","Listes","Journal_appli","Reglages_appli","Enveloppes_appli","Fixes_appli","Livret_appli","Poches_appli","Futur_appli"]});
+      const ech = parseEchange(wb);
+      if (ech) V.pending = {kind:"echange", name:file.name, rows:ech.rows, full:ech};
+      else V.pending = {kind:"classeur", name:file.name, data:parseClasseur(wb)};
+    }
+    V.msg = ""; render();
+  } catch(e){ V.pending = null; V.msg = "Lecture impossible : " + e.message; render(); }
+}
+function commitImport(replace){
+  const p = V.pending; if (!p) return;
+  if (replace && p.kind === "classeur"){ const prevCats = S.settings.cats; S = p.data; S.demo = false; if (!S.settings.cats.length) S.settings.cats = prevCats; V.msg = "Données remplacées par le classeur."; }
+  else if (replace && p.kind === "echange"){ const f = p.full; const base = emptyData();
+    S = Object.assign(base,{journal:p.rows}); if (f.settings) S.settings = f.settings; if (f.fixRev) S.fixRev = f.fixRev; if (f.fixCh) S.fixCh = f.fixCh; if (f.epargne) S.epargne = f.epargne;
+    V.msg = "Données remplacées par le fichier d'échange."; }
+  else if (replace && p.kind === "json"){ S = p.data; S.demo = false; V.msg = "Sauvegarde restaurée."; }
+  else {
+    const rows = p.kind === "classeur" ? p.data.journal : p.rows;
+    if (S.demo){ S.journal = []; S.fixRev = []; S.fixCh = []; S.settings.envelopes = []; S.demo = false; }
+    const r = mergeJournal(rows); V.msg = r.add + " ligne(s) ajoutée(s), " + r.upd + " mise(s) à jour.";
+  }
+  V.pending = null; migrate(); persist(); render();
+}
+
+document.addEventListener("click", ev => {
+  const b = ev.target.closest("[data-act]"); if (!b) { if (ev.target.id === "sheetbg") closeSheet(); return; }
+  const a = b.dataset.act, id = b.dataset.id, k = b.dataset.k;
+  switch (a){
+    case "tab": if (V.tab === "add") collectDraft(); if (b.dataset.v === "add" && V.tab !== "add"){ V.editId = null; V.draft = null; } V.tab = b.dataset.v; render(); break;
+    case "mprev": setMonth(-1); break; case "mnext": setMonth(1); break;
+    case "hidepast": V.hidePast = !V.hidePast; render(); break;
+    case "fixtoggle": { const r = findFix(k,id); r.m[V.m] = r.m[V.m] === "x" ? "" : "x"; persist(); render(); break; }
+    case "fixmonth": sheetMonth(k,id); break;
+    case "sm-save": { const r = findFix(k,id); const v = parseNum($("#m-val").value); r.m[V.m] = $("#m-val").value.trim() === "" ? "" : (v === null ? "" : v); persist(); closeSheet(); render(); break; }
+    case "sm-reset": { findFix(k,id).m[V.m] = ""; persist(); closeSheet(); render(); break; }
+    case "sheetclose": closeSheet(); break;
+    case "jtoggle": { const j = S.journal.find(x => x.id === id); j.pointe = j.pointe === "x" ? "" : "x"; j.upd = Date.now(); persist(); render(); break; }
+    case "jedit": V.editId = id; V.draft = null; V.tab = "add"; render(); break;
+    case "jdel": { const j = S.journal.find(x => x.id === V.editId); j.del = true; j.upd = Date.now(); V.editId = null; V.draft = null; persist(); toast("Opération supprimée"); V.tab = "month"; render(); break; }
+    case "type": collectDraft(); V.draft.type = b.dataset.v; if (b.dataset.v.indexOf("Livret") >= 0) V.draft.cat = ""; render(); break;
+    case "save": saveOp(); break;
+    case "clear": V.draft = null; render(); break;
+    case "fixnew": sheetFix(k,""); break;
+    case "fixedit": sheetFix(k,id); break;
+    case "fx-save": {
+      const n = $("#x-n").value.trim(); if (!n) return toast("Donnez un libellé");
+      const mt = parseNum($("#x-m").value) || 0; const j = parseInt($("#x-j").value,10); const o = {n, t:$("#x-t").value.trim(), montant:mt, jour:(j>=1&&j<=31) ? j : null};
+      if (id) Object.assign(findFix(k,id),o); else (k === "rev" ? S.fixRev : S.fixCh).push(Object.assign({id:uid(), m:Array(12).fill("")},o));
+      persist(); closeSheet(); render(); break; }
+    case "fx-del": { const arr = k === "rev" ? S.fixRev : S.fixCh; arr.splice(arr.findIndex(r => r.id === id),1); persist(); closeSheet(); render(); break; }
+    case "gosav": V.tab = "sav"; render(); break;
+    case "lvnew": sheetLivret(""); break; case "lvedit": sheetLivret(id); break;
+    case "lv-save": { const mt = parseNum($("#l-mt").value); if (!mt || mt <= 0) return toast("Saisissez un montant");
+      const o = {date:$("#l-date").value, lib:$("#l-lib").value.trim(), montant:mt, pq:$("#l-pq").value};
+      if (id) Object.assign(e_manuel(id), o); else S.epargne.manuel.push(Object.assign({id:uid()}, o)); persist(); closeSheet(); render(); break; }
+    case "lv-del": S.epargne.manuel.splice(S.epargne.manuel.findIndex(x => x.id === id),1); persist(); closeSheet(); render(); break;
+    case "pochenew": sheetPoche(""); break; case "pocheedit": sheetPoche(id); break;
+    case "po-save": { const n = $("#p-n").value.trim(); if (!n) return toast("Donnez un nom"); const o = {n, f:parseNum($("#p-f").value) || 0};
+      if (id) Object.assign(S.epargne.poches.find(x => x.id === id), o); else S.epargne.poches.push(Object.assign({id:uid()}, o)); persist(); closeSheet(); render(); break; }
+    case "po-del": S.epargne.poches.splice(S.epargne.poches.findIndex(x => x.id === id),1); persist(); closeSheet(); render(); break;
+    case "futnew": sheetFutur(""); break; case "futedit": sheetFutur(id); break;
+    case "fu-save": { const so = parseNum($("#u-so").value) || 0, en = parseNum($("#u-en").value) || 0; if (!so && !en) return toast("Saisissez une sortie ou une entrée");
+      const o = {lib:$("#u-lib").value.trim(), date:$("#u-date").value, sortie:so, entree:en};
+      if (id) Object.assign(S.epargne.futur.find(x => x.id === id), o); else S.epargne.futur.push(Object.assign({id:uid(), fait:""}, o)); persist(); closeSheet(); render(); break; }
+    case "fu-del": S.epargne.futur.splice(S.epargne.futur.findIndex(x => x.id === id),1); persist(); closeSheet(); render(); break;
+    case "futtoggle": { const f = S.epargne.futur.find(x => x.id === id); f.fait = f.fait === "x" ? "" : "x"; persist(); render(); break; }
+    case "envnew": S.settings.envelopes.push({n:"Nouvelle enveloppe", b:0, m:Array(12).fill(null)}); persist(); render(); break;
+    case "envdel": S.settings.envelopes.splice(+b.dataset.i,1); persist(); render(); break;
+    case "exp-journal": saveFile("journal_appli.xlsx", buildEchange(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"); break;
+    case "exp-json": saveFile("mes-comptes-sauvegarde.json", JSON.stringify(S,null,1), "application/json"); break;
+    case "imp-replace": commitImport(true); break; case "imp-merge": commitImport(false); break;
+    case "imp-cancel": V.pending = null; render(); break;
+    case "wipe": V.wipe = true; render(); break; case "wipe-no": V.wipe = false; render(); break;
+    case "wipe-yes": S = emptyData(); V.wipe = false; V.msg = "Données effacées."; persist(); render(); break;
+  }
+});
+document.addEventListener("change", ev => {
+  const t = ev.target;
+  if (t.id === "file" && t.files[0]) { onFile(t.files[0]); t.value = ""; return; }
+  if (t.id === "solde" || t.id === "s-solde"){ const v = parseNum(t.value); S.settings.solde = t.value.trim() === "" ? null : v; persist(); if (V.tab === "home") render(); return; }
+  if (t.id === "s-ldate"){ S.epargne.dateDepart = t.value; persist(); return; }
+  if (t.id === "s-lenv"){ S.epargne.envA = t.value; persist(); return; }
+  if (t.id === "s-livret"){ S.settings.livretDepart = parseNum(t.value) || 0; persist(); return; }
+  if (t.dataset.env){ const e = S.settings.envelopes[+t.dataset.i];
+    if (t.dataset.env === "n"){ const old = e.n; e.n = t.value.trim() || old; S.journal.forEach(j => { if (j.cat === old && e.n !== old){ j.cat = e.n; j.upd = Date.now(); } }); }
+    else e.b = parseNum(t.value) || 0; persist(); return; }
+  if (V.tab === "add" && /^f-/.test(t.id)) updateInfo();
+});
+document.addEventListener("input", ev => { if (V.tab === "add" && /^f-(mont|date)$/.test(ev.target.id)) updateInfo(); });
+
+/* ============ Démarrage ============ */
+S = load();
+if (!S || !S.settings){ S = demoData(); persist(); }
+const migrate = () => { if (!S.epargne) S.epargne = emptyEpargne(); };
+migrate();
+render();
+if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) { try { navigator.serviceWorker.register("sw.js").catch(() => {}); } catch(e){} }
+</script>
+
+</body>
+</html>
