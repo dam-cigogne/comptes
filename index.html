@@ -406,7 +406,7 @@ function buildEchange(){
   S.fixRev.forEach(r => fx.push(["Revenu", r.n, r.t, N(r.montant), r.jour || ""].concat(r.m)));
   S.fixCh.forEach(r => fx.push(["Charge", r.n, r.t, N(r.montant), r.jour || ""].concat(r.m)));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(fx), "Fixes_appli");
-  return XLSX.write(wb,{type:"array",bookType:"xlsx"});
+  return XLSX.write(wb,{type:"array",bookType:"xlsx",compression:true});
 }
 async function saveFile(name, data, mime){
   let dl = null; try { dl = window.claude && window.claude.use ? await window.claude.use("downloads") : null; } catch(e){}
