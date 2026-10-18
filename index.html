@@ -177,7 +177,7 @@ function persist(){ memCopy = S; try { localStorage.setItem(KEY, JSON.stringify(
 function emptyData(){
   return { v:1, demo:false,
     settings:{ solde:null, livretDepart:0, envelopes:[], cats:CATS_EXC.slice() },
-    journal:[], fixRev:[], fixCh:[], epargne:emptyEpargne() };
+    journal:[], fixRev:[], fixCh:[], epargne:emptyEpargne(), web:[] };
 }
 function emptyEpargne(){ return {dateDepart:"", envA:"Épargne", envB:"", manuel:[], poches:[], futur:[]}; }
 function demoData(){
@@ -434,18 +434,20 @@ const ICON = {
   add:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
   fix:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>',
   set:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3.9a7 7 0 0 0-2-1.2L14.2 3h-4l-.4 2.6a7 7 0 0 0-2 1.2l-2.3-.9-2 3.4 2 1.5A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.3-.9c.6.5 1.3.9 2 1.2l.4 2.6h4l.4-2.6c.7-.3 1.4-.7 2-1.2l2.3.9 2-3.4-2-1.5c.1-.4.1-.8.1-1.2z"/></svg>',
+  sav:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 8c0-2-2-3-4-3-1.5 0-2.5.5-3 1-3-.5-7 1-7 5 0 2 1 3.500 2.500 4.300V18h3v-1.500h3V18h3v-2.700c1-.7 1.500-1.800 1.500-3"/><path d="M19 11h2v3h-2M9 9.500h.01"/></svg>',
+  web:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.500 2.700 3.500 5.700 3.500 9s-1 6.300-3.500 9c-2.500-2.700-3.500-5.700-3.500-9S9.500 5.700 12 3z"/></svg>',
   check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>'
 };
 function renderTabs(){
-  const T = [["home","Accueil"],["month","Mois"],["add","Ajouter"],["fix","Fixes"],["set","Réglages"]];
+  const T = [["home","Accueil"],["month","Mois"],["add","Ajouter"],["sav","Épargne"],["fix","Fixes"],["web","Comptes"]];
   $("#tabs .in").innerHTML = T.map(([k,l]) => k === "add"
     ? `<button class="add ${V.tab===k?"on":""}" data-act="tab" data-v="${k}" aria-label="${l}"><span class="pl">${ICON[k]}</span><span>${l}</span></button>`
-    : `<button class="${(V.tab===k || (k==="home" && V.tab==="sav"))?"on":""}" data-act="tab" data-v="${k}">${ICON[k]}<span>${l}</span></button>`).join("");
+    : `<button class="${V.tab===k?"on":""}" data-act="tab" data-v="${k}">${ICON[k]}<span>${l}</span></button>`).join("");
 }
 function monthNav(){
   return `<div class="monthnav"><button data-act="mprev" aria-label="Mois précédent">‹</button><span>${MOIS[V.m]} ${V.y}</span><button data-act="mnext" aria-label="Mois suivant">›</button></div>`;
 }
-function topbar(){ return `<div class="top"><div class="app">Mes comptes perso</div>${monthNav()}</div>` + (S.demo ? `<div class="banner">Données d'exemple. Importez votre classeur Excel dans <b>Réglages</b> pour travailler avec vos vrais comptes.</div>` : ""); }
+function topbar(){ return `<div class="top"><div class="app">Mes comptes</div><div class="topr">${monthNav()}<button class="gear" data-act="tab" data-v="set" aria-label="Réglages">${ICON.set}</button></div></div>` + (S.demo ? `<div class="banner">Données d'exemple. Importez votre classeur Excel dans <b>Réglages</b> pour travailler avec vos vrais comptes.</div>` : ""); }
 
 function viewHome(){
   const c = calc(V.m,V.y); const L = livretCalc(); const soldeVal = S.settings.solde;
@@ -572,7 +574,7 @@ function viewSav(){
   <div class="card"><div class="kv"><span>Épargne prévue (après FUTUR)</span><span class="num">${eur(L.prevu)}</span></div>
     <div class="small muted">Départ : ${eur(S.settings.livretDepart)}${e.dateDepart ? " au " + e.dateDepart.slice(8,10) + "/" + e.dateDepart.slice(5,7) + "/" + e.dateDepart.slice(0,4) : ""}. Les mouvements pointés du journal après cette date s'ajoutent automatiquement.</div></div>
   <div class="card"><div class="top"><h2>Mouvements du Livret A</h2><button class="btn sm" data-act="lvnew">Ajouter</button></div>
-    <div class="rows">${moves.length ? moves.map(m => `<div class="row"><button class="rowbtn" ${m.kind === "S" ? `data-act="lvedit" data-id="${m.id}"` : "disabled"}><div class="t">${esc(m.lib || m.org)}</div><div class="s">${frDate(m.date)} · ${esc(m.org)}</div></button>
+    <div class="rows">${moves.length ? moves.map(m => `<div class="row"><button class="rowbtn" ${m.kind === "S" ? `data-act="lvedit" data-id="${m.id}"` : m.kind === "J" ? `data-act="jedit" data-id="${m.id}"` : "disabled"}><div class="t">${esc(m.lib || m.org)}</div><div class="s">${frDate(m.date)} · ${esc(m.org)}</div></button>
       <div class="amt num ${m.vers ? "pos" : "neg"}">${m.vers ? "+ " + eur(m.vers) : "− " + eur(m.ret)}</div></div>`).join("") : '<div class="empty">Aucun mouvement.</div>'}</div></div>
   <div class="card"><div class="top"><h2>Poches (argent qui n'est pas à moi)</h2><button class="btn sm" data-act="pochenew">Ajouter</button></div>
     <div class="rows">${L.poches.length ? L.poches.map(p => `<div class="row"><button class="rowbtn" data-act="pocheedit" data-id="${p.id}"><div class="t">${esc(p.n)}</div><div class="s">mis de côté ${eur(p.mis)} · utilisé ${eur(p.util)}</div></button><div class="amt num">${eur(p.reste)}</div></div>`).join("") : '<div class="empty">Aucune poche.</div>'}</div></div>
@@ -617,6 +619,36 @@ function viewFix(){
   return `<div class="top"><div class="app">Revenus et charges fixes</div></div>` + list("rev",S.fixRev,"Revenus fixes") + list("ch",S.fixCh,"Charges fixes");
 }
 
+const WEB_CATS = ["Banque","Achats","Administratif","Réseaux sociaux","Domotique","Travail","Autre"], WEB_ST = ["À changer","Changé","OK"];
+function webUrl(u){ u = String(u||"").trim(); if (!u) return ""; return /^https?:\/\//i.test(u) ? u : "https://" + u; }
+function viewWeb(){
+  const all = (S.web || []).filter(x => !x.del), f = V.wf || "Tous", cnt = st => all.filter(x => x.st === st).length;
+  return `<div class="top"><div class="app">Comptes en ligne</div><button class="btn sm" data-act="webnew">Ajouter</button></div>
+  <div class="info">Ne notez jamais de mot de passe ici : les données restent en clair sur le téléphone. Gardez-les dans Mots de passe Apple. Ici : le site, l'identifiant et l'état.</div>
+  <input class="search" id="web-q" placeholder="Rechercher un site, un identifiant…" value="${esc(V.wq || "")}" enterkeyhint="search">
+  <div class="seg">${["Tous"].concat(WEB_ST).map(x => `<button class="${f === x ? "on" : ""}" data-act="webf" data-v="${x}">${x}${x === "Tous" ? " (" + all.length + ")" : " (" + cnt(x) + ")"}</button>`).join("")}</div>
+  <div class="card"><div class="rows" id="web-list">${webList()}</div></div>`;
+}
+function webList(){
+  const q = (V.wq || "").toLowerCase(), f = V.wf || "Tous";
+  const list = (S.web || []).filter(x => !x.del && (f === "Tous" || x.st === f) && (!q || (x.site + " " + x.ident + " " + x.cat + " " + x.note).toLowerCase().includes(q)))
+    .sort((a,b) => a.site.localeCompare(b.site,"fr"));
+  const chip = st => st === "À changer" ? "bad" : st === "Changé" ? "" : "warn";
+  return list.length ? list.map(x => `<div class="row"><div class="ico">${esc((x.site || "?").trim().charAt(0))}</div>
+    <button class="rowbtn" data-act="webedit" data-id="${x.id}"><div class="t">${esc(x.site)}</div><div class="s">${esc(x.ident || "—")} · ${esc(x.cat)}</div></button>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px"><span class="chip ${chip(x.st)}">${esc(x.st)}</span>${webUrl(x.url) ? `<a class="mini" href="${esc(webUrl(x.url))}" target="_blank" rel="noopener noreferrer">Ouvrir</a>` : ""}</div></div>`).join("") : '<div class="empty">Aucun compte. Touchez Ajouter pour commencer.</div>';
+}
+function sheetWeb(id){
+  const w = id ? S.web.find(x => x.id === id) : {site:"", url:"", ident:"", cat:"Autre", st:"À changer", note:""};
+  const sel = (lab, key, arr) => `<label class="f">${lab}<select id="w-${key}">${arr.map(o => `<option ${o === w[key] ? "selected" : ""}>${esc(o)}</option>`).join("")}</select></label>`;
+  openSheet(`<h2>${id ? "Modifier" : "Nouveau"} compte en ligne</h2>
+    <label class="f">Site<input id="w-site" value="${esc(w.site)}" placeholder="Ex. Amazon"></label>
+    <label class="f">Adresse<input id="w-url" inputmode="url" autocapitalize="none" value="${esc(w.url)}" placeholder="amazon.fr"></label>
+    <label class="f">Identifiant / e-mail<input id="w-ident" autocapitalize="none" value="${esc(w.ident)}"></label>
+    <div class="grid2">${sel("Catégorie","cat",WEB_CATS)}${sel("État","st",WEB_ST)}</div>
+    <label class="f">Note (sans mot de passe)<input id="w-note" value="${esc(w.note)}" placeholder="Ex. double authentification activée"></label>
+    <div class="btns"><button class="btn" data-act="web-save" data-id="${id||""}" style="flex:1">Enregistrer</button>${id ? `<button class="btn danger" data-act="web-del" data-id="${id}">Supprimer</button>` : ""}<button class="btn ghost" data-act="sheetclose">Fermer</button></div>`);
+}
 function viewSet(){
   const p = V.pending;
   const pend = p ? `<div class="card" style="border-color:var(--accent)"><h2>Fichier lu : ${esc(p.name)}</h2>
@@ -651,7 +683,7 @@ function viewSet(){
 function render(){
   renderTabs();
   const main = $("#main");
-  main.innerHTML = V.tab === "home" ? viewHome() : V.tab === "month" ? viewMonth() : V.tab === "add" ? viewAdd() : V.tab === "fix" ? viewFix() : V.tab === "sav" ? viewSav() : viewSet();
+  main.innerHTML = V.tab === "home" ? viewHome() : V.tab === "month" ? viewMonth() : V.tab === "add" ? viewAdd() : V.tab === "fix" ? viewFix() : V.tab === "sav" ? viewSav() : V.tab === "web" ? viewWeb() : viewSet();
   if (V.tab === "add") updateInfo();
   window.scrollTo(0,0);
 }
@@ -707,22 +739,32 @@ async function onFile(file){
     V.msg = ""; render();
   } catch(e){ V.pending = null; V.msg = "Lecture impossible : " + e.message; render(); }
 }
+function seenOf(p){ const a = p.rows.map(j => j.id); if (p.full && p.full.epargne) for (const m of p.full.epargne.manuel) a.push(m.id); return a; }
+function goneIds(p){ const now = new Set(seenOf(p)), g = new Set(); for (const id of (S.seen || [])) if (!now.has(id)) g.add(id); return g; }
 function commitImport(replace){
-  const p = V.pending; if (!p) return;
+  const p = V.pending; if (!p) return; const keepWeb = S.web || [];
   if (replace && p.kind === "classeur"){ const prevCats = S.settings.cats; S = p.data; S.demo = false; if (!S.settings.cats.length) S.settings.cats = prevCats; V.msg = "Données remplacées par le classeur."; }
   else if (replace && p.kind === "echange"){ const f = p.full; const base = emptyData();
     S = Object.assign(base,{journal:p.rows}); if (f.settings) S.settings = f.settings; if (f.fixRev) S.fixRev = f.fixRev; if (f.fixCh) S.fixCh = f.fixCh; if (f.epargne) S.epargne = f.epargne;
+    if (/^export_appli/i.test(p.name)) S.seen = seenOf(p);
     V.msg = "Données remplacées par le fichier d'échange."; }
   else if (replace && p.kind === "json"){ S = p.data; S.demo = false; V.msg = "Sauvegarde restaurée."; }
   else {
     const rows = p.kind === "classeur" ? p.data.journal : p.rows;
     if (S.demo){ S.journal = []; S.fixRev = []; S.fixCh = []; S.settings.envelopes = []; S.demo = false; }
+    const fromExcel = p.kind === "echange" && /^export_appli/i.test(p.name), gone = fromExcel ? goneIds(p) : null;
     const r = mergeJournal(rows); V.msg = r.add + " ligne(s) ajoutée(s), " + r.upd + " mise(s) à jour.";
     if (p.kind === "echange" && p.full.epargne){ const byId = new Map(S.epargne.manuel.map(m => [m.id, m])); let a = 0, u = 0;
       for (const m of p.full.epargne.manuel){ const c = byId.get(m.id);
         if (!c){ S.epargne.manuel.push(m); byId.set(m.id, m); a++; } else if ((m.upd || 0) > (c.upd || 0)){ Object.assign(c, m); u++; } }
       V.msg += " Livret A : " + a + " ajoutée(s), " + u + " mise(s) à jour."; }
+    if (fromExcel){ let d = 0, now = Date.now();
+      for (const j of S.journal) if (!j.del && gone.has(j.id)){ j.del = true; j.upd = now; d++; }
+      for (const m of S.epargne.manuel) if (!m.del && gone.has(m.id)){ m.del = true; m.upd = now; d++; }
+      if (d) V.msg += " " + d + " ligne(s) supprimée(s) dans Excel retirée(s) ici.";
+      S.seen = seenOf(p); }
   }
+  if (replace && p.kind !== "json") S.web = keepWeb;
   V.pending = null; migrate(); persist(); render();
 }
 
@@ -762,6 +804,12 @@ document.addEventListener("click", ev => {
     case "po-save": { const n = $("#p-n").value.trim(); if (!n) return toast("Donnez un nom"); const o = {n, f:parseNum($("#p-f").value) || 0};
       if (id) Object.assign(S.epargne.poches.find(x => x.id === id), o); else S.epargne.poches.push(Object.assign({id:uid()}, o)); persist(); closeSheet(); render(); break; }
     case "po-del": S.epargne.poches.splice(S.epargne.poches.findIndex(x => x.id === id),1); persist(); closeSheet(); render(); break;
+    case "webnew": sheetWeb(""); break; case "webedit": sheetWeb(id); break;
+    case "webf": V.wf = b.dataset.v; render(); break;
+    case "web-save": { const site = $("#w-site").value.trim(); if (!site) return toast("Donnez le nom du site");
+      const o = {site, url:$("#w-url").value.trim(), ident:$("#w-ident").value.trim(), cat:$("#w-cat").value, st:$("#w-st").value, note:$("#w-note").value.trim(), upd:Date.now()};
+      if (id) Object.assign(S.web.find(x => x.id === id), o); else S.web.push(Object.assign({id:uid()}, o)); persist(); closeSheet(); render(); break; }
+    case "web-del": { const w = S.web.find(x => x.id === id); w.del = true; w.upd = Date.now(); persist(); closeSheet(); render(); break; }
     case "futnew": sheetFutur(""); break; case "futedit": sheetFutur(id); break;
     case "fu-save": { const so = parseNum($("#u-so").value) || 0, en = parseNum($("#u-en").value) || 0; if (!so && !en) return toast("Saisissez une sortie ou une entrée");
       const o = {lib:$("#u-lib").value.trim(), date:$("#u-date").value, sortie:so, entree:en};
@@ -778,6 +826,7 @@ document.addEventListener("click", ev => {
     case "wipe-yes": S = emptyData(); V.wipe = false; V.msg = "Données effacées."; persist(); render(); break;
   }
 });
+document.addEventListener("input", ev => { if (ev.target.id === "web-q"){ V.wq = ev.target.value; $("#web-list").innerHTML = webList(); } });
 document.addEventListener("change", ev => {
   const t = ev.target;
   if (t.id === "file" && t.files[0]) { onFile(t.files[0]); t.value = ""; return; }
@@ -795,7 +844,7 @@ document.addEventListener("input", ev => { if (V.tab === "add" && /^f-(mont|date
 /* ============ Démarrage ============ */
 S = load();
 if (!S || !S.settings){ S = demoData(); persist(); }
-const migrate = () => { if (!S.epargne) S.epargne = emptyEpargne(); };
+const migrate = () => { if (!S.epargne) S.epargne = emptyEpargne(); if (!Array.isArray(S.web)) S.web = []; };
 migrate();
 render();
 if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) { try { navigator.serviceWorker.register("sw.js").catch(() => {}); } catch(e){} }
