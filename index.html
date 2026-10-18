@@ -133,6 +133,8 @@ nav.tabs button.add{color:var(--ink)}
 <body>
 <div class="wrap" id="main"></div>
 <nav class="tabs" id="tabs"><div class="in"></div></nav>
+<div id="lock" hidden><div class="lockin"><div class="lockt">Mes comptes</div><div id="lockmsg">Entrez votre code</div><div class="dots" id="lockdots"></div>
+  <div class="pad" id="lockpad"></div><div id="lockextra" class="btns" style="justify-content:center"></div></div></div>
 <div id="sheetbg" hidden><div id="sheet" role="dialog" aria-modal="true"></div></div>
 <div id="toast" hidden></div>
 
@@ -172,7 +174,79 @@ const frDate = iso => iso ? iso.slice(8,10)+"/"+iso.slice(5,7) : "";
 /* ============ Données ============ */
 let S = null, memCopy = null;
 function load(){ try { const t = localStorage.getItem(KEY); if (t) return JSON.parse(t); } catch(e){} return memCopy; }
-function persist(){ memCopy = S; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} }
+function persist(){ if (!S) return; memCopy = S; if (SEC.on){ SEC.dirty = true; if (!SEC.saving) flushEnc(); return; } try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} }
+
+/* ============ Sécurité : code, Face ID, chiffrement AES-GCM ============ */
+const ENC = KEY + "-enc", SECK = KEY + "-sec";
+const SEC = {on:false, dk:null, saving:false, dirty:false, away:0, pin:"", msg:"", ask:false, cfg:{face:false, cred:"", delay:30, fails:0, until:0}};
+const lsGet = k => { try { return localStorage.getItem(k); } catch(e){ return null; } };
+const lsSet = (k,v) => { try { localStorage.setItem(k,v); } catch(e){} };
+const lsDel = k => { try { localStorage.removeItem(k); } catch(e){} };
+const lsWorks = () => { try { localStorage.setItem(KEY+"-t","1"); const ok = localStorage.getItem(KEY+"-t") === "1"; localStorage.removeItem(KEY+"-t"); return ok; } catch(e){ return false; } };
+const subtle = (window.crypto && crypto.subtle) || null;
+function b64(u8){ let t = ""; for (let i = 0; i < u8.length; i += 8192) t += String.fromCharCode.apply(null, u8.subarray(i, i + 8192)); return btoa(t); }
+const unb64 = t => Uint8Array.from(atob(t), c => c.charCodeAt(0));
+async function kek(pin, salt){ const base = await subtle.importKey("raw", new TextEncoder().encode(pin), "PBKDF2", false, ["deriveKey"]);
+  return subtle.deriveKey({name:"PBKDF2", salt, iterations:200000, hash:"SHA-256"}, base, {name:"AES-GCM", length:256}, false, ["encrypt","decrypt"]); }
+async function aesEnc(key, data){ const iv = crypto.getRandomValues(new Uint8Array(12)); const ct = new Uint8Array(await subtle.encrypt({name:"AES-GCM", iv}, key, data)); return {iv:b64(iv), ct:b64(ct)}; }
+async function aesDec(key, o){ return new Uint8Array(await subtle.decrypt({name:"AES-GCM", iv:unb64(o.iv)}, key, unb64(o.ct))); }
+const dkKey = raw => subtle.importKey("raw", raw, "AES-GCM", false, ["encrypt","decrypt"]);
+function secCfgLoad(){ try { Object.assign(SEC.cfg, JSON.parse(lsGet(SECK) || "{}")); } catch(e){} }
+const secCfgSave = () => lsSet(SECK, JSON.stringify(SEC.cfg));
+async function flushEnc(){ SEC.saving = true;
+  try { while (SEC.dirty && SEC.dk && S){ SEC.dirty = false; const blob = JSON.parse(lsGet(ENC)); blob.d = await aesEnc(SEC.dk, new TextEncoder().encode(JSON.stringify(S))); lsSet(ENC, JSON.stringify(blob)); } } catch(e){}
+  SEC.saving = false; }
+async function secFlushed(){ while (SEC.saving || SEC.dirty){ if (!SEC.saving) flushEnc(); await new Promise(r => setTimeout(r, 20)); } }
+function idb(){ return new Promise((res,rej) => { const r = indexedDB.open("mcp-sec",1); r.onupgradeneeded = () => r.result.createObjectStore("k"); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
+async function idbPut(k,v){ const db = await idb(); return new Promise((res,rej) => { const t = db.transaction("k","readwrite"); t.objectStore("k").put(v,k); t.oncomplete = () => res(); t.onerror = () => rej(t.error); }); }
+async function idbGet(k){ const db = await idb(); return new Promise((res,rej) => { const q = db.transaction("k").objectStore("k").get(k); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); }
+async function idbDel(k){ try { const db = await idb(); await new Promise(res => { const t = db.transaction("k","readwrite"); t.objectStore("k").delete(k); t.oncomplete = () => res(); t.onerror = () => res(); }); } catch(e){} }
+const secAvailable = () => !!subtle && lsWorks() && location.protocol.indexOf("http") === 0;
+async function faceOK(){ try { return !!(window.PublicKeyCredential && PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable && window.indexedDB && window.top === window.self && await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()); } catch(e){ return false; } }
+async function faceRegister(){ const cred = await navigator.credentials.create({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)), rp:{name:"Mes comptes", id:location.hostname},
+  user:{id:crypto.getRandomValues(new Uint8Array(16)), name:"comptes", displayName:"Mes comptes"}, pubKeyCredParams:[{type:"public-key",alg:-7},{type:"public-key",alg:-257}],
+  authenticatorSelection:{authenticatorAttachment:"platform", userVerification:"required", residentKey:"preferred"}, timeout:60000, attestation:"none"}}); return b64(new Uint8Array(cred.rawId)); }
+async function faceAsk(){ await navigator.credentials.get({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)), rpId:location.hostname,
+  allowCredentials:[{type:"public-key", id:unb64(SEC.cfg.cred), transports:["internal"]}], userVerification:"required", timeout:60000}}); }
+async function secEnable(pin){
+  const raw = crypto.getRandomValues(new Uint8Array(32)), salt = crypto.getRandomValues(new Uint8Array(16));
+  const w = await aesEnc(await kek(pin, salt), raw); SEC.dk = await dkKey(raw);
+  const d = await aesEnc(SEC.dk, new TextEncoder().encode(JSON.stringify(S)));
+  lsSet(ENC, JSON.stringify({salt:b64(salt), w, d})); if (lsGet(ENC)) { lsDel(KEY); SEC.on = true; } SEC.cfg.fails = 0; secCfgSave(); }
+async function secUnwrap(pin){ const blob = JSON.parse(lsGet(ENC)); return {blob, raw: await aesDec(await kek(pin, unb64(blob.salt)), blob.w)}; }
+async function secDisable(){ await secFlushed(); lsSet(KEY, JSON.stringify(S)); lsDel(ENC); await idbDel("dk"); SEC.on = false; SEC.dk = null; SEC.cfg.face = false; SEC.cfg.cred = ""; secCfgSave(); }
+async function secChange(oldPin, newPin){ await secFlushed(); const {blob, raw} = await secUnwrap(oldPin); const salt = crypto.getRandomValues(new Uint8Array(16));
+  blob.salt = b64(salt); blob.w = await aesEnc(await kek(newPin, salt), raw); lsSet(ENC, JSON.stringify(blob)); }
+function afterUnlock(plain){ S = JSON.parse(new TextDecoder().decode(plain)); memCopy = S; SEC.on = true; SEC.cfg.fails = 0; SEC.cfg.until = 0; secCfgSave(); migrate(); return true; }
+async function unlockPin(pin){ try { const {blob, raw} = await secUnwrap(pin); SEC.dk = await dkKey(raw); return afterUnlock(await aesDec(SEC.dk, blob.d)); } catch(e){ SEC.dk = null; return false; } }
+async function unlockFace(){ try { await faceAsk(); const dk = await idbGet("dk"); if (!dk) return false; const blob = JSON.parse(lsGet(ENC)); const plain = await aesDec(dk, blob.d); SEC.dk = dk; return afterUnlock(plain); } catch(e){ SEC.dk = null; return false; } }
+
+function showLock(msg, bad){
+  document.body.classList.remove("priv"); $("#lock").hidden = false; SEC.pin = ""; SEC.ask = false;
+  const wait = Math.ceil((SEC.cfg.until - Date.now()) / 1000);
+  $("#lockmsg").textContent = wait > 0 ? "Trop d'essais. Patientez " + wait + " s." : (msg || "Entrez votre code"); $("#lockmsg").className = bad || wait > 0 ? "bad" : "";
+  const key = n => `<button data-act="lk-d" data-id="${n}">${n}</button>`;
+  $("#lockpad").innerHTML = [1,2,3,4,5,6,7,8,9].map(key).join("") + (SEC.cfg.face ? `<button data-act="lk-face" aria-label="Face ID">${ICON.face}</button>` : "<span></span>") + key(0) +
+    `<button data-act="lk-del" aria-label="Effacer">⌫</button>`;
+  $("#lockextra").innerHTML = SEC.ask ? "" : `<button class="btn ghost sm" data-act="lk-ok">Valider</button><button class="btn ghost sm" data-act="lk-forgot">Code oublié</button>`;
+  lockDots();
+}
+function lockDots(){ $("#lockdots").innerHTML = Array.from({length:Math.max(4,SEC.pin.length)}, (_,i) => `<i class="${i < SEC.pin.length ? "on" : ""}"></i>`).join(""); }
+function hideLock(){ $("#lock").hidden = true; document.body.classList.remove("priv"); render(); }
+async function lockSubmit(){
+  if (Date.now() < SEC.cfg.until) return showLock("", true);
+  if (SEC.pin.length < 4) return;
+  const ok = await unlockPin(SEC.pin);
+  if (ok) return hideLock();
+  SEC.cfg.fails++; if (SEC.cfg.fails >= 5) SEC.cfg.until = Date.now() + Math.min(600, 15 * Math.pow(2, SEC.cfg.fails - 5)) * 1000; secCfgSave();
+  showLock("Code incorrect", true);
+}
+async function lockNow(){ if (!SEC.on || !SEC.dk || !S) return; await secFlushed(); SEC.dk = null; S = null; memCopy = null; V.pending = null; closeSheet(); showLock(); }
+document.addEventListener("visibilitychange", () => {
+  if (!SEC.on) return;
+  if (document.hidden){ if (S) document.body.classList.add("priv"); SEC.away = Date.now(); secFlushed(); }
+  else if (S && SEC.away && Date.now() - SEC.away >= SEC.cfg.delay * 1000) lockNow(); else document.body.classList.remove("priv");
+});
 
 function emptyData(){
   return { v:1, demo:false,
@@ -436,6 +510,7 @@ const ICON = {
   set:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3.9a7 7 0 0 0-2-1.2L14.2 3h-4l-.4 2.6a7 7 0 0 0-2 1.2l-2.3-.9-2 3.4 2 1.5A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.3-.9c.6.5 1.3.9 2 1.2l.4 2.6h4l.4-2.6c.7-.3 1.4-.7 2-1.2l2.3.9 2-3.4-2-1.5c.1-.4.1-.8.1-1.2z"/></svg>',
   sav:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 8c0-2-2-3-4-3-1.5 0-2.5.5-3 1-3-.5-7 1-7 5 0 2 1 3.500 2.500 4.300V18h3v-1.500h3V18h3v-2.700c1-.7 1.500-1.800 1.500-3"/><path d="M19 11h2v3h-2M9 9.500h.01"/></svg>',
   web:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.500 2.700 3.500 5.700 3.500 9s-1 6.300-3.500 9c-2.500-2.700-3.500-5.700-3.500-9S9.500 5.700 12 3z"/></svg>',
+  face:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M9 10v1.500M15 10v1.500M12 10v3.500h-1M9 16c1.800 1.300 4.200 1.300 6 0"/></svg>',
   check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>'
 };
 function renderTabs(){
@@ -683,6 +758,24 @@ function sheetWeb(id){
     <label class="f">Note (sans mot de passe)<input id="w-note" value="${esc(w.note)}" placeholder="Ex. double authentification activée"></label>
     <div class="btns"><button class="btn" data-act="web-save" data-id="${id||""}" style="flex:1">Enregistrer</button>${id ? `<button class="btn danger" data-act="web-del" data-id="${id}">Supprimer</button>` : ""}<button class="btn ghost" data-act="sheetclose">Fermer</button></div>`);
 }
+function secCard(){
+  if (!secAvailable()) return `<div class="card"><h2>Sécurité</h2><div class="small muted">Le verrouillage est disponible dans l'appli installée sur l'iPhone (adresse web https), pas dans cet aperçu.</div></div>`;
+  if (!SEC.on) return `<div class="card"><h2>Sécurité</h2><div class="small muted">Protégez l'appli par un code. Vos données sont alors chiffrées sur le téléphone.</div>
+    <div class="btns"><button class="btn" data-act="sec-on">Activer le verrouillage</button></div></div>`;
+  return `<div class="card"><h2>Sécurité</h2><div class="kv"><span>Verrouillage</span><span class="chip">Activé · données chiffrées</span></div>
+    <label class="f">Verrouiller après être sorti de l'appli depuis<select id="sec-delay">${[[0,"Tout de suite"],[30,"30 secondes"],[120,"2 minutes"],[300,"5 minutes"]].map(([v,l]) => `<option value="${v}" ${SEC.cfg.delay === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+    <div class="btns">${V.faceOK ? (SEC.cfg.face ? `<button class="btn ghost" data-act="face-off">Désactiver Face ID</button>` : `<button class="btn" data-act="face-on">Activer Face ID</button>`) : ""}
+      <button class="btn ghost" data-act="sec-change">Changer le code</button><button class="btn danger" data-act="sec-off">Désactiver</button><button class="btn ghost" data-act="sec-lock">Verrouiller maintenant</button></div>
+    ${V.faceOK ? "" : `<div class="small muted">Face ID indisponible ici : le code reste demandé.</div>`}</div>`;
+}
+function sheetPin(mode){
+  const f = (id, lab) => `<label class="f">${lab}<input id="${id}" type="password" inputmode="numeric" autocomplete="off" maxlength="6" pattern="[0-9]*"></label>`;
+  const t = {set:"Choisir un code", change:"Changer le code", off:"Désactiver le verrouillage"}[mode];
+  openSheet(`<h2>${t}</h2>${mode !== "set" ? f("pin-old", "Code actuel") : ""}${mode !== "off" ? f("pin-new", "Nouveau code (4 à 6 chiffres)") + f("pin-new2", "Confirmer le code") : ""}
+    ${mode === "set" ? `<div class="small muted">Si vous oubliez le code, il faudra effacer l'appli et réimporter vos données depuis Excel. Un code de 6 chiffres protège mieux qu'un code de 4.</div>` : ""}
+    ${mode === "off" ? `<div class="small muted">Les données seront de nouveau stockées sans chiffrement sur ce téléphone.</div>` : ""}
+    <div class="btns"><button class="btn" data-act="pin-${mode}" style="flex:1">Valider</button><button class="btn ghost" data-act="sheetclose">Annuler</button></div>`);
+}
 function viewSet(){
   const p = V.pending;
   const pend = p ? `<div class="card" style="border-color:var(--accent)"><h2>Fichier lu : ${esc(p.name)}</h2>
@@ -709,12 +802,14 @@ function viewSet(){
       <label class="f">Nom<input data-env="n" data-i="${i}" value="${esc(e.n)}"></label>
       <label class="f">Budget<input data-env="b" data-i="${i}" inputmode="decimal" value="${String(N(e.b)).replace(".",",")}"></label>
       <button class="btn danger sm" data-act="envdel" data-i="${i}" aria-label="Supprimer">✕</button></div>`).join("")}</div>
+  ${secCard()}
   <div class="card"><h2>Données</h2>
     ${V.wipe ? `<div class="small">Cette action efface tout ce qui est stocké sur cet appareil.</div><div class="btns"><button class="btn danger" data-act="wipe-yes">Oui, tout effacer</button><button class="btn ghost" data-act="wipe-no">Annuler</button></div>`
              : `<div class="btns"><button class="btn ghost" data-act="wipe">Tout effacer</button></div>`}</div>`;
 }
 
 function render(){
+  if (!S) return;
   renderTabs();
   const main = $("#main");
   main.innerHTML = V.tab === "home" ? viewHome() : V.tab === "month" ? viewMonth() : V.tab === "add" ? viewAdd() : V.tab === "fix" ? viewFix() : V.tab === "sav" ? viewSav() : V.tab === "web" ? viewWeb() : viewSet();
@@ -839,6 +934,23 @@ document.addEventListener("click", ev => {
       if (id) Object.assign(S.epargne.poches.find(x => x.id === id), o); else S.epargne.poches.push(Object.assign({id:uid()}, o)); persist(); closeSheet(); render(); break; }
     case "po-del": S.epargne.poches.splice(S.epargne.poches.findIndex(x => x.id === id),1); persist(); closeSheet(); render(); break;
     case "web-merge": applyWeb(false); break; case "web-replace": applyWeb(true); break;
+    case "lk-d": if (SEC.pin.length < 6){ SEC.pin += id; lockDots(); } break;
+    case "lk-del": SEC.pin = SEC.pin.slice(0,-1); lockDots(); break;
+    case "lk-ok": lockSubmit(); break;
+    case "lk-face": unlockFace().then(ok => ok ? hideLock() : showLock("Face ID non reconnu, utilisez le code", true)); break;
+    case "lk-forgot": $("#lockmsg").textContent = "Effacer les données de ce téléphone ? Vous pourrez réimporter depuis Excel."; $("#lockmsg").className = "bad";
+      $("#lockextra").innerHTML = `<button class="btn danger sm" data-act="lk-wipe">Oui, effacer</button><button class="btn ghost sm" data-act="lk-no">Annuler</button>`; break;
+    case "lk-no": showLock(); break;
+    case "lk-wipe": lsDel(ENC); lsDel(KEY); lsDel(SECK); idbDel("dk"); SEC.on = false; SEC.dk = null; SEC.cfg = {face:false, cred:"", delay:30, fails:0, until:0}; S = null; memCopy = null; $("#lock").hidden = true; startApp(); break;
+    case "sec-on": sheetPin("set"); break; case "sec-change": sheetPin("change"); break; case "sec-off": sheetPin("off"); break;
+    case "sec-lock": lockNow(); break;
+    case "pin-set": { const a = $("#pin-new").value, c = $("#pin-new2").value; if (!/^\d{4,6}$/.test(a)) return toast("Le code doit avoir 4 à 6 chiffres"); if (a !== c) return toast("Les deux codes sont différents");
+      secEnable(a).then(() => { closeSheet(); V.msg = ""; toast("Verrouillage activé"); render(); }).catch(() => toast("Activation impossible")); break; }
+    case "pin-change": { const o = $("#pin-old").value, a = $("#pin-new").value, c = $("#pin-new2").value; if (!/^\d{4,6}$/.test(a)) return toast("Le code doit avoir 4 à 6 chiffres"); if (a !== c) return toast("Les deux codes sont différents");
+      secChange(o, a).then(() => { closeSheet(); toast("Code modifié"); }).catch(() => toast("Code actuel incorrect")); break; }
+    case "pin-off": { const o = $("#pin-old").value; secUnwrap(o).then(() => secDisable()).then(() => { closeSheet(); toast("Verrouillage désactivé"); render(); }).catch(() => toast("Code incorrect")); break; }
+    case "face-on": faceRegister().then(async cred => { SEC.cfg.cred = cred; await idbPut("dk", SEC.dk); SEC.cfg.face = true; secCfgSave(); toast("Face ID activé"); render(); }).catch(() => toast("Face ID non activé")); break;
+    case "face-off": SEC.cfg.face = false; SEC.cfg.cred = ""; secCfgSave(); idbDel("dk"); render(); break;
     case "webnew": sheetWeb(""); break; case "webedit": sheetWeb(id); break;
     case "webf": V.wf = b.dataset.v; render(); break;
     case "web-save": { const site = $("#w-site").value.trim(); if (!site) return toast("Donnez le nom du site");
@@ -869,6 +981,7 @@ document.addEventListener("change", ev => {
   if (t.id === "webfile" && t.files[0]){ const f = t.files[0]; t.value = "";
     f.arrayBuffer().then(buf => { const wb = XLSX.read(buf,{type:"array"}); V.webPending = parseWeb(wb); if (!V.webPending.rows.length) throw new Error("Aucun compte trouvé."); sheetWebImport(); })
       .catch(e => { V.webMsg = "Lecture impossible : " + e.message; render(); }); return; }
+  if (t.id === "sec-delay"){ SEC.cfg.delay = +t.value; secCfgSave(); return; }
   if (t.id === "s-ldate"){ S.epargne.dateDepart = t.value; persist(); return; }
   if (t.id === "s-lenv"){ S.epargne.envA = t.value; persist(); return; }
   if (t.id === "s-livret"){ S.settings.livretDepart = parseNum(t.value) || 0; persist(); return; }
@@ -880,12 +993,16 @@ document.addEventListener("change", ev => {
 document.addEventListener("input", ev => { if (V.tab === "add" && /^f-(mont|date)$/.test(ev.target.id)) updateInfo(); });
 
 /* ============ Démarrage ============ */
-S = load();
-if (!S || !S.settings){ S = demoData(); persist(); }
 const migrate = () => { if (!S.epargne) S.epargne = emptyEpargne(); if (!Array.isArray(S.web)) S.web = []; };
-migrate();
-render();
+function startApp(){
+  S = load();
+  if (!S || !S.settings){ S = demoData(); persist(); }
+  migrate(); render();
+}
 if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) { try { navigator.serviceWorker.register("sw.js").catch(() => {}); } catch(e){} }
+secCfgLoad();
+faceOK().then(v => { V.faceOK = v; });
+if (secAvailable() && lsGet(ENC)){ SEC.on = true; showLock(); } else startApp();
 </script>
 
 
