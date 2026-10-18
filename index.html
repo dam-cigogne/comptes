@@ -304,21 +304,28 @@ function demoData(){
 
 /* ============ Calculs (mêmes règles que le classeur) ============ */
 const live = () => S.journal.filter(j => !j.del);
-function inMonth(j,m,y){ return +j.date.slice(0,4) === y && +j.date.slice(5,7) === m+1; }
+const payday = () => { const p = Math.round(N(S && S.settings && S.settings.payday)); return p >= 2 && p <= 28 ? p : 1; };
+function periodRange(m,y){ const P = payday(), iso = (yy,mm,dd) => yy + "-" + pad(mm+1) + "-" + pad(dd);
+  if (P === 1) return [iso(y,m,1), iso(y,m,new Date(y,m+1,0).getDate())];
+  const d0 = new Date(y,m-1,1); return [iso(d0.getFullYear(), d0.getMonth(), P), iso(y,m,P-1)]; }
+function periodOf(iso){ const P = payday(); let y = +iso.slice(0,4), m = +iso.slice(5,7) - 1; if (P > 1 && +iso.slice(8,10) >= P){ m++; if (m > 11){ m = 0; y++; } } return {m,y}; }
+const curPeriod = () => periodOf(todayIso());
+function fixDate(jour,m,y){ const P = payday(); let mm = m, yy = y; if (P > 1 && jour >= P){ mm = m - 1; if (mm < 0){ mm = 11; yy--; } } return new Date(yy, mm, Math.min(jour, new Date(yy,mm+1,0).getDate())); }
+function inMonth(j,m,y){ const r = periodRange(m,y); return j.date >= r[0] && j.date <= r[1]; }
 function fixCalc(rows,m,y){
   const nj = new Date(y,m+1,0).getDate(); const today = new Date(); today.setHours(0,0,0,0);
   let prevu = 0, passe = 0;
   for (const r of rows){
     const c = r.m[m], d = N(r.montant);
     prevu += isNum(c) ? c : d;
-    const fut = r.jour ? new Date(y,m,Math.min(r.jour,nj)) > today : false;
+    const fut = r.jour ? fixDate(r.jour,m,y) > today : false;
     if (c === "x") passe += d; else if (isNum(c) && !fut) passe += c;
   }
   return {prevu, passe};
 }
 function fixState(r,m,y){
   const c = r.m[m]; const nj = new Date(y,m+1,0).getDate(); const today = new Date(); today.setHours(0,0,0,0);
-  const dp = r.jour ? new Date(y,m,Math.min(r.jour,nj)) : null;
+  const dp = r.jour ? fixDate(r.jour,m,y) : null;
   if (c === "x") return {k:"ok", t:"pointé", amt:N(r.montant)};
   if (isNum(c)) return dp && dp > today ? {k:"wait", t:"à venir (montant saisi)", amt:c} : {k:"ok", t:"pointé (montant saisi)", amt:c};
   if (!dp) return {k:"wait", t:"à venir", amt:N(r.montant)};
@@ -461,7 +468,7 @@ function parseEchange(wb){
   if (reg || env){
     const st = {solde:null, livretDepart:0, envelopes:[], cats:CATS_EXC.slice()};
     if (reg) for (const r of reg){ const k = String(r[0]).trim().toLowerCase(); const v = num(r[1]);
-      if (k === "soldecompte") st.solde = v; else if (k === "livretadepart") st.livretDepart = N(v); }
+      if (k === "soldecompte") st.solde = v; else if (k === "livretadepart") st.livretDepart = N(v); else if (k === "jourpaie" && isNum(v)) st.payday = v; }
     if (env) for (let i=1;i<env.length;i++){ const r = env[i]; if (!String(r[0]).trim()) continue;
       st.envelopes.push({n:String(r[0]).trim(), b:N(num(r[1])), m:Array.from({length:12},(_,k) => { const v = num(r[2+k]); return v === null || r[2+k] === "" ? null : v; })}); }
     out.settings = st;
@@ -492,7 +499,7 @@ function buildEchange(){
   for (let r=1;r<aoa.length;r++){ for (const c of ["B","I"]){ const a = ws[c+(r+1)]; if (a && isNum(a.v)){ a.t = "n"; a.z = "dd/mm/yyyy"; } } }
   ws["!cols"] = [{wch:14},{wch:12},{wch:22},{wch:22},{wch:30},{wch:11},{wch:7},{wch:24},{wch:12},{wch:14},{wch:10}];
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Journal_appli");
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["Clé","Valeur"],["SoldeCompte", isNum(S.settings.solde) ? S.settings.solde : ""],["LivretADepart", N(S.settings.livretDepart)],
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["Clé","Valeur"],["SoldeCompte", isNum(S.settings.solde) ? S.settings.solde : ""],["LivretADepart", N(S.settings.livretDepart)],["JourPaie", payday()],
     ["LivretDateDepart", S.epargne.dateDepart ? isoToSerial(S.epargne.dateDepart) : ""],["EnveloppeLivret", S.epargne.envA],["Enveloppe2Livret", S.epargne.envB]]), "Reglages_appli");
   const dsh = (head, rows, dcols) => { const w = XLSX.utils.aoa_to_sheet([head].concat(rows)); for (let r=1;r<=rows.length;r++) for (const c of dcols){ const a = w[c+(r+1)]; if (a && isNum(a.v)) a.z = "dd/mm/yyyy"; } return w; };
   XLSX.utils.book_append_sheet(wb, dsh(["ID","Date","Libellé","Montant","Pour quoi","Modifié","Supprimé"], S.epargne.manuel.map(m => [m.id, m.date ? isoToSerial(m.date) : "", m.lib, m.montant, m.pq, m.upd || 0, m.del ? 1 : ""]), ["B"]), "Livret_appli");
@@ -540,7 +547,7 @@ function renderTabs(){
     : `<button class="${V.tab===k?"on":""}" data-act="tab" data-v="${k}">${ICON[k]}<span>${l}</span></button>`).join("");
 }
 function monthNav(){
-  return `<div class="monthnav"><button data-act="mprev" aria-label="Mois précédent">‹</button><span>${MOIS[V.m]} ${V.y}</span><button data-act="mnext" aria-label="Mois suivant">›</button></div>`;
+  return `<div class="monthnav"><button data-act="mprev" aria-label="Mois précédent">‹</button><span>${MOIS[V.m]} ${V.y}${payday() > 1 ? `<small style="display:block;font-size:10px;font-weight:500;color:var(--muted);line-height:1.1">${(() => { const r = periodRange(V.m,V.y); return frDate(r[0]) + " → " + frDate(r[1]); })()}</small>` : ""}</span><button data-act="mnext" aria-label="Mois suivant">›</button></div>`;
 }
 function topbar(){ return `<div class="top"><div class="app">Mes comptes</div><div class="topr">${monthNav()}<button class="gear" data-act="tab" data-v="set" aria-label="Réglages">${ICON.set}</button></div></div>` + (S.demo ? `<div class="banner">Données d'exemple. Importez votre classeur Excel dans <b>Réglages</b> pour travailler avec vos vrais comptes.</div>` : ""); }
 
@@ -813,6 +820,7 @@ function viewSet(){
     <label class="f">Importer un fichier (classeur .xlsm / .xlsx, journal d'échange, sauvegarde .json)<input id="file" type="file" accept=".xlsm,.xlsx,.json,.xls"></label></div>
   <div class="card"><h2>Compte et épargne</h2><div class="grid2">
     <label class="f">Solde du compte (€)<input id="s-solde" inputmode="decimal" value="${isNum(S.settings.solde) ? String(S.settings.solde).replace(".",",") : ""}"></label>
+    <label class="f">Jour de paie (1 = mois normal)<input id="s-pay" inputmode="numeric" value="${payday()}"></label>
     <label class="f">Livret A au départ (€)<input id="s-livret" inputmode="decimal" value="${String(N(S.settings.livretDepart)).replace(".",",")}"></label>
     <label class="f">Date de ce solde du Livret<input id="s-ldate" type="date" value="${esc(S.epargne.dateDepart)}"></label>
     <label class="f">Enveloppe versée sur le Livret<select id="s-lenv"><option value="">—</option>${S.settings.envelopes.map(e => `<option ${e.n === S.epargne.envA ? "selected" : ""}>${esc(e.n)}</option>`).join("")}</select></label></div></div>
@@ -873,7 +881,7 @@ function saveOp(){
   if (V.editId){ Object.assign(S.journal.find(j => j.id === V.editId), o); toast("Opération modifiée"); }
   else { S.journal.push(Object.assign({id:uid()},o)); toast("Enregistré : " + eur(o.montant)); }
   if (S.demo && !V.editId) { /* l'exemple reste affiché jusqu'à l'import */ }
-  V.m = +d.date.slice(5,7)-1; V.y = +d.date.slice(0,4);
+  { const pp = periodOf(d.date); V.m = pp.m; V.y = pp.y; }
   V.editId = null; V.draft = null; persist(); V.tab = "month"; render();
 }
 async function onFile(file){
@@ -894,7 +902,7 @@ function seenOf(p){ const a = p.rows.map(j => j.id); if (p.full && p.full.epargn
 function goneIds(p){ const now = new Set(seenOf(p)), g = new Set(); for (const id of (S.seen || [])) if (!now.has(id)) g.add(id); return g; }
 function commitImport(replace){
   const p = V.pending; if (!p) return; const keepWeb = S.web || [], keepBank = S.bank, keepRules = S.rules;
-  if (replace && p.kind === "classeur"){ const prevCats = S.settings.cats; S = p.data; S.demo = false; if (!S.settings.cats.length) S.settings.cats = prevCats; V.msg = "Données remplacées par le classeur."; }
+  const prevPay = S.settings.payday; if (replace && p.kind === "classeur"){ const prevCats = S.settings.cats; S = p.data; S.demo = false; if (!S.settings.cats.length) S.settings.cats = prevCats; V.msg = "Données remplacées par le classeur."; }
   else if (replace && p.kind === "echange"){ const f = p.full; const base = emptyData();
     S = Object.assign(base,{journal:p.rows}); if (f.settings) S.settings = f.settings; if (f.fixRev) S.fixRev = f.fixRev; if (f.fixCh) S.fixCh = f.fixCh; if (f.epargne) S.epargne = f.epargne;
     if (/^export_appli/i.test(p.name)) S.seen = seenOf(p);
@@ -915,6 +923,7 @@ function commitImport(replace){
       if (d) V.msg += " " + d + " ligne(s) supprimée(s) dans Excel retirée(s) ici.";
       S.seen = seenOf(p); }
   }
+  if (replace && S.settings && S.settings.payday === undefined && prevPay !== undefined) S.settings.payday = prevPay;
   if (replace && p.kind !== "json"){ S.web = keepWeb; S.bank = keepBank; S.rules = keepRules; }
   V.pending = null; migrate(); persist(); render();
 }
@@ -1015,6 +1024,7 @@ document.addEventListener("change", ev => {
   if (t.id === "sec-delay"){ SEC.cfg.delay = +t.value; secCfgSave(); return; }
   if (t.id === "s-ldate"){ S.epargne.dateDepart = t.value; persist(); return; }
   if (t.id === "s-lenv"){ S.epargne.envA = t.value; persist(); return; }
+  if (t.id === "s-pay"){ const v = Math.round(parseNum(t.value) || 1); S.settings.payday = v >= 2 && v <= 28 ? v : 1; const cp = curPeriod(); V.m = cp.m; V.y = cp.y; persist(); toast(payday() > 1 ? "Mois budgétaire : du " + payday() + " au " + (payday() - 1) + " suivant" : "Mois calendaire"); render(); return; }
   if (t.id === "s-livret"){ S.settings.livretDepart = parseNum(t.value) || 0; persist(); return; }
   if (t.dataset.env){ const e = S.settings.envelopes[+t.dataset.i];
     if (t.dataset.env === "n"){ const old = e.n; e.n = t.value.trim() || old; S.journal.forEach(j => { if (j.cat === old && e.n !== old){ j.cat = e.n; j.upd = Date.now(); } }); }
@@ -1103,7 +1113,7 @@ function reconcile(parsed){
       const dd = Math.abs((Date.parse(j.date) - Date.parse(o.d)) / 864e5); if (dd > 4) return;
       const sc = dd * 10 + (libKey(j.lib || j.cat) === libKey(o.lib) ? 0 : 3) + (j.pointe === "x" ? .5 : 0); if (!best || sc < best.sc) best = {i, sc}; });
     if (best){ used.add(best.i); const j = J[best.i]; (j.pointe === "x" ? res.done : res.point).push({o, j, on:true}); continue; }
-    { const kind = o.cred ? "rev" : "ch", arr = kind === "rev" ? S.fixRev : S.fixCh, mi = +o.d.slice(5,7) - 1, day = +o.d.slice(8,10); let bf = null;
+    { const kind = o.cred ? "rev" : "ch", arr = kind === "rev" ? S.fixRev : S.fixCh, mi = periodOf(o.d).m, day = +o.d.slice(8,10); let bf = null;
       for (const f of arr){ const uk = kind + f.id + "|" + mi; if (usedFix.has(uk)) continue;
         if (!(N(f.montant) > 0)) continue;
         const ft = libToks(f.n), ot = libToks(o.lib), kk = ft.some(w => ot.includes(w)), same = Math.abs(N(f.montant) - o.a) <= .005, near = Math.abs(N(f.montant) - o.a) / N(f.montant) <= .3,
@@ -1124,7 +1134,7 @@ function applyBankToS(B){
   for (const r of B.done) S.bank.seen.push(r.o.key);
   for (const r of B.fix) if (r.on){ const f = (r.kind === "rev" ? S.fixRev : S.fixCh).find(x => x.id === r.f.id); if (!f) continue; f.m[r.mi] = Math.abs(N(f.montant) - r.o.a) <= .005 ? "x" : r.o.a; S.bank.seen.push(r.o.key); }
   for (const r of B.create){ if (r.choice === "") continue; S.bank.seen.push(r.o.key); if (r.choice === "__ignore") continue;
-    if (r.choice.startsWith("fx:")){ const [, kd, id] = r.choice.split(":"), f = (kd === "rev" ? S.fixRev : S.fixCh).find(x => x.id === id), mi = +r.o.d.slice(5,7) - 1;
+    if (r.choice.startsWith("fx:")){ const [, kd, id] = r.choice.split(":"), f = (kd === "rev" ? S.fixRev : S.fixCh).find(x => x.id === id), mi = periodOf(r.o.d).m;
       if (f) f.m[mi] = Math.abs(N(f.montant) - r.o.a) <= .005 ? "x" : r.o.a; continue; }
     const rev = r.o.cred, cat = rev ? (r.choice === "Remboursement" ? "Remboursement" : "") : r.choice;
     S.journal.push({id:uid(), date:r.o.d, type:rev ? "Revenu" : "Dépense", cat, lib:cleanLib(r.o.lib), montant:r.o.a, pointe:"x", note:"Relevé banque", remb:"", upd:now});
@@ -1184,7 +1194,7 @@ function viewBank(){
 }
 
 /* ============ Démarrage ============ */
-const migrate = () => { if (!S.epargne) S.epargne = emptyEpargne(); if (!Array.isArray(S.web)) S.web = []; if (!S.bank) S.bank = {seen:[]}; if (!S.rules) S.rules = {}; };
+const migrate = () => { if (!S.epargne) S.epargne = emptyEpargne(); if (!Array.isArray(S.web)) S.web = []; if (!S.bank) S.bank = {seen:[]}; if (!S.rules) S.rules = {}; if (!V.pinit){ const cp = curPeriod(); V.m = cp.m; V.y = cp.y; V.pinit = true; } };
 function startApp(){
   S = load();
   if (!S || !S.settings){ S = demoData(); persist(); }
