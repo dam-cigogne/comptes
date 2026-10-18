@@ -271,7 +271,7 @@ document.addEventListener("visibilitychange", () => {
 function emptyData(){
   return { v:1, demo:false,
     settings:{ solde:null, livretDepart:0, envelopes:[], cats:CATS_EXC.slice() },
-    journal:[], fixRev:[], fixCh:[], epargne:emptyEpargne(), web:[] };
+    journal:[], fixRev:[], fixCh:[], epargne:emptyEpargne(), web:[], bank:{seen:[]}, rules:{}, undo:null };
 }
 function emptyEpargne(){ return {dateDepart:"", envA:"Épargne", envB:"", manuel:[], poches:[], futur:[]}; }
 function demoData(){
@@ -822,6 +822,8 @@ function viewSet(){
       <label class="f">Nom<input data-env="n" data-i="${i}" value="${esc(e.n)}"></label>
       <label class="f">Budget<input data-env="b" data-i="${i}" inputmode="decimal" value="${String(N(e.b)).replace(".",",")}"></label>
       <button class="btn danger sm" data-act="envdel" data-i="${i}" aria-label="Supprimer">✕</button></div>`).join("")}</div>
+  <div class="card"><h2>Rapprochement bancaire</h2><div class="small muted">Importez un relevé (PDF ou CSV) pour pointer vos opérations et retrouver celles qui manquent.${S.undo ? ` Dernier rapprochement : ${esc(S.undo.txt)}.` : ""}</div>
+    <div class="btns"><button class="btn" data-act="bk-open">Importer un relevé</button>${S.undo ? `<button class="btn ghost" data-act="bk-undo">Annuler le dernier rapprochement</button>` : ""}</div></div>
   ${secCard()}
   <div class="card"><h2>Données</h2>
     ${V.wipe ? `<div class="small">Cette action efface tout ce qui est stocké sur cet appareil.</div><div class="btns"><button class="btn danger" data-act="wipe-yes">Oui, tout effacer</button><button class="btn ghost" data-act="wipe-no">Annuler</button></div>`
@@ -832,7 +834,7 @@ function render(){
   if (!S) return;
   renderTabs();
   const main = $("#main");
-  main.innerHTML = V.tab === "home" ? viewHome() : V.tab === "month" ? viewMonth() : V.tab === "add" ? viewAdd() : V.tab === "fix" ? viewFix() : V.tab === "sav" ? viewSav() : V.tab === "web" ? viewWeb() : viewSet();
+  main.innerHTML = V.tab === "home" ? viewHome() : V.tab === "month" ? viewMonth() : V.tab === "add" ? viewAdd() : V.tab === "fix" ? viewFix() : V.tab === "sav" ? viewSav() : V.tab === "web" ? viewWeb() : V.tab === "bank" ? viewBank() : viewSet();
   if (V.tab === "add") updateInfo();
   window.scrollTo(0,0);
 }
@@ -891,7 +893,7 @@ async function onFile(file){
 function seenOf(p){ const a = p.rows.map(j => j.id); if (p.full && p.full.epargne) for (const m of p.full.epargne.manuel) a.push(m.id); return a; }
 function goneIds(p){ const now = new Set(seenOf(p)), g = new Set(); for (const id of (S.seen || [])) if (!now.has(id)) g.add(id); return g; }
 function commitImport(replace){
-  const p = V.pending; if (!p) return; const keepWeb = S.web || [];
+  const p = V.pending; if (!p) return; const keepWeb = S.web || [], keepBank = S.bank, keepRules = S.rules;
   if (replace && p.kind === "classeur"){ const prevCats = S.settings.cats; S = p.data; S.demo = false; if (!S.settings.cats.length) S.settings.cats = prevCats; V.msg = "Données remplacées par le classeur."; }
   else if (replace && p.kind === "echange"){ const f = p.full; const base = emptyData();
     S = Object.assign(base,{journal:p.rows}); if (f.settings) S.settings = f.settings; if (f.fixRev) S.fixRev = f.fixRev; if (f.fixCh) S.fixCh = f.fixCh; if (f.epargne) S.epargne = f.epargne;
@@ -913,7 +915,7 @@ function commitImport(replace){
       if (d) V.msg += " " + d + " ligne(s) supprimée(s) dans Excel retirée(s) ici.";
       S.seen = seenOf(p); }
   }
-  if (replace && p.kind !== "json") S.web = keepWeb;
+  if (replace && p.kind !== "json"){ S.web = keepWeb; S.bank = keepBank; S.rules = keepRules; }
   V.pending = null; migrate(); persist(); render();
 }
 
@@ -971,6 +973,12 @@ document.addEventListener("click", ev => {
     case "pin-off": { const o = $("#pin-old").value; secUnwrap(o).then(() => secDisable()).then(() => { closeSheet(); toast("Verrouillage désactivé"); render(); }).catch(() => toast("Code incorrect")); break; }
     case "face-on": faceRegister().then(async cred => { SEC.cfg.cred = cred; await idbPut("dk", SEC.dk); SEC.cfg.face = true; secCfgSave(); toast("Face ID activé"); render(); }).catch(() => toast("Face ID non activé")); break;
     case "face-off": SEC.cfg.face = false; SEC.cfg.cred = ""; secCfgSave(); idbDel("dk"); render(); break;
+    case "bk-open": V.bk = null; V.bkMsg = ""; V.tab = "bank"; render(); break;
+    case "bk-pt": V.bk.point[+b.dataset.i].on = !V.bk.point[+b.dataset.i].on; { const y = window.scrollY; render(); window.scrollTo(0, y); } break;
+    case "bk-fx": V.bk.fix[+b.dataset.i].on = !V.bk.fix[+b.dataset.i].on; { const y = window.scrollY; render(); window.scrollTo(0, y); } break;
+    case "bk-cancel": V.bk = null; V.tab = "set"; render(); break;
+    case "bk-apply": bkApply(); break;
+    case "bk-undo": bkUndo(); break;
     case "webnew": sheetWeb(""); break; case "webedit": sheetWeb(id); break;
     case "webf": V.wf = b.dataset.v; render(); break;
     case "web-save": { const site = $("#w-site").value.trim(); if (!site) return toast("Donnez le nom du site");
@@ -1001,6 +1009,9 @@ document.addEventListener("change", ev => {
   if (t.id === "webfile" && t.files[0]){ const f = t.files[0]; t.value = "";
     f.arrayBuffer().then(buf => { const wb = XLSX.read(buf,{type:"array"}); V.webPending = parseWeb(wb); if (!V.webPending.rows.length) throw new Error("Aucun compte trouvé."); sheetWebImport(); })
       .catch(e => { V.webMsg = "Lecture impossible : " + e.message; render(); }); return; }
+  if (t.id === "bkfile" && t.files[0]){ const f = t.files[0]; t.value = ""; onBankFile(f); return; }
+  if (t.id === "bk-solde"){ V.bk.useSolde = t.checked; { const y = window.scrollY; render(); window.scrollTo(0, y); } return; }
+  if (t.dataset.bk !== undefined && V.bk){ V.bk.create[+t.dataset.bk].choice = t.value; { const y = window.scrollY; render(); window.scrollTo(0, y); } return; }
   if (t.id === "sec-delay"){ SEC.cfg.delay = +t.value; secCfgSave(); return; }
   if (t.id === "s-ldate"){ S.epargne.dateDepart = t.value; persist(); return; }
   if (t.id === "s-lenv"){ S.epargne.envA = t.value; persist(); return; }
@@ -1012,8 +1023,168 @@ document.addEventListener("change", ev => {
 });
 document.addEventListener("input", ev => { if (V.tab === "add" && /^f-(mont|date)$/.test(ev.target.id)) updateInfo(); });
 
+/* ============ Rapprochement bancaire ============ */
+const PDFJS_URL = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js", PDFJS_WORKER = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+const loadScript = src => new Promise((res,rej) => { const t = document.createElement("script"); t.src = src; t.onload = res; t.onerror = () => rej(new Error("Chargement du lecteur PDF impossible (réseau ?)")); document.head.appendChild(t); });
+async function loadPdfJs(){
+  if (!window.pdfjsLib) await loadScript(PDFJS_URL);
+  if (!window.__pdfw){ try { const t = await (await fetch(PDFJS_WORKER)).text(); window.__pdfw = URL.createObjectURL(new Blob([t],{type:"application/javascript"})); } catch(e){ window.__pdfw = PDFJS_WORKER; } }
+  pdfjsLib.GlobalWorkerOptions.workerSrc = window.__pdfw; return pdfjsLib;
+}
+const AMT_RE = /^-?\d{1,3}(?: ?\d{3})*,\d{2}$/;
+async function parsePdfReleve(buf){
+  const lib = await loadPdfJs(), doc = await lib.getDocument({data:buf}).promise, ops = []; let solde = null, soldeDate = "";
+  for (let pg = 1; pg <= doc.numPages; pg++){
+    const tc = await (await doc.getPage(pg)).getTextContent();
+    const items = tc.items.filter(i => i.str && i.str.trim()).map(i => ({s:i.str.trim(), x:i.transform[4], r:i.transform[4] + (i.width || 0), y:i.transform[5]}));
+    items.sort((a,b) => b.y - a.y || a.x - b.x); const lines = [];
+    for (const it of items){ const L = lines.find(l => Math.abs(l.y - it.y) <= 3); if (L) L.it.push(it); else lines.push({y:it.y, it:[it]}); }
+    lines.forEach(l => l.it.sort((a,b) => a.x - b.x));
+    let deb = null, cre = null;
+    for (const l of lines) for (const it of l.it){ if (/^d[ée]bit$/i.test(it.s)) deb = it.r; if (/^cr[ée]dit$/i.test(it.s)) cre = it.r; }
+    for (const l of lines){
+      const txt = l.it.map(i => i.s).join(" ");
+      const ms = txt.match(/Solde au (\d\d\/\d\d\/\d{4}).*?(-?\d[\d ]*,\d{2}) ?EUR/i); if (ms && solde === null){ soldeDate = anyToIso(ms[1]); solde = parseNum(ms[2]); continue; }
+      if (!/^\d\d\/\d\d\/\d{4}$/.test(l.it[0].s)) continue;
+      const rest = l.it.slice(1); let ai = -1;
+      for (let i = rest.length - 1; i >= 0; i--){ const t = rest[i].s.replace(/ ?EUR$/i,""); if (AMT_RE.test(t) && (i === rest.length - 1 || /^EUR$/i.test(rest[i+1].s))){ ai = i; break; } }
+      if (ai < 0) continue;
+      const amtItem = rest[ai], endItem = /^EUR$/i.test((rest[ai+1] || {}).s || "") ? rest[ai+1] : amtItem;
+      const a = parseNum(amtItem.s.replace(/ ?EUR$/i,"")); if (a === null) continue;
+      const cred = deb !== null && cre !== null ? Math.abs(endItem.r - cre) < Math.abs(endItem.r - deb) : false;
+      ops.push({d:anyToIso(l.it[0].s), lib:rest.slice(0, ai).map(i => i.s).join(" ").replace(/\s+/g," ").trim(), a:Math.abs(a), cred});
+    }
+  }
+  if (!ops.length) throw new Error("Aucune opération reconnue dans ce PDF.");
+  return {ops, solde, soldeDate};
+}
+function parseCsvReleve(wb){
+  const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:true,defval:""});
+  const norm = x => String(x).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+  const hi = rows.findIndex(r => r.some(c => /date/.test(norm(c))) && r.some(c => /(libelle|designation|operation|detail)/.test(norm(c))));
+  if (hi < 0) throw new Error("En-têtes introuvables (Date, Libellé, Débit/Crédit ou Montant).");
+  const h = rows[hi].map(norm), col = re => h.findIndex(x => re.test(x));
+  const c = {d:col(/date/), l:col(/(libelle|designation|operation|detail)/), deb:col(/debit/), cre:col(/credit/), m:col(/montant/)};
+  const ops = [];
+  for (let i = hi + 1; i < rows.length; i++){ const r = rows[i], d = anyToIso(r[c.d]); if (!d) continue;
+    const num = v => isNum(v) ? v : parseNum(v), db = c.deb >= 0 ? num(r[c.deb]) : null, cr = c.cre >= 0 ? num(r[c.cre]) : null, m = c.m >= 0 ? num(r[c.m]) : null;
+    let a = 0, cred = false;
+    if (db) { a = Math.abs(db); } else if (cr) { a = Math.abs(cr); cred = true; } else if (m) { a = Math.abs(m); cred = m > 0; } else continue;
+    ops.push({d, lib:String(r[c.l]).replace(/\s+/g," ").trim(), a, cred}); }
+  if (!ops.length) throw new Error("Aucune opération reconnue dans ce fichier.");
+  return {ops, solde:null, soldeDate:""};
+}
+const BK_STOP = new Set(["FRA","PARIS","CEDEX","CARTE","PAIEMENT","PRLV","PRELEVEMENT","VIR","VIREMENT","EUR","LES","DES","DU","SAS","SARL","VERS","COMPTE","MME","MLLE","MONSIEUR","MADAME"]);
+const BK_ALIAS = {AMZN:"AMAZON", AMAZ:"AMAZON"};
+function libKey(s){
+  const t = String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase().replace(/[^A-Z ]/g," ").split(/\s+/).filter(w => w.length >= 3 && !BK_STOP.has(w));
+  return BK_ALIAS[t[0]] || t[0] || "";
+}
+const BK_GEN = new Set(["EMPRUNT","ASSURANCE","MUTUELLE","SERVICE","SERVICES","SALLE","SPORT","COPRO","CARTE","BLEU","BLEUE","PENSION","PERISCOLAIRE","AUTRE","PRIME","HABITATION","MAISON","COMPTE","ETHAN","NORA","DECEMBRE","JANVIER"]);
+function libToks(s){ return String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase().replace(/[^A-Z ]/g," ").split(/\s+/).filter(w => w.length >= 3 && !BK_STOP.has(w) && !BK_GEN.has(w)).map(w => BK_ALIAS[w] || w); }
+function cleanLib(s){
+  let t = String(s).replace(/\bFR\b.*$/i,"").replace(/\d{6,}/g,"").replace(/\s+/g," ").trim() || String(s).trim();
+  if (t === t.toUpperCase()) t = t.toLowerCase().replace(/(^|[\s.'-])([a-zà-ÿ])/g, (m,a,b) => a + b.toUpperCase());
+  return t;
+}
+function learnedCat(key){
+  if (!key) return ""; if (S.rules[key]) return S.rules[key];
+  const cnt = {}; let tot = 0;
+  for (const j of live()){ if (j.type !== "Dépense" || !j.cat) continue; if (libKey(j.lib) === key || libKey(j.cat) === key){ cnt[j.cat] = (cnt[j.cat] || 0) + 1; tot++; } }
+  const best = Object.entries(cnt).sort((a,b) => b[1] - a[1])[0]; return best && best[1] / tot >= .6 ? best[0] : "";
+}
+function reconcile(parsed){
+  const seen = new Set(S.bank.seen), J = live(), used = new Set(), occ = {}, res = {point:[], create:[], done:[], skip:[], fix:[]}, usedFix = new Set();
+  for (const o of parsed.ops){ const base = [o.d, libKey(o.lib), o.lib.replace(/\s+/g,"").slice(0,12).toUpperCase(), o.a, o.cred ? "C" : "D"].join("|"); occ[base] = (occ[base] || 0) + 1; o.key = base + "#" + occ[base]; }
+  for (const o of parsed.ops.slice().sort((a,b) => a.d.localeCompare(b.d))){
+    if (seen.has(o.key)){ res.skip.push({o}); continue; }
+    const okT = o.cred ? ["Revenu","Retrait du Livret A"] : ["Dépense","Versement sur Livret A","Avance (à rembourser)"]; let best = null;
+    J.forEach((j,i) => { if (used.has(i) || !okT.includes(j.type) || Math.abs(N(j.montant) - o.a) > .005) return;
+      const dd = Math.abs((Date.parse(j.date) - Date.parse(o.d)) / 864e5); if (dd > 4) return;
+      const sc = dd * 10 + (libKey(j.lib || j.cat) === libKey(o.lib) ? 0 : 3) + (j.pointe === "x" ? .5 : 0); if (!best || sc < best.sc) best = {i, sc}; });
+    if (best){ used.add(best.i); const j = J[best.i]; (j.pointe === "x" ? res.done : res.point).push({o, j, on:true}); continue; }
+    { const kind = o.cred ? "rev" : "ch", arr = kind === "rev" ? S.fixRev : S.fixCh, mi = +o.d.slice(5,7) - 1, day = +o.d.slice(8,10); let bf = null;
+      for (const f of arr){ const uk = kind + f.id + "|" + mi; if (usedFix.has(uk)) continue;
+        if (!(N(f.montant) > 0)) continue;
+        const ft = libToks(f.n), ot = libToks(o.lib), kk = ft.some(w => ot.includes(w)), same = Math.abs(N(f.montant) - o.a) <= .005, near = Math.abs(N(f.montant) - o.a) / N(f.montant) <= .3,
+          dd = f.jour ? Math.abs(f.jour - day) : 99;
+        let sc = null; if (kk && same) sc = 0; else if (kk && near) sc = 2; else if (Math.abs(N(f.montant) - o.a) / N(f.montant) <= .01 && dd <= 4) sc = 3; else if (same && dd <= 3) sc = 4;
+        if (sc !== null && (!bf || sc < bf.sc)) bf = {f, sc, uk}; }
+      if (bf){ usedFix.add(bf.uk); const already = bf.f.m[mi] === "x" || isNum(bf.f.m[mi]);
+        (already ? res.done : res.fix).push({o, f:bf.f, kind, mi, on:true}); continue; } }
+    const k = libKey(o.lib), internal = /^vir\.? (vers|de) compte/i.test(o.lib); let choice = "";
+    if (!internal){ const c = learnedCat(k); if (c) choice = o.cred ? "" : c; if (o.cred && learnedCat(k)) choice = "Remboursement"; }
+    res.create.push({o, internal, choice});
+  }
+  res.solde = parsed.solde; res.soldeDate = parsed.soldeDate; res.useSolde = parsed.solde !== null; res.total = parsed.ops.length; return res;
+}
+function applyBankToS(B){
+  const now = Date.now(); const jbyId = new Map(S.journal.map(j => [j.id, j]));
+  for (const r of B.point) if (r.on){ const j = jbyId.get(r.j.id); if (j){ j.pointe = "x"; j.upd = now; } S.bank.seen.push(r.o.key); }
+  for (const r of B.done) S.bank.seen.push(r.o.key);
+  for (const r of B.fix) if (r.on){ const f = (r.kind === "rev" ? S.fixRev : S.fixCh).find(x => x.id === r.f.id); if (!f) continue; f.m[r.mi] = Math.abs(N(f.montant) - r.o.a) <= .005 ? "x" : r.o.a; S.bank.seen.push(r.o.key); }
+  for (const r of B.create){ if (r.choice === "") continue; S.bank.seen.push(r.o.key); if (r.choice === "__ignore") continue;
+    if (r.choice.startsWith("fx:")){ const [, kd, id] = r.choice.split(":"), f = (kd === "rev" ? S.fixRev : S.fixCh).find(x => x.id === id), mi = +r.o.d.slice(5,7) - 1;
+      if (f) f.m[mi] = Math.abs(N(f.montant) - r.o.a) <= .005 ? "x" : r.o.a; continue; }
+    const rev = r.o.cred, cat = rev ? (r.choice === "Remboursement" ? "Remboursement" : "") : r.choice;
+    S.journal.push({id:uid(), date:r.o.d, type:rev ? "Revenu" : "Dépense", cat, lib:cleanLib(r.o.lib), montant:r.o.a, pointe:"x", note:"Relevé banque", remb:"", upd:now});
+    const k = libKey(r.o.lib); if (k && !rev) S.rules[k] = r.choice; }
+  if (B.useSolde && B.solde !== null) S.settings.solde = B.solde;
+}
+function bkCounts(B){ const isFx = r => r.choice.startsWith("fx:"); return {fx:B.fix.filter(r => r.on).length + B.create.filter(isFx).length, pt:B.point.filter(r => r.on).length, cr:B.create.filter(r => r.choice !== "" && r.choice !== "__ignore" && !isFx(r)).length, ig:B.create.filter(r => r.choice === "__ignore").length, left:B.create.filter(r => r.choice === "").length}; }
+function bkSim(B){ const keep = S; try { S = JSON.parse(JSON.stringify(S)); applyBankToS(B); return calc(V.m, V.y).d18; } catch(e){ return null; } finally { S = keep; } }
+function bkApply(){
+  const B = V.bk, c = bkCounts(B);
+  S.undo = {at:Date.now(), fixRev:JSON.stringify(S.fixRev), fixCh:JSON.stringify(S.fixCh), journal:JSON.stringify(S.journal), solde:S.settings.solde, seen:S.bank.seen.slice(), rules:JSON.stringify(S.rules), txt:c.pt + " pointée(s), " + c.fx + " fixe(s), " + c.cr + " créée(s)"};
+  applyBankToS(B); V.msg = "Rapprochement appliqué : " + c.pt + " ligne(s) pointée(s), " + c.fx + " fixe(s) pointé(s), " + c.cr + " créée(s), " + c.ig + " ignorée(s)."; V.bk = null; V.tab = "set"; persist(); render();
+}
+function bkUndo(){
+  const u = S.undo; if (!u) return; S.journal = JSON.parse(u.journal); if (u.fixRev){ S.fixRev = JSON.parse(u.fixRev); S.fixCh = JSON.parse(u.fixCh); } S.settings.solde = u.solde; S.bank.seen = u.seen; S.rules = JSON.parse(u.rules); S.undo = null;
+  V.msg = "Dernier rapprochement annulé."; persist(); render();
+}
+async function onBankFile(file){
+  try { V.bkMsg = "Lecture du relevé…"; render();
+    const buf = await file.arrayBuffer(); let parsed;
+    if (/\.pdf$/i.test(file.name)) parsed = await parsePdfReleve(buf); else parsed = parseCsvReleve(XLSX.read(new TextDecoder("utf-8").decode(buf),{type:"string"}));
+    V.bk = reconcile(parsed); V.bk.name = file.name; V.bkMsg = "";
+  } catch(e){ V.bk = null; V.bkMsg = "Lecture impossible : " + e.message; }
+  render();
+}
+function bkRow(o, sub){ return `<div class="row"><div class="main"><div class="t">${esc(cleanLib(o.lib))}</div><div class="s">${frDate(o.d)}${sub ? " · " + sub : ""}</div></div><div class="amt num ${o.cred ? "pos" : "neg"}">${o.cred ? "+ " : "− "}${eur(o.a)}</div></div>`; }
+function viewBank(){
+  const B = V.bk, back = `<div class="top"><button class="btn ghost sm" data-act="tab" data-v="set">‹ Réglages</button><div class="app">Rapprochement</div></div>`;
+  if (!B) return back + (V.bkMsg ? `<div class="info ${/impossible/.test(V.bkMsg) ? "bad" : ""}">${esc(V.bkMsg)}</div>` : "") + `<div class="card"><h2>Relevé de banque</h2>
+    <div class="small muted">Choisissez le relevé de votre compte (PDF ou CSV). L'appli compare avec votre journal et vous propose les changements. Rien n'est modifié avant « Appliquer », et vous pourrez annuler.</div>
+    <label class="f">Relevé<input id="bkfile" type="file" accept=".pdf,.csv,.txt"></label></div>`;
+  const all = S.settings.envelopes.map(e => e.n).concat(S.settings.cats.filter(c => !S.settings.envelopes.some(e => e.n === c)));
+  const c = bkCounts(B), before = calc(V.m, V.y).d18, after = bkSim(B);
+  const sel = (r, i) => { const opts = r.o.cred ? ["Remboursement"] : all, fxs = (r.o.cred ? S.fixRev : S.fixCh).slice().sort((a,b) => a.n.localeCompare(b.n, "fr"));
+    return `<select data-bk="${i}" aria-label="Enveloppe"><option value="" ${r.choice === "" ? "selected" : ""}>À classer…</option><option value="__ignore" ${r.choice === "__ignore" ? "selected" : ""}>Ignorer</option>${fxs.length ? `<optgroup label="C'est un fixe…">${fxs.map(f => `<option value="fx:${r.o.cred ? "rev" : "ch"}:${f.id}" ${r.choice === "fx:" + (r.o.cred ? "rev" : "ch") + ":" + f.id ? "selected" : ""}>${esc(f.n)} (${eur(N(f.montant))})</option>`).join("")}</optgroup>` : ""}<optgroup label="Enveloppe">${opts.map(o => `<option ${o === r.choice ? "selected" : ""}>${esc(o)}</option>`).join("")}</optgroup></select>`; };
+  return back + `<div class="card"><h2>${esc(B.name)}</h2>
+    <div class="kv"><span>Opérations lues</span><span class="num">${B.total}</span></div>
+    <div class="kv"><span>Déjà importées avant</span><span class="num">${B.skip.length}</span></div>
+    <div class="kv"><span>Déjà pointées dans le journal</span><span class="num">${B.done.length}</span></div>
+    <div class="kv"><span>À pointer</span><span class="num">${B.point.length}</span></div>
+    <div class="kv"><span>Fixes retrouvés</span><span class="num">${B.fix.length}</span></div>
+    <div class="kv"><span>Absentes du journal</span><span class="num">${B.create.length}</span></div>
+    ${B.solde !== null ? `<div class="kv"><span>Solde du relevé au ${frDate(B.soldeDate)}</span><span class="num">${eur(B.solde)}</span></div>
+      <label class="f" style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="bk-solde" ${B.useSolde ? "checked" : ""}> Mettre à jour mon solde banque</label>` : ""}</div>
+  <div class="card"><h2>Pointer (${B.point.length})</h2><div class="small muted">Lignes du journal retrouvées sur le relevé (même montant, date à 4 jours près).</div>
+    <div class="rows">${B.point.length ? B.point.map((r,i) => `<div class="row"><button class="chk ${r.on ? "on" : ""}" data-act="bk-pt" data-i="${i}" aria-label="Pointer">${ICON.check}</button>
+      <div class="main"><div class="t">${esc(r.j.lib || r.j.cat || r.j.type)}</div><div class="s">${frDate(r.o.d)} · banque : ${esc(cleanLib(r.o.lib))}</div></div><div class="amt num">${eur(r.o.a)}</div></div>`).join("") : '<div class="empty">Rien à pointer.</div>'}</div></div>
+  ${B.fix.length ? `<div class="card"><h2>Fixes retrouvés (${B.fix.length})</h2><div class="small muted">Ces opérations correspondent à un revenu ou une charge fixe : elles sont pointées dans « Fixes », sans créer de ligne au journal. Si le montant diffère, le montant réel est saisi pour le mois.</div>
+    <div class="rows">${B.fix.map((r,i) => `<div class="row"><button class="chk ${r.on ? "on" : ""}" data-act="bk-fx" data-i="${i}" aria-label="Pointer">${ICON.check}</button>
+      <div class="main"><div class="t">${esc(r.f.n)}</div><div class="s">${frDate(r.o.d)} · banque : ${esc(cleanLib(r.o.lib))}${Math.abs(N(r.f.montant) - r.o.a) > .005 ? " · prévu " + eur(N(r.f.montant)) : ""}</div></div><div class="amt num ${r.o.cred ? "pos" : "neg"}">${r.o.cred ? "+ " : "− "}${eur(r.o.a)}</div></div>`).join("")}</div></div>` : ""}
+  <div class="card"><h2>Absentes du journal (${B.create.length})</h2><div class="small muted">Choisissez une enveloppe pour créer la ligne, « C'est un fixe… » pour le pointer dans vos fixes, « Ignorer » pour la laisser de côté, ou laissez « À classer » pour décider plus tard.</div>
+    <div class="rows">${B.create.length ? B.create.map((r,i) => `<div class="row" style="flex-wrap:wrap"><div class="main" style="min-width:55%"><div class="t">${esc(cleanLib(r.o.lib))}</div><div class="s">${frDate(r.o.d)}${r.internal ? " · virement interne" : ""}</div></div><div class="amt num ${r.o.cred ? "pos" : "neg"}">${r.o.cred ? "+ " : "− "}${eur(r.o.a)}</div><div style="flex-basis:100%">${sel(r,i)}</div></div>`).join("") : '<div class="empty">Tout est déjà dans le journal.</div>'}</div></div>
+  <div class="card"><h2>Avant d'appliquer</h2>
+    <div class="kv"><span>Reste à vivre (${MOIS[V.m]})</span><span class="num">${eur(before)} → ${after === null ? "—" : eur(after)}</span></div>
+    <div class="small muted">${c.pt} pointée(s), ${c.fx} fixe(s), ${c.cr} créée(s), ${c.ig} ignorée(s), ${c.left} laissée(s) de côté.</div>
+    <div class="btns"><button class="btn" data-act="bk-apply" style="flex:1" ${c.pt + c.fx + c.cr + c.ig === 0 ? "disabled" : ""}>Appliquer</button><button class="btn ghost" data-act="bk-cancel">Annuler</button></div></div>`;
+}
+
 /* ============ Démarrage ============ */
-const migrate = () => { if (!S.epargne) S.epargne = emptyEpargne(); if (!Array.isArray(S.web)) S.web = []; };
+const migrate = () => { if (!S.epargne) S.epargne = emptyEpargne(); if (!Array.isArray(S.web)) S.web = []; if (!S.bank) S.bank = {seen:[]}; if (!S.rules) S.rules = {}; };
 function startApp(){
   S = load();
   if (!S || !S.settings){ S = demoData(); persist(); }
