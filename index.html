@@ -202,7 +202,7 @@ function demoData(){
              R("Internet (exemple)","Abonnements",30,12), R("Électricité (exemple)","Énergie / eau",95,20)];
   d.fixRev[0].m[m] = "x"; d.fixCh[0].m[m] = "x";
   d.epargne = {dateDepart:y+"-01-01", envA:"Épargne", envB:"",
-    manuel:[{id:uid(), date:day(3), lib:"Versement (exemple)", montant:200, pq:"Versement épargne"}],
+    manuel:[{id:uid(), date:day(3), lib:"Versement (exemple)", montant:200, pq:"Versement épargne", upd:Date.now()}],
     poches:[{id:uid(), n:"Taxe foncière", f:300}],
     futur:[{id:uid(), date:y+"-11-15", lib:"Impôt (exemple)", sortie:120, entree:0, fait:""}]};
   return d;
@@ -258,8 +258,8 @@ function calc(m,y){
 }
 function livretCalc(){
   const e = S.epargne, dep = e.dateDepart || "0000-00-00", low = x => String(x || "").trim().toLowerCase();
-  const moves = [];
-  for (const m of e.manuel){ const pq = String(m.pq || ""); const vers = /^Versement/.test(pq) || pq === "Ajustement (+)";
+  const moves = [], manuel = e.manuel.filter(m => !m.del);
+  for (const m of manuel){ const pq = String(m.pq || ""); const vers = /^Versement/.test(pq) || pq === "Ajustement (+)";
     moves.push({id:m.id, kind:"S", date:m.date || todayIso(), lib:m.lib, vers:vers ? N(m.montant) : 0, ret:vers ? 0 : N(m.montant),
       org:/^Ajustement/.test(pq) ? "Ajustement" : vers ? "Versement" : pq === "Grosse dépense" ? "Grosse dépense" : "Poche " + pq}); }
   for (const j of live()){
@@ -274,7 +274,7 @@ function livretCalc(){
   const solde = N(S.settings.livretDepart) + moves.reduce((a,m) => a + m.vers - m.ret, 0);
   const poches = e.poches.filter(p => p.n).map(p => {
     const mis = N(p.f) + live().filter(j => j.type === "Dépense" && j.cat === "Envois LIVRET A" && low(j.lib) === low(p.n) && j.pointe === "x" && j.date > dep).reduce((a,j) => a + N(j.montant), 0);
-    const util = e.manuel.filter(m => low(m.pq) === low(p.n)).reduce((a,m) => a + N(m.montant), 0);
+    const util = manuel.filter(m => low(m.pq) === low(p.n)).reduce((a,m) => a + N(m.montant), 0);
     return {id:p.id, n:p.n, mis, util, reste:mis - util}; });
   const pochesReste = poches.reduce((a,p) => a + p.reste, 0), aMoi = solde - pochesReste;
   const sorties = e.futur.filter(f => f.fait !== "x").reduce((a,f) => a + N(f.sortie), 0);
@@ -306,7 +306,7 @@ function parseClasseur(wb){
     const ep = out.epargne; const d0 = cell(E,"C71"); if (d0) ep.dateDepart = anyToIso(d0);
     const a = cell(E,"C72"); if (a) ep.envA = String(a).trim(); const b = cell(E,"C73"); if (b) ep.envB = String(b).trim();
     for (let r=12; r<=511; r++){ const mt = cell(E,"U"+r); if (!isNum(mt)) continue;
-      ep.manuel.push({id:uid(), date:anyToIso(cell(E,"S"+r)), lib:String(cell(E,"T"+r) ?? ""), montant:mt, pq:String(cell(E,"V"+r) ?? "").trim()}); }
+      ep.manuel.push({id:"x" + hash([anyToIso(cell(E,"S"+r)), cell(E,"T"+r), mt, cell(E,"V"+r)].join("|")) + "-" + r, date:anyToIso(cell(E,"S"+r)), lib:String(cell(E,"T"+r) ?? ""), montant:mt, pq:String(cell(E,"V"+r) ?? "").trim(), upd:0}); }
     for (let r=32; r<=39; r++){ const n = cell(E,"B"+r); if (n === undefined || !String(n).trim()) continue; ep.poches.push({id:uid(), n:String(n).trim(), f:N(cell(E,"F"+r))}); }
     for (let r=46; r<=64; r++){ const so = cell(E,"D"+r), en = cell(E,"E"+r), li = cell(E,"C"+r);
       if (!(N(so) || N(en))) continue; ep.futur.push({id:uid(), date:anyToIso(cell(E,"B"+r)), lib:String(li ?? ""), sortie:N(so), entree:N(en), fait:String(cell(E,"F"+r) ?? "").trim().toLowerCase() === "x" ? "x" : ""}); }
@@ -355,8 +355,11 @@ function parseEchange(wb){
       if (k === "livretdatedepart" && r[1] !== "") out.epargne.dateDepart = anyToIso(r[1]);
       else if (k === "enveloppelivret" && String(r[1]).trim()) out.epargne.envA = String(r[1]).trim();
       else if (k === "enveloppe2livret") out.epargne.envB = String(r[1]).trim(); }
-    if (lv) for (let i=1;i<lv.length;i++){ const r = lv[i]; if (!isNum(Number(r[2])) || r[2] === "") continue;
-      out.epargne.manuel.push({id:uid(), date:r[0] === "" ? "" : anyToIso(r[0]), lib:String(r[1]), montant:Number(r[2]), pq:String(r[3]).trim()}); }
+    if (lv){ const withId = String(lv[0] && lv[0][0]).trim().toLowerCase() === "id"; const o = withId ? 1 : 0;
+      for (let i=1;i<lv.length;i++){ const r = lv[i]; if (r[o+2] === "" || !isNum(Number(r[o+2]))) continue;
+        out.epargne.manuel.push({id:withId && String(r[0]).trim() ? String(r[0]).trim() : "x" + hash([r[o], r[o+1], r[o+2], r[o+3]].join("|")) + "-" + i,
+          date:r[o] === "" ? "" : anyToIso(r[o]), lib:String(r[o+1]), montant:Number(r[o+2]), pq:String(r[o+3]).trim(),
+          upd:withId ? (Number(r[o+4]) || 0) : 0, del:withId ? !!r[o+5] : false}); } }
     if (po) for (let i=1;i<po.length;i++){ const r = po[i]; if (!String(r[0]).trim()) continue; out.epargne.poches.push({id:uid(), n:String(r[0]).trim(), f:N(num(r[1]))}); }
     if (fu) for (let i=1;i<fu.length;i++){ const r = fu[i]; if (!(N(num(r[2])) || N(num(r[3])))) continue;
       out.epargne.futur.push({id:uid(), date:r[0] === "" ? "" : anyToIso(r[0]), lib:String(r[1]), sortie:N(num(r[2])), entree:N(num(r[3])), fait:String(r[4]).trim().toLowerCase() === "x" ? "x" : ""}); }
@@ -398,7 +401,7 @@ function buildEchange(){
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["Clé","Valeur"],["SoldeCompte", isNum(S.settings.solde) ? S.settings.solde : ""],["LivretADepart", N(S.settings.livretDepart)],
     ["LivretDateDepart", S.epargne.dateDepart ? isoToSerial(S.epargne.dateDepart) : ""],["EnveloppeLivret", S.epargne.envA],["Enveloppe2Livret", S.epargne.envB]]), "Reglages_appli");
   const dsh = (head, rows, dcols) => { const w = XLSX.utils.aoa_to_sheet([head].concat(rows)); for (let r=1;r<=rows.length;r++) for (const c of dcols){ const a = w[c+(r+1)]; if (a && isNum(a.v)) a.z = "dd/mm/yyyy"; } return w; };
-  XLSX.utils.book_append_sheet(wb, dsh(["Date","Libellé","Montant","Pour quoi"], S.epargne.manuel.map(m => [m.date ? isoToSerial(m.date) : "", m.lib, m.montant, m.pq]), ["A"]), "Livret_appli");
+  XLSX.utils.book_append_sheet(wb, dsh(["ID","Date","Libellé","Montant","Pour quoi","Modifié","Supprimé"], S.epargne.manuel.map(m => [m.id, m.date ? isoToSerial(m.date) : "", m.lib, m.montant, m.pq, m.upd || 0, m.del ? 1 : ""]), ["B"]), "Livret_appli");
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["Poche","Mis de côté (saisi à la main)"]].concat(S.epargne.poches.map(p => [p.n, N(p.f)]))), "Poches_appli");
   XLSX.utils.book_append_sheet(wb, dsh(["Date prévue","Libellé","Sortie (-)","Entrée (+)","Fait ?"], S.epargne.futur.map(f => [f.date ? isoToSerial(f.date) : "", f.lib, f.sortie || "", f.entree || "", f.fait]), ["A"]), "Futur_appli");
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["Enveloppe","Budget"].concat(MC)].concat(S.settings.envelopes.map(e => [e.n, N(e.b)].concat(e.m.map(v => isNum(v) ? v : ""))))), "Enveloppes_appli");
@@ -715,6 +718,10 @@ function commitImport(replace){
     const rows = p.kind === "classeur" ? p.data.journal : p.rows;
     if (S.demo){ S.journal = []; S.fixRev = []; S.fixCh = []; S.settings.envelopes = []; S.demo = false; }
     const r = mergeJournal(rows); V.msg = r.add + " ligne(s) ajoutée(s), " + r.upd + " mise(s) à jour.";
+    if (p.kind === "echange" && p.full.epargne){ const byId = new Map(S.epargne.manuel.map(m => [m.id, m])); let a = 0, u = 0;
+      for (const m of p.full.epargne.manuel){ const c = byId.get(m.id);
+        if (!c){ S.epargne.manuel.push(m); byId.set(m.id, m); a++; } else if ((m.upd || 0) > (c.upd || 0)){ Object.assign(c, m); u++; } }
+      V.msg += " Livret A : " + a + " ajoutée(s), " + u + " mise(s) à jour."; }
   }
   V.pending = null; migrate(); persist(); render();
 }
@@ -749,8 +756,8 @@ document.addEventListener("click", ev => {
     case "lvnew": sheetLivret(""); break; case "lvedit": sheetLivret(id); break;
     case "lv-save": { const mt = parseNum($("#l-mt").value); if (!mt || mt <= 0) return toast("Saisissez un montant");
       const o = {date:$("#l-date").value, lib:$("#l-lib").value.trim(), montant:mt, pq:$("#l-pq").value};
-      if (id) Object.assign(e_manuel(id), o); else S.epargne.manuel.push(Object.assign({id:uid()}, o)); persist(); closeSheet(); render(); break; }
-    case "lv-del": S.epargne.manuel.splice(S.epargne.manuel.findIndex(x => x.id === id),1); persist(); closeSheet(); render(); break;
+      o.upd = Date.now(); if (id) Object.assign(e_manuel(id), o); else S.epargne.manuel.push(Object.assign({id:uid()}, o)); persist(); closeSheet(); render(); break; }
+    case "lv-del": { const m = e_manuel(id); m.del = true; m.upd = Date.now(); persist(); closeSheet(); render(); break; }
     case "pochenew": sheetPoche(""); break; case "pocheedit": sheetPoche(id); break;
     case "po-save": { const n = $("#p-n").value.trim(); if (!n) return toast("Donnez un nom"); const o = {n, f:parseNum($("#p-f").value) || 0};
       if (id) Object.assign(S.epargne.poches.find(x => x.id === id), o); else S.epargne.poches.push(Object.assign({id:uid()}, o)); persist(); closeSheet(); render(); break; }
@@ -793,6 +800,7 @@ migrate();
 render();
 if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) { try { navigator.serviceWorker.register("sw.js").catch(() => {}); } catch(e){} }
 </script>
+
 
 </body>
 </html>
