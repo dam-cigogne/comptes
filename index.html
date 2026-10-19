@@ -824,7 +824,7 @@ function viewSet(){
       ? `${p.data.journal.length} opération(s), ${p.data.fixRev.length} revenu(s) fixe(s), ${p.data.fixCh.length} charge(s) fixe(s), ${p.data.settings.envelopes.length} enveloppe(s).`
       : p.kind === "echange" ? `${p.rows.length} ligne(s) de journal${p.full.settings ? ", " + p.full.settings.envelopes.length + " enveloppe(s)" : ""}${p.full.epargne ? ", épargne (" + p.full.epargne.manuel.length + " mouvement(s), " + p.full.epargne.poches.length + " poche(s), " + p.full.epargne.futur.length + " ligne(s) FUTUR)" : ""}${p.full.fixRev ? ", " + p.full.fixRev.length + " revenu(s) fixe(s), " + p.full.fixCh.length + " charge(s) fixe(s)" : ""}.`
       : `${p.rows.length} ligne(s) de journal.`}</div>
-    <div class="btns">${p.kind === "classeur" || (p.kind === "echange" && (p.full.settings || p.full.fixRev || p.full.epargne)) ? `<button class="btn" data-act="imp-replace">Remplacer mes données</button><button class="btn ghost" data-act="imp-merge">Fusionner le journal</button>` : `<button class="btn" data-act="imp-merge">Fusionner</button>`}
+    <div class="btns">${p.kind === "classeur" || (p.kind === "echange" && (p.full.settings || p.full.fixRev || p.full.epargne)) ? `<button class="btn" data-act="imp-replace">Remplacer mes données</button><button class="btn ghost" data-act="imp-merge">Fusionner (avec choix des différences)</button>` : `<button class="btn" data-act="imp-merge">Fusionner</button>`}
     <button class="btn ghost" data-act="imp-cancel">Annuler</button></div></div>` : "";
   return `<div class="top"><div class="app">Réglages</div></div>${V.msg ? `<div class="info">${esc(V.msg)}</div>` : ""}${pend}
   <div class="card"><h2>Synchroniser avec Excel</h2>
@@ -928,8 +928,43 @@ async function onFile(file){
 }
 function seenOf(p){ const a = p.rows.map(j => j.id); if (p.full && p.full.epargne) for (const m of p.full.epargne.manuel) a.push(m.id); return a; }
 function goneIds(p){ const now = new Set(seenOf(p)), g = new Set(); for (const id of (S.seen || [])) if (!now.has(id)) g.add(id); return g; }
+/* Différences Excel -> appli (budgets, fixes, jour de paie) proposées après une fusion */
+function diffRef(p){
+  const f = p.full || {}, out = [], key = s => String(s).trim().toLowerCase();
+  const fm = v => v === "x" ? "pointé" : isNum(v) ? String(v).replace(".",",") + " €" : "vide";
+  const em = v => isNum(v) ? String(v).replace(".",",") + " €" : "budget habituel";
+  if (f.settings && isNum(f.settings.payday) && f.settings.payday !== payday()){ const v = f.settings.payday;
+    out.push({txt:"Jour de paie : " + payday() + " → " + v, ap(){ S.settings.payday = v; const cp = curPeriod(); V.m = cp.m; V.y = cp.y; }}); }
+  if (f.settings) for (const x of f.settings.envelopes){
+    const e = S.settings.envelopes.find(y => key(y.n) === key(x.n));
+    if (!e){ out.push({txt:"Nouvelle enveloppe « " + x.n + " » (" + em(x.b) + ")", ap(){ S.settings.envelopes.push({n:x.n, b:x.b, m:x.m.slice()}); }}); continue; }
+    if (N(e.b) !== N(x.b)) out.push({txt:"Enveloppe « " + e.n + " » : budget " + em(N(e.b)) + " → " + em(N(x.b)), ap(){ e.b = x.b; }});
+    const ds = []; for (let k=0;k<12;k++){ const a = isNum(e.m[k]) ? e.m[k] : null, b = isNum(x.m[k]) ? x.m[k] : null; if (a !== b) ds.push(k); }
+    if (ds.length) out.push({txt:"Enveloppe « " + e.n + " » : " + ds.map(k => MOIS[k].toLowerCase() + " " + em(isNum(e.m[k]) ? e.m[k] : null) + " → " + em(isNum(x.m[k]) ? x.m[k] : null)).join(" ; "), ap(){ for (const k of ds) e.m[k] = isNum(x.m[k]) ? x.m[k] : null; }});
+  }
+  for (const [kd, arr, lab] of [["rev", f.fixRev, "Revenu"], ["ch", f.fixCh, "Charge"]]){ if (!arr) continue;
+    const mine = kd === "rev" ? S.fixRev : S.fixCh;
+    const seenN = {};
+    for (const x of arr){
+      const kn = key(x.n), nth = seenN[kn] = (seenN[kn] || 0) + 1;
+      const r = mine.filter(y => key(y.n) === kn)[nth - 1];
+      if (!r){ out.push({txt:"Nouveau fixe (" + lab.toLowerCase() + ") « " + x.n + " » : " + eur(x.montant), ap(){ mine.push(Object.assign({}, x, {id:uid(), m:x.m.slice()})); }}); continue; }
+      if (N(r.montant) !== N(x.montant) || (r.jour || null) !== (x.jour || null) || String(r.t || "") !== String(x.t || ""))
+        out.push({txt:lab + " « " + r.n + " » : " + eur(N(r.montant)) + (r.jour ? " le " + r.jour : "") + " → " + eur(N(x.montant)) + (x.jour ? " le " + x.jour : ""), ap(){ r.montant = x.montant; r.jour = x.jour; r.t = x.t; }});
+      const ds = []; for (let k=0;k<12;k++){ const a = r.m[k] === undefined ? "" : r.m[k], b = x.m[k]; if (String(a) !== String(b)) ds.push(k); }
+      if (ds.length) out.push({txt:lab + " « " + r.n + " » : " + ds.map(k => MOIS[k].toLowerCase() + " " + fm(r.m[k]) + " → " + fm(x.m[k])).join(" ; "), ap(){ for (const k of ds) r.m[k] = x.m[k]; }});
+    } }
+  return out;
+}
+function sheetDiff(){
+  const d = V.diff || []; if (!d.length) return;
+  openSheet(`<h2>Différences avec Excel</h2><div class="small muted">Excel contient des budgets ou des fixes différents de ceux de l'appli. Décochez ce que vous ne voulez pas reprendre (par exemple un pointage fait depuis, dans l'appli, après l'export).</div>
+    ${d.map((x,i) => `<label class="f" style="flex-direction:row;gap:10px;align-items:flex-start"><input type="checkbox" data-df="${i}" checked style="width:auto;margin-top:3px"><span class="small">${esc(x.txt)}</span></label>`).join("")}
+    <div class="btns"><button class="btn" data-act="df-apply" style="flex:1">Reprendre la sélection</button><button class="btn ghost" data-act="df-skip">Garder l'appli</button></div>`);
+}
 function commitImport(replace){
-  const p = V.pending; if (!p) return; const keepWeb = S.web || [], keepSeen = S.webSeen, keepCats = S.webCatList, keepBank = S.bank, keepRules = S.rules;
+  const p = V.pending; if (!p) return;
+ const keepWeb = S.web || [], keepSeen = S.webSeen, keepCats = S.webCatList, keepBank = S.bank, keepRules = S.rules;
   const prevPay = S.settings.payday; if (replace && p.kind === "classeur"){ const prevCats = S.settings.cats; S = p.data; S.demo = false; if (!S.settings.cats.length) S.settings.cats = prevCats; V.msg = "Données remplacées par le classeur."; }
   else if (replace && p.kind === "echange"){ const f = p.full; const base = emptyData();
     S = Object.assign(base,{journal:p.rows}); if (f.settings) S.settings = f.settings; if (f.fixRev) S.fixRev = f.fixRev; if (f.fixCh) S.fixCh = f.fixCh; if (f.epargne) S.epargne = f.epargne;
@@ -953,7 +988,9 @@ function commitImport(replace){
   }
   if (replace && S.settings && S.settings.payday === undefined && prevPay !== undefined) S.settings.payday = prevPay;
   if (replace && p.kind !== "json"){ S.web = keepWeb; S.webSeen = keepSeen; S.webCatList = keepCats; S.bank = keepBank; S.rules = keepRules; }
+  V.diff = (!replace && p.kind === "echange") ? diffRef(p) : null;
   V.pending = null; migrate(); persist(); render();
+  if (V.diff && V.diff.length) sheetDiff();
 }
 
 document.addEventListener("click", ev => {
@@ -1040,6 +1077,8 @@ document.addEventListener("click", ev => {
     case "envdel": S.settings.envelopes.splice(+b.dataset.i,1); persist(); render(); break;
     case "exp-journal": saveFile("journal_appli.xlsx", buildEchange(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"); break;
     case "exp-json": saveFile("mes-comptes-sauvegarde.json", JSON.stringify(S,null,1), "application/json"); break;
+    case "df-apply": { const ch = [...document.querySelectorAll("[data-df]")].filter(c => c.checked).map(c => +c.dataset.df); for (const i of ch) V.diff[i].ap(); V.diff = null; persist(); closeSheet(); render(); toast(ch.length + " différence(s) reprise(s)"); break; }
+    case "df-skip": V.diff = null; closeSheet(); break;
     case "imp-replace": commitImport(true); break; case "imp-merge": commitImport(false); break;
     case "imp-cancel": V.pending = null; render(); break;
     case "wipe": V.wipe = true; render(); break; case "wipe-no": V.wipe = false; render(); break;
