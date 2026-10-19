@@ -91,6 +91,7 @@ button{cursor:pointer}
 
 .env{display:flex;flex-direction:column;gap:5px;padding:8px 0;border-top:1px solid var(--line)}
 .env:first-child{border-top:0}
+button.env{width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);color:inherit;font:inherit;cursor:pointer}button.env:first-child{border-top:0}
 .env .h{display:flex;justify-content:space-between;gap:8px}
 .bar{height:10px;border-radius:999px;background:var(--line);overflow:hidden}
 .bar i{display:block;height:100%;background:var(--accent);border-radius:999px}
@@ -555,10 +556,10 @@ function topbar(){ return `<div class="top"><div class="app">Mes comptes</div><d
 
 function viewHome(){
   const c = calc(V.m,V.y); const L = livretCalc(); const soldeVal = S.settings.solde;
-  const envHtml = c.envs.length ? c.envs.map(e => {
+  const envHtml = c.envs.length ? c.envs.map((e,ei) => {
     const p = e.bud > 0 ? Math.min(100, Math.round(e.dep / e.bud * 100)) : (e.dep > 0 ? 100 : 0);
     const cls = e.dep > e.bud ? "bad" : (e.bud > 0 && e.dep / e.bud >= .8 ? "warn" : "");
-    return `<div class="env"><div class="h"><span>${esc(e.n)}</span><span class="num ${e.reste<0?"neg":""}">${eur(e.reste)} <span class="muted small">/ ${eur(e.bud)}</span></span></div><div class="bar"><i class="${cls}" style="width:${p}%"></i></div></div>`;
+    return `<button class="env" data-act="envmonth" data-i="${ei}"><div class="h"><span>${esc(e.n)}${isNum(S.settings.envelopes[ei].m[V.m]) ? ' <span class="chip">ce mois</span>' : ""}</span><span class="num ${e.reste<0?"neg":""}">${eur(e.reste)} <span class="muted small">/ ${eur(e.bud)}</span></span></div><div class="bar"><i class="${cls}" style="width:${p}%"></i></div></button>`;
   }).join("") : `<div class="empty">Aucune enveloppe. Ajoutez-en dans Réglages.</div>`;
   const kv = (l,v,neg) => `<div class="kv"><span>${l}</span><span class="num">${neg?"− ":"+ "}${eur(v)}</span></div>`;
   return topbar() + `
@@ -578,7 +579,7 @@ function viewHome(){
       ${kv("Reste dans les enveloppes",c.d17,1)}
       <div class="kv tot"><span>Reste à vivre après enveloppes</span><span class="num">${eur(c.d18)}</span></div>
     </div></details></div>
-  <div class="card"><h2>Enveloppes de ${MOIS[V.m].toLowerCase()}</h2><div>${envHtml}</div></div>
+  <div class="card"><h2>Enveloppes de ${MOIS[V.m].toLowerCase()}</h2><div class="small muted">Touchez une enveloppe pour changer son budget de ce mois seulement.</div><div>${envHtml}</div><div class="btns" style="margin-top:10px"><button class="btn ghost sm" data-act="envmonthnew">+ Enveloppe pour ce mois</button></div></div>
   <div class="card"><div class="top"><h2>Épargne</h2><button class="btn sm" data-act="gosav">Détail</button></div>
     <div class="kv"><span>Livret A</span><span class="num">${eur(L.solde)}</span></div>
     <div class="kv"><span>Livret A vraiment à moi</span><span class="num">${eur(L.aMoi)}</span></div>
@@ -873,6 +874,20 @@ function sheetMonth(k,id){
     <div class="btns"><button class="btn" data-act="sm-save" data-k="${k}" data-id="${id}" style="flex:1">Enregistrer</button>
     <button class="btn ghost" data-act="sm-reset" data-k="${k}" data-id="${id}">Non pointé</button><button class="btn ghost" data-act="sheetclose">Fermer</button></div>`);
 }
+function sheetEnvMonth(i){
+  const e = S.settings.envelopes[i]; if (!e) return; const c = e.m[V.m];
+  openSheet(`<h2>${esc(e.n)} · ${MOIS[V.m]}</h2>
+    <div class="small muted">Budget habituel : ${eur(N(e.b))}. Saisissez un autre montant pour ${MOIS[V.m].toLowerCase()} seulement (vide = budget habituel). Les autres mois ne changent pas.</div>
+    <label class="f">Budget de ce mois (€)<input id="em-val" inputmode="decimal" value="${isNum(c) ? String(c).replace(".",",") : ""}"></label>
+    <div class="btns"><button class="btn" data-act="em-save" data-i="${i}" style="flex:1">Enregistrer</button>${isNum(c) ? `<button class="btn ghost" data-act="em-reset" data-i="${i}">Budget habituel</button>` : ""}<button class="btn ghost" data-act="sheetclose">Fermer</button></div>`);
+}
+function sheetEnvNew(){
+  openSheet(`<h2>Enveloppe pour ${MOIS[V.m].toLowerCase()}</h2>
+    <div class="small muted">Crée une enveloppe avec un budget pour ce mois seulement (0 € les autres mois). Si le nom existe déjà, son budget de ce mois est modifié.</div>
+    <label class="f">Nom<input id="en-name" placeholder="Ex. Cadeaux"></label>
+    <label class="f">Budget de ce mois (€)<input id="en-val" inputmode="decimal"></label>
+    <div class="btns"><button class="btn" data-act="en-save" style="flex:1">Ajouter</button><button class="btn ghost" data-act="sheetclose">Fermer</button></div>`);
+}
 function sheetFix(k,id){
   const r = id ? findFix(k,id) : {n:"",t:"",montant:"",jour:""};
   openSheet(`<h2>${id ? "Modifier" : "Nouvelle"} ligne ${k === "rev" ? "de revenu" : "de charge"}</h2>
@@ -1014,6 +1029,13 @@ document.addEventListener("click", ev => {
       if (id) Object.assign(S.epargne.futur.find(x => x.id === id), o); else S.epargne.futur.push(Object.assign({id:uid(), fait:""}, o)); persist(); closeSheet(); render(); break; }
     case "fu-del": S.epargne.futur.splice(S.epargne.futur.findIndex(x => x.id === id),1); persist(); closeSheet(); render(); break;
     case "futtoggle": { const f = S.epargne.futur.find(x => x.id === id); f.fait = f.fait === "x" ? "" : "x"; persist(); render(); break; }
+    case "envmonth": sheetEnvMonth(+b.dataset.i); break;
+    case "envmonthnew": sheetEnvNew(); break;
+    case "em-save": { const e = S.settings.envelopes[+b.dataset.i], raw = $("#em-val").value.trim(), v = parseNum(raw); e.m[V.m] = raw === "" || v === null ? null : v; persist(); closeSheet(); render(); toast("Budget de " + MOIS[V.m].toLowerCase() + " enregistré"); break; }
+    case "em-reset": { S.settings.envelopes[+b.dataset.i].m[V.m] = null; persist(); closeSheet(); render(); break; }
+    case "en-save": { const name = $("#en-name").value.trim(), v = parseNum($("#en-val").value); if (!name) return toast("Donnez un nom"); if (v === null || v < 0) return toast("Saisissez un budget");
+      let e = S.settings.envelopes.find(x => x.n.toLowerCase() === name.toLowerCase()); if (!e){ e = {n:name, b:0, m:Array(12).fill(null)}; S.settings.envelopes.push(e); }
+      e.m[V.m] = v; persist(); closeSheet(); render(); toast("Enveloppe " + e.n + " : " + eur(v)); break; }
     case "envnew": S.settings.envelopes.push({n:"Nouvelle enveloppe", b:0, m:Array(12).fill(null)}); persist(); render(); break;
     case "envdel": S.settings.envelopes.splice(+b.dataset.i,1); persist(); render(); break;
     case "exp-journal": saveFile("journal_appli.xlsx", buildEchange(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"); break;
