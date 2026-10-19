@@ -56,6 +56,7 @@ button{cursor:pointer}
 
 .top{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .top .app{font-family:var(--font-display);font-weight:700;font-size:20px}
+.catbar{display:flex;flex-wrap:wrap;gap:6px;padding:2px 0 12px}.catbar button{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:6px 12px;font:inherit;font-size:13px;font-weight:500}.catbar button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}.catbar button span{opacity:.6;margin-left:4px}
 .monthnav{display:flex;align-items:center;gap:2px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:2px}
 .monthnav button{border:0;background:none;width:36px;height:36px;border-radius:50%;font-size:20px;line-height:1;color:var(--ink)}
 .monthnav button:active{background:var(--accent-soft)}
@@ -499,6 +500,7 @@ function buildEchange(){
   for (let r=1;r<aoa.length;r++){ for (const c of ["B","I"]){ const a = ws[c+(r+1)]; if (a && isNum(a.v)){ a.t = "n"; a.z = "dd/mm/yyyy"; } } }
   ws["!cols"] = [{wch:14},{wch:12},{wch:22},{wch:22},{wch:30},{wch:11},{wch:7},{wch:24},{wch:12},{wch:14},{wch:10}];
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Journal_appli");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["ID","Site","Adresse","Identifiant","Catégorie","État","Note","Modifié","Supprimé"]].concat((S.web || []).map(w => [w.id, w.site, w.url, w.ident, w.cat, w.st, w.note, w.upd || 0, w.del ? 1 : ""]))), "Comptes_web_appli");
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["Clé","Valeur"],["SoldeCompte", isNum(S.settings.solde) ? S.settings.solde : ""],["LivretADepart", N(S.settings.livretDepart)],["JourPaie", payday()],
     ["LivretDateDepart", S.epargne.dateDepart ? isoToSerial(S.epargne.dateDepart) : ""],["EnveloppeLivret", S.epargne.envA],["Enveloppe2Livret", S.epargne.envB]]), "Reglages_appli");
   const dsh = (head, rows, dcols) => { const w = XLSX.utils.aoa_to_sheet([head].concat(rows)); for (let r=1;r<=rows.length;r++) for (const c of dcols){ const a = w[c+(r+1)]; if (a && isNum(a.v)) a.z = "dd/mm/yyyy"; } return w; };
@@ -729,11 +731,13 @@ function viewWeb(){
   <div class="info">Ne notez jamais de mot de passe ici : les données restent en clair sur le téléphone. Gardez-les dans Mots de passe Apple. Ici : le site, l'identifiant et l'état.</div>
   <input class="search" id="web-q" placeholder="Rechercher un site, un identifiant…" value="${esc(V.wq || "")}" enterkeyhint="search">
   <div class="seg">${["Tous"].concat(WEB_ST).map(x => `<button class="${f === x ? "on" : ""}" data-act="webf" data-v="${x}">${x}${x === "Tous" ? " (" + all.length + ")" : " (" + cnt(x) + ")"}</button>`).join("")}</div>
+  <div class="catbar" aria-label="Catégories">${webCats().map(c => { const n = all.filter(x => (f === "Tous" || x.st === f) && x.cat === c).length; return `<button class="${V.wc === c ? "on" : ""}" data-act="webc" data-v="${esc(c)}">${esc(c)}<span>${n}</span></button>`; }).join("")}</div>
   <div class="card"><div class="rows" id="web-list">${webList()}</div></div>`;
 }
+const webCats = () => { const present = (S.web || []).filter(x => !x.del && x.cat).map(x => x.cat), base = (S.webCatList && S.webCatList.length) ? S.webCatList : (present.length ? [] : WEB_CATS); return [...new Set(base.concat(present))]; };
 function webList(){
   const q = (V.wq || "").toLowerCase(), f = V.wf || "Tous";
-  const list = (S.web || []).filter(x => !x.del && (f === "Tous" || x.st === f) && (!q || (x.site + " " + x.ident + " " + x.cat + " " + x.note).toLowerCase().includes(q)))
+  const list = (S.web || []).filter(x => !x.del && (f === "Tous" || x.st === f) && (!V.wc || x.cat === V.wc) && (!q || (x.site + " " + x.ident + " " + x.cat + " " + x.note).toLowerCase().includes(q)))
     .sort((a,b) => a.site.localeCompare(b.site,"fr"));
   const chip = st => st === "À changer" ? "bad" : st === "Changé" ? "" : "warn";
   return list.length ? list.map(x => `<div class="row"><div class="ico">${esc((x.site || "?").trim().charAt(0))}</div>
@@ -746,42 +750,51 @@ function parseWeb(wb){
   const norm = x => String(x).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
   let hi = rows.findIndex(r => r.some(c => /^(site|nom|service|compte)/.test(norm(c)))); if (hi < 0) hi = 0;
   const head = rows[hi].map(norm), col = re => head.findIndex(h => re.test(h));
-  const c = {site:col(/^(site|nom|service|compte)/), url:col(/(adresse|url|lien|web)/), ident:col(/(identifiant|login|e-?mail|mail|utilisateur|pseudo)/), cat:col(/categ|type|famille/), st:col(/^(etat|statut|status)/), note:col(/(note|remarque|comment)/)};
+  const c = {site:col(/^(site|nom|service|compte)/), url:col(/(adresse|url|lien|web)/), ident:col(/(identifiant|login|e-?mail|mail|utilisateur|pseudo)/), cat:col(/categ|type|famille/), st:col(/^(etat|statut|status)/), note:col(/(note|remarque|comment)/), id:col(/^id$/), upd:col(/^modifie/), del:col(/^supprime/)};
   const pwd = head.filter(h => /(mot de passe|mdp|password|passe)/.test(h)).length;
   if (c.site < 0) throw new Error("Colonne « Site » introuvable.");
   const out = []; const g = (r,i) => i < 0 ? "" : String(r[i] ?? "").trim();
   for (let i = hi + 1; i < rows.length; i++){ const r = rows[i], site = g(r,c.site); if (!site) continue;
     const stRaw = norm(g(r,c.st)); const st = !stRaw ? "" : /chang|fait|ok|termin/.test(stRaw) && !/a chang|pas/.test(stRaw) ? (/^ok$/.test(stRaw) ? "OK" : "Changé") : /a chang|a faire|todo|non|pas/.test(stRaw) ? "À changer" : "OK";
-    out.push({site, url:g(r,c.url), ident:g(r,c.ident), cat:g(r,c.cat), st, note:g(r,c.note)}); }
-  return {rows:out, pwd, sheet:nm};
+    out.push({site, url:g(r,c.url), ident:g(r,c.ident), cat:g(r,c.cat), st, note:g(r,c.note), id:g(r,c.id), upd:Number(r[c.upd]) || 0, del:c.del >= 0 && /^(1|x|oui)$/i.test(g(r,c.del))}); }
+  const cn = wb.SheetNames.find(n => /^cat[eé]gories?_?web/i.test(n.normalize("NFD").replace(/[\u0300-\u036f]/g,"")) || /^cat[eé]gories?$/i.test(n)); let cats = null;
+  if (cn){ cats = XLSX.utils.sheet_to_json(wb.Sheets[cn],{header:1,raw:true,defval:""}).map(r => String(r[0] ?? "").trim()).filter(x => x && !/^cat[eé]gories?$/i.test(x)); }
+  return {rows:out, pwd, sheet:nm, hasId:c.id >= 0, cats};
 }
 const webKey = x => (x.site + "|" + x.ident).toLowerCase().trim();
+function webGone(p){ if (!p.hasId) return []; const present = new Set(p.rows.map(r => r.id).filter(Boolean)); return (S.webSeen || []).filter(id => !present.has(id) && S.web.some(x => x.id === id && !x.del)); }
 function applyWeb(replace){
-  const p = V.webPending; if (!p) return; let add = 0, upd = 0; const now = Date.now();
+  const p = V.webPending; if (!p) return; let add = 0, upd = 0, gone = 0; const now = Date.now();
+  const goneIds = replace ? [] : webGone(p);
   if (replace) S.web.forEach(x => { x.del = true; x.upd = now; });
-  const byKey = new Map(S.web.filter(x => !x.del).map(x => [webKey(x), x]));
-  for (const r of p.rows){ const cur = byKey.get(webKey(r));
-    if (cur){ for (const k of ["url","cat","st","note"]) if (r[k]) cur[k] = r[k]; cur.upd = now; upd++; }
-    else { const n = {id:uid(), site:r.site, url:r.url, ident:r.ident, cat:r.cat || "Autre", st:r.st || "À changer", note:r.note, upd:now}; S.web.push(n); byKey.set(webKey(n), n); add++; } }
-  V.webMsg = add + " compte(s) ajouté(s), " + upd + " mis à jour" + (replace ? " (liste remplacée)." : "."); V.webPending = null; persist(); closeSheet(); render();
+  const byId = new Map(S.web.map(x => [x.id, x])), byKey = new Map(S.web.filter(x => !x.del).map(x => [webKey(x), x]));
+  for (const r of p.rows){ let cur = r.id ? byId.get(r.id) : null; if (!cur) cur = byKey.get(webKey(r));
+    if (cur){
+      if (r.id && (r.upd || replace)){ if (replace || r.upd >= (cur.upd || 0)){ cur.site = r.site; cur.url = r.url; cur.ident = r.ident; cur.cat = r.cat || cur.cat || "Autre"; if (r.st) cur.st = r.st; cur.note = r.note; cur.del = r.del || undefined; cur.upd = replace ? now : r.upd; upd++; } }
+      else if (!cur.del){ for (const k of ["url","cat","st","note"]) if (r[k]) cur[k] = r[k]; cur.upd = now; upd++; } }
+    else if (!r.del){ const n = {id:r.id || uid(), site:r.site, url:r.url, ident:r.ident, cat:r.cat || "Autre", st:r.st || "À changer", note:r.note, upd:r.upd || now}; S.web.push(n); byKey.set(webKey(n), n); byId.set(n.id, n); add++; } }
+  for (const id of goneIds){ const x = byId.get(id); if (x && !x.del){ x.del = true; x.upd = now; gone++; } }
+  if (p.hasId) S.webSeen = p.rows.map(r => r.id).filter(Boolean);
+  if (p.cats && p.cats.length) S.webCatList = p.cats;
+  V.webMsg = add + " compte(s) ajouté(s), " + upd + " mis à jour" + (gone ? ", " + gone + " supprimé(s) (retirés dans Excel)" : "") + (replace ? " (liste remplacée)." : "."); V.webPending = null; persist(); closeSheet(); render();
 }
 function sheetWebImport(){
   const p = V.webPending; if (!p) return;
   const ex = new Set(S.web.filter(x => !x.del).map(webKey)), nw = p.rows.filter(r => !ex.has(webKey(r))).length;
   openSheet(`<h2>Importer les comptes en ligne</h2>
-    <div class="small">${p.rows.length} compte(s) dans « ${esc(p.sheet)} » : ${nw} nouveau(x), ${p.rows.length - nw} déjà présent(s).</div>
+    <div class="small">${p.rows.length} compte(s) dans « ${esc(p.sheet)} » : ${nw} nouveau(x), ${p.rows.length - nw} déjà présent(s).${webGone(p).length ? " " + webGone(p).length + " compte(s) absent(s) du fichier seront supprimés ici (retirés dans Excel)." : ""}</div>
     ${p.pwd ? `<div class="info bad">Une colonne de mot de passe a été détectée : elle est ignorée et n'est jamais enregistrée.</div>` : ""}
-    <div class="small muted">Fusionner ajoute les nouveaux et met à jour les autres sans rien supprimer. Remplacer vide d'abord la liste actuelle.</div>
+    <div class="small muted">Catégories utilisées par les comptes du fichier : ${new Set(p.rows.map(r => r.cat || "(vide)")).size}${p.rows.filter(r => !r.cat).length ? " — dont " + p.rows.filter(r => !r.cat).length + " compte(s) sans catégorie" : ""}.${p.cats ? " Liste « Categories_web » : " + p.cats.length + " catégorie(s)." : " Pas de feuille « Categories_web » dans ce fichier."}</div><div class="small muted">Fusionner ajoute les nouveaux et met à jour les autres sans rien supprimer. Remplacer vide d'abord la liste actuelle.</div>
     <div class="btns"><button class="btn" data-act="web-merge" style="flex:1">Fusionner</button><button class="btn ghost" data-act="web-replace">Remplacer la liste</button><button class="btn ghost" data-act="sheetclose">Annuler</button></div>`);
 }
 function sheetWeb(id){
-  const w = id ? S.web.find(x => x.id === id) : {site:"", url:"", ident:"", cat:"Autre", st:"À changer", note:""};
+  const w = id ? S.web.find(x => x.id === id) : {site:"", url:"", ident:"", cat:V.wc || (webCats().includes("Autre") ? "Autre" : webCats()[0]), st:"À changer", note:""};
   const sel = (lab, key, arr) => `<label class="f">${lab}<select id="w-${key}">${arr.map(o => `<option ${o === w[key] ? "selected" : ""}>${esc(o)}</option>`).join("")}</select></label>`;
   openSheet(`<h2>${id ? "Modifier" : "Nouveau"} compte en ligne</h2>
     <label class="f">Site<input id="w-site" value="${esc(w.site)}" placeholder="Ex. Amazon"></label>
     <label class="f">Adresse<input id="w-url" inputmode="url" autocapitalize="none" value="${esc(w.url)}" placeholder="amazon.fr"></label>
     <label class="f">Identifiant / e-mail<input id="w-ident" autocapitalize="none" value="${esc(w.ident)}"></label>
-    <div class="grid2">${sel("Catégorie","cat",WEB_CATS)}${sel("État","st",WEB_ST)}</div>
+    <div class="grid2">${sel("Catégorie","cat",webCats().includes(w.cat) || !w.cat ? webCats() : webCats().concat(w.cat))}${sel("État","st",WEB_ST)}</div>
     <label class="f">Note (sans mot de passe)<input id="w-note" value="${esc(w.note)}" placeholder="Ex. double authentification activée"></label>
     <div class="btns"><button class="btn" data-act="web-save" data-id="${id||""}" style="flex:1">Enregistrer</button>${id ? `<button class="btn danger" data-act="web-del" data-id="${id}">Supprimer</button>` : ""}<button class="btn ghost" data-act="sheetclose">Fermer</button></div>`);
 }
@@ -901,7 +914,7 @@ async function onFile(file){
 function seenOf(p){ const a = p.rows.map(j => j.id); if (p.full && p.full.epargne) for (const m of p.full.epargne.manuel) a.push(m.id); return a; }
 function goneIds(p){ const now = new Set(seenOf(p)), g = new Set(); for (const id of (S.seen || [])) if (!now.has(id)) g.add(id); return g; }
 function commitImport(replace){
-  const p = V.pending; if (!p) return; const keepWeb = S.web || [], keepBank = S.bank, keepRules = S.rules;
+  const p = V.pending; if (!p) return; const keepWeb = S.web || [], keepSeen = S.webSeen, keepCats = S.webCatList, keepBank = S.bank, keepRules = S.rules;
   const prevPay = S.settings.payday; if (replace && p.kind === "classeur"){ const prevCats = S.settings.cats; S = p.data; S.demo = false; if (!S.settings.cats.length) S.settings.cats = prevCats; V.msg = "Données remplacées par le classeur."; }
   else if (replace && p.kind === "echange"){ const f = p.full; const base = emptyData();
     S = Object.assign(base,{journal:p.rows}); if (f.settings) S.settings = f.settings; if (f.fixRev) S.fixRev = f.fixRev; if (f.fixCh) S.fixCh = f.fixCh; if (f.epargne) S.epargne = f.epargne;
@@ -924,7 +937,7 @@ function commitImport(replace){
       S.seen = seenOf(p); }
   }
   if (replace && S.settings && S.settings.payday === undefined && prevPay !== undefined) S.settings.payday = prevPay;
-  if (replace && p.kind !== "json"){ S.web = keepWeb; S.bank = keepBank; S.rules = keepRules; }
+  if (replace && p.kind !== "json"){ S.web = keepWeb; S.webSeen = keepSeen; S.webCatList = keepCats; S.bank = keepBank; S.rules = keepRules; }
   V.pending = null; migrate(); persist(); render();
 }
 
@@ -990,6 +1003,7 @@ document.addEventListener("click", ev => {
     case "bk-undo": bkUndo(); break;
     case "webnew": sheetWeb(""); break; case "webedit": sheetWeb(id); break;
     case "webf": V.wf = b.dataset.v; render(); break;
+    case "webc": V.wc = V.wc === b.dataset.v ? "" : b.dataset.v; render(); break;
     case "web-save": { const site = $("#w-site").value.trim(); if (!site) return toast("Donnez le nom du site");
       const o = {site, url:$("#w-url").value.trim(), ident:$("#w-ident").value.trim(), cat:$("#w-cat").value, st:$("#w-st").value, note:$("#w-note").value.trim(), upd:Date.now()};
       if (id) Object.assign(S.web.find(x => x.id === id), o); else S.web.push(Object.assign({id:uid()}, o)); persist(); closeSheet(); render(); break; }
