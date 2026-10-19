@@ -517,13 +517,13 @@ function buildEchange(){
 }
 async function saveFile(name, data, mime){
   let dl = null; try { dl = window.claude && window.claude.use ? await window.claude.use("downloads") : null; } catch(e){}
-  if (dl){ try { await dl.save({filename:name, data}); toast("Fichier prêt : " + name); } catch(e){ if (e && e.code !== "declined") toast("Enregistrement impossible"); } return; }
+  if (dl){ try { await dl.save({filename:name, data}); toast("Fichier prêt : " + name); return true; } catch(e){ if (e && e.code !== "declined") toast("Enregistrement impossible"); } return false; }
   try { const file = new File([data], name, {type:mime});
-    if (navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:name}); toast("Fichier partagé : " + name); return; } }
-  catch(e){ if (e && e.name === "AbortError") return; }
+    if (navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:name}); toast("Fichier partagé : " + name); return true; } }
+  catch(e){ if (e && e.name === "AbortError") return false; }
   const url = URL.createObjectURL(new Blob([data],{type:mime})); const a = document.createElement("a");
   a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 4000);
-  toast("Fichier prêt : " + name);
+  toast("Fichier prêt : " + name); return true;
 }
 
 /* ============ Vue ============ */
@@ -552,7 +552,10 @@ function renderTabs(){
 function monthNav(){
   return `<div class="monthnav"><button data-act="mprev" aria-label="Mois précédent">‹</button><span>${MOIS[V.m]} ${V.y}${payday() > 1 ? `<small style="display:block;font-size:10px;font-weight:500;color:var(--muted);line-height:1.1">${(() => { const r = periodRange(V.m,V.y); return frDate(r[0]) + " → " + frDate(r[1]); })()}</small>` : ""}</span><button data-act="mnext" aria-label="Mois suivant">›</button></div>`;
 }
-function topbar(){ return `<div class="top"><div class="app">Mes comptes</div><div class="topr">${monthNav()}<button class="gear" data-act="tab" data-v="set" aria-label="Réglages">${ICON.set}</button></div></div>` + (S.demo ? `<div class="banner">Données d'exemple. Importez votre classeur Excel dans <b>Réglages</b> pour travailler avec vos vrais comptes.</div>` : ""); }
+function bkpAge(){ return S.lastBackup ? Math.floor((Date.now() - S.lastBackup) / 864e5) : null; }
+function bkpBanner(){ if (S.demo) return ""; const a = bkpAge(); if (a !== null && a < 14) return "";
+  return `<div class="banner">${a === null ? "Aucune sauvegarde faite pour l'instant." : "Dernière sauvegarde il y a " + a + " jours."} <button class="btn sm" data-act="exp-json">Sauvegarder</button></div>`; }
+function topbar(){ return `<div class="top"><div class="app">Mes comptes</div><div class="topr">${monthNav()}<button class="gear" data-act="tab" data-v="set" aria-label="Réglages">${ICON.set}</button></div></div>` + bkpBanner() + (S.demo ? `<div class="banner">Données d'exemple. Importez votre classeur Excel dans <b>Réglages</b> pour travailler avec vos vrais comptes.</div>` : ""); }
 
 function viewHome(){
   const c = calc(V.m,V.y); const L = livretCalc(); const soldeVal = S.settings.solde;
@@ -823,14 +826,16 @@ function viewSet(){
     <div class="small">${p.kind === "classeur"
       ? `${p.data.journal.length} opération(s), ${p.data.fixRev.length} revenu(s) fixe(s), ${p.data.fixCh.length} charge(s) fixe(s), ${p.data.settings.envelopes.length} enveloppe(s).`
       : p.kind === "echange" ? `${p.rows.length} ligne(s) de journal${p.full.settings ? ", " + p.full.settings.envelopes.length + " enveloppe(s)" : ""}${p.full.epargne ? ", épargne (" + p.full.epargne.manuel.length + " mouvement(s), " + p.full.epargne.poches.length + " poche(s), " + p.full.epargne.futur.length + " ligne(s) FUTUR)" : ""}${p.full.fixRev ? ", " + p.full.fixRev.length + " revenu(s) fixe(s), " + p.full.fixCh.length + " charge(s) fixe(s)" : ""}.`
+      : p.kind === "json" ? `Sauvegarde complète : ${p.data.journal.length} opération(s), ${(p.data.fixRev || []).length + (p.data.fixCh || []).length} fixe(s), ${p.data.settings.envelopes.length} enveloppe(s).`
       : `${p.rows.length} ligne(s) de journal.`}</div>
-    <div class="btns">${p.kind === "classeur" || (p.kind === "echange" && (p.full.settings || p.full.fixRev || p.full.epargne)) ? `<button class="btn" data-act="imp-replace">Remplacer mes données</button><button class="btn ghost" data-act="imp-merge">Fusionner (avec choix des différences)</button>` : `<button class="btn" data-act="imp-merge">Fusionner</button>`}
+    <div class="btns">${p.kind === "json" ? `<button class="btn" data-act="imp-replace">Restaurer cette sauvegarde</button><button class="btn ghost" data-act="imp-merge">Fusionner le journal seulement</button>` : p.kind === "classeur" || (p.kind === "echange" && (p.full.settings || p.full.fixRev || p.full.epargne)) ? `<button class="btn" data-act="imp-replace">Remplacer mes données</button><button class="btn ghost" data-act="imp-merge">Fusionner (avec choix des différences)</button>` : `<button class="btn" data-act="imp-merge">Fusionner</button>`}
     <button class="btn ghost" data-act="imp-cancel">Annuler</button></div></div>` : "";
   return `<div class="top"><div class="app">Réglages</div></div>${V.msg ? `<div class="info">${esc(V.msg)}</div>` : ""}${pend}
   <div class="card"><h2>Synchroniser avec Excel</h2>
     <div class="small muted">Le fichier d'échange contient toutes les opérations avec un identifiant. Importez-le à nouveau pour fusionner : les lignes déjà connues sont mises à jour, les nouvelles sont ajoutées.</div>
     <div class="btns"><button class="btn" data-act="exp-journal">Exporter le journal (.xlsx)</button>
     <button class="btn ghost" data-act="exp-json">Sauvegarde complète (.json)</button></div>
+    <div class="small muted">${bkpAge() === null ? "Aucune sauvegarde complète faite pour l'instant." : "Dernière sauvegarde complète : " + (bkpAge() === 0 ? "aujourd'hui" : "il y a " + bkpAge() + " jour(s)") + "."} Un rappel s'affiche en haut après 14 jours.</div>
     <label class="f">Importer un fichier (classeur .xlsm / .xlsx, journal d'échange, sauvegarde .json)<input id="file" type="file" accept=".xlsm,.xlsx,.json,.xls"></label></div>
   <div class="card"><h2>Compte et épargne</h2><div class="grid2">
     <label class="f">Solde du compte (€)<input id="s-solde" inputmode="decimal" value="${isNum(S.settings.solde) ? String(S.settings.solde).replace(".",",") : ""}"></label>
@@ -964,7 +969,7 @@ function sheetDiff(){
 }
 function commitImport(replace){
   const p = V.pending; if (!p) return;
- const keepWeb = S.web || [], keepSeen = S.webSeen, keepCats = S.webCatList, keepBank = S.bank, keepRules = S.rules;
+ const keepWeb = S.web || [], keepSeen = S.webSeen, keepCats = S.webCatList, keepBank = S.bank, keepRules = S.rules, keepLB = S.lastBackup;
   const prevPay = S.settings.payday; if (replace && p.kind === "classeur"){ const prevCats = S.settings.cats; S = p.data; S.demo = false; if (!S.settings.cats.length) S.settings.cats = prevCats; V.msg = "Données remplacées par le classeur."; }
   else if (replace && p.kind === "echange"){ const f = p.full; const base = emptyData();
     S = Object.assign(base,{journal:p.rows}); if (f.settings) S.settings = f.settings; if (f.fixRev) S.fixRev = f.fixRev; if (f.fixCh) S.fixCh = f.fixCh; if (f.epargne) S.epargne = f.epargne;
@@ -987,7 +992,7 @@ function commitImport(replace){
       S.seen = seenOf(p); }
   }
   if (replace && S.settings && S.settings.payday === undefined && prevPay !== undefined) S.settings.payday = prevPay;
-  if (replace && p.kind !== "json"){ S.web = keepWeb; S.webSeen = keepSeen; S.webCatList = keepCats; S.bank = keepBank; S.rules = keepRules; }
+  if (replace && p.kind !== "json"){ S.web = keepWeb; S.webSeen = keepSeen; S.webCatList = keepCats; S.bank = keepBank; S.rules = keepRules; S.lastBackup = keepLB; }
   V.diff = (!replace && p.kind === "echange") ? diffRef(p) : null;
   V.pending = null; migrate(); persist(); render();
   if (V.diff && V.diff.length) sheetDiff();
@@ -1076,7 +1081,7 @@ document.addEventListener("click", ev => {
     case "envnew": S.settings.envelopes.push({n:"Nouvelle enveloppe", b:0, m:Array(12).fill(null)}); persist(); render(); break;
     case "envdel": S.settings.envelopes.splice(+b.dataset.i,1); persist(); render(); break;
     case "exp-journal": saveFile("journal_appli.xlsx", buildEchange(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"); break;
-    case "exp-json": saveFile("mes-comptes-sauvegarde.json", JSON.stringify(S,null,1), "application/json"); break;
+    case "exp-json": saveFile("mes-comptes-sauvegarde.json", JSON.stringify(S,null,1), "application/json").then(ok => { if (ok){ S.lastBackup = Date.now(); persist(); render(); } }); break;
     case "df-apply": { const ch = [...document.querySelectorAll("[data-df]")].filter(c => c.checked).map(c => +c.dataset.df); for (const i of ch) V.diff[i].ap(); V.diff = null; persist(); closeSheet(); render(); toast(ch.length + " différence(s) reprise(s)"); break; }
     case "df-skip": V.diff = null; closeSheet(); break;
     case "imp-replace": commitImport(true); break; case "imp-merge": commitImport(false); break;
