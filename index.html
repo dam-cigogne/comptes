@@ -72,7 +72,7 @@ button{cursor:pointer}
 .herorow{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 
 .prog{height:8px;border-radius:999px;background:rgba(255,255,255,.28);overflow:hidden}.prog i{display:block;height:100%;background:var(--accent-ink);border-radius:999px;opacity:.95}
-.hstats{display:flex;gap:26px;flex-wrap:wrap;margin-top:2px}.hstats b{display:block;font-size:16px;font-weight:700}.hstats span{font-size:12px;opacity:.85}
+.hstats{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px;margin-top:4px}.hstats b{display:block;font-size:16px;font-weight:700}.hstats span{font-size:12px;opacity:.85}
 .mv{display:flex;align-items:center;gap:12px;min-height:48px;border-top:1px solid var(--line)}.mv:first-child{border-top:0}
 .dt{width:52px;text-align:center;font-size:12px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:8px;padding:5px 0;flex:none}
 .mv .nm{flex:1;min-width:0;overflow-wrap:anywhere}
@@ -650,7 +650,7 @@ function viewHome(){
     <div class="herorow"><span class="sub">${isNum(soldeVal) ? "Solde banque, fixes à venir et enveloppes déduits" : "Saisissez le solde de votre compte pour le calculer"}</span>
       <input id="solde" inputmode="decimal" placeholder="Solde banque (€)" value="${isNum(soldeVal) ? String(soldeVal).replace(".",",") : ""}" aria-label="Solde actuel du compte"></div>
     ${(() => { const P = periodInfo(); return P.active ? `<div class="sub">jusqu'à la paie du ${P.pay} · ${P.left === 0 ? "dernier jour" : P.left + " jour" + (P.left > 1 ? "s" : "") + " restant" + (P.left > 1 ? "s" : "")}</div><div class="prog" role="img" aria-label="Période écoulée : ${P.done} jours sur ${P.total}"><i style="width:${Math.round(P.done / P.total * 100)}%"></i></div>` : ""; })()}
-    ${isNum(soldeVal) ? `<div class="hstats"><div><span>Encore à payer (fixes, non pointé)</span><b class="num">− ${eur(c.d13 + c.d14 + c.d15)}</b></div><div><span>Dans les enveloppes</span><b class="num">− ${eur(c.d17)}</b></div></div>` : ""}
+    ${isNum(soldeVal) ? `<div class="hstats"><div><span>Fixes à payer</span><b class="num">− ${eur(c.d13)}</b></div><div><span>Dépenses non pointées</span><b class="num">− ${eur(c.d14)}</b></div>${c.d15 > 0 ? `<div><span>Épargne non pointée</span><b class="num">− ${eur(c.d15)}</b></div>` : ""}<div><span>Enveloppes restantes</span><b class="num">− ${eur(c.d17)}</b></div></div>` : ""}
   </div>
   ${(() => { const M = nextMoves(); return M.length ? `<div class="card"><h2>Prochains mouvements</h2><div>${M.map(m => `<div class="mv"><span class="dt num">${pad(m.dt.getDate())}/${pad(m.dt.getMonth()+1)}</span><span class="nm">${esc(m.name)}</span><span class="num ${m.sign > 0 ? "pos" : ""}" style="font-weight:700">${m.sign > 0 ? "+ " : "− "}${eur(m.amt)}</span></div>`).join("")}</div></div>` : ""; })()}
   ${isNum(soldeVal) ? `<div class="card"><h2>À mettre de côté en fin de mois</h2>
@@ -808,13 +808,14 @@ function viewSav(){
   const moves = L.moves.slice().sort((a,b) => b.date.localeCompare(a.date)).slice(0,30);
   return `<div class="top"><button class="btn ghost sm" data-act="tab" data-v="home">‹ Accueil</button><div class="app">Épargne</div></div>
   <div class="card hero"><div class="lbl">Livret A vraiment à moi</div><div class="big num">${eur(L.aMoi)}</div>
-    <div class="sub">Livret A ${eur(L.solde)} moins poches réservées ${eur(L.pochesReste)}</div></div>
+    <div class="sub">Livret A ${eur(L.solde)} moins poches réservées ${eur(L.pochesReste)}</div>
+    <div class="sub">Après les mouvements prévus (FUTUR) : <b class="num">${eur(L.prevu)}</b></div></div>
   <div class="card"><div class="top"><h2>Mes comptes d'épargne</h2><button class="btn sm" data-act="acctnew">Ajouter un compte</button></div>
     <div class="rows"><div class="row">${dotHtml("Livret A")}<div class="main"><div class="t">Livret A</div><div class="s">détail plus bas</div></div><div class="amt num">${eur(L.solde)}</div></div>
     ${acctLive().map(a => `<div class="row">${dotHtml(a.n)}<button class="rowbtn" data-act="acctopen" data-id="${a.id}"><div class="t">${esc(a.n)}</div><div class="s">${esc(a.type)}${a.date ? " · départ " + frFull(a.date) : ""}</div></button><div class="amt num">${eur(acctSolde(a))}</div></div>`).join("")}</div>
     <div class="kv tot"><span>Total de l'épargne</span><span class="num">${eur(L.solde + acctTotal())}</span></div></div>
   <div class="card"><div class="kv"><span>Épargne prévue (après FUTUR)</span><span class="num">${eur(L.prevu)}</span></div>
-    <div class="small muted">Départ : ${eur(S.settings.livretDepart)}${e.dateDepart ? " au " + e.dateDepart.slice(8,10) + "/" + e.dateDepart.slice(5,7) + "/" + e.dateDepart.slice(0,4) : ""}. Les mouvements pointés du journal après cette date s'ajoutent automatiquement.</div></div>
+    <div class="small muted">« Livret A vraiment à moi » ne bouge que quand une ligne FUTUR est cochée « fait ». Tant qu'elle ne l'est pas, elle ne change que « Épargne prévue ». Départ : ${eur(S.settings.livretDepart)}${e.dateDepart ? " au " + e.dateDepart.slice(8,10) + "/" + e.dateDepart.slice(5,7) + "/" + e.dateDepart.slice(0,4) : ""}. Les mouvements pointés du journal après cette date s'ajoutent automatiquement.</div></div>
   <div class="card"><div class="top"><h2>Mouvements du Livret A</h2><button class="btn sm" data-act="lvnew">Ajouter</button></div>
     <div class="rows">${moves.length ? moves.map(m => `<div class="row"><button class="rowbtn" ${m.kind === "S" ? `data-act="lvedit" data-id="${m.id}"` : m.kind === "J" ? `data-act="jedit" data-id="${m.id}"` : "disabled"}><div class="t">${esc(m.lib || m.org)}</div><div class="s">${frDate(m.date)} · ${esc(m.org)}</div></button>
       <div class="amt num ${m.vers ? "pos" : "neg"}">${m.vers ? "+ " + eur(m.vers) : "− " + eur(m.ret)}</div></div>`).join("") : '<div class="empty">Aucun mouvement.</div>'}</div></div>
@@ -822,7 +823,7 @@ function viewSav(){
     <div class="rows">${L.poches.length ? L.poches.map(p => `<div class="row"><button class="rowbtn" data-act="pocheedit" data-id="${p.id}"><div class="t">${esc(p.n)}</div><div class="s">mis de côté ${eur(p.mis)} · utilisé ${eur(p.util)}</div></button><div class="amt num">${eur(p.reste)}</div></div>`).join("") : '<div class="empty">Aucune poche.</div>'}</div></div>
   <div class="card"><div class="top"><h2>FUTUR : sorties et entrées à venir</h2><button class="btn sm" data-act="futnew">Ajouter</button></div>
     <div class="rows">${e.futur.length ? e.futur.map(f => `<div class="row"><button class="chk ${f.fait === "x" ? "on" : ""}" data-act="futtoggle" data-id="${f.id}" aria-label="Fait">${ICON.check}</button>
-      <button class="rowbtn" data-act="futedit" data-id="${f.id}"><div class="t">${esc(f.lib)}</div><div class="s">${f.date ? frDate(f.date) : "sans date"}${f.fait === "x" ? " · fait" : ""}</div></button>
+      <button class="rowbtn" data-act="futedit" data-id="${f.id}"><div class="t">${esc(f.lib)}</div><div class="s">${f.date ? frDate(f.date) : "sans date"} · ${f.fait === "x" ? '<span class="chip">fait</span>' : (f.date && f.date <= todayIso() ? '<span class="chip bad">à pointer</span>' : '<span class="chip warn">à venir</span>')}</div></button>
       <div class="amt num ${N(f.entree) ? "pos" : "neg"}">${N(f.entree) ? "+ " + eur(f.entree) : "− " + eur(f.sortie)}</div></div>`).join("") : '<div class="empty">Rien de prévu.</div>'}</div></div>`;
 }
 function sheetLivret(id){
