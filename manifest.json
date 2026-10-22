@@ -1,2 +1,2 @@
-{"name":"Mes comptes perso","short_name":"Comptes","lang":"fr","start_url":"./index.html","scope":"./","display":"standalone","background_color":"#F2F5F3","theme_color":"#0E6B5C",
+{"name":"Les comptes en poches","short_name":"Comptes poches","lang":"fr","start_url":"./index.html","scope":"./","display":"standalone","background_color":"#F2F5F3","theme_color":"#0E6B5C",
 "icons":[{"src":"icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},{"src":"icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}]}

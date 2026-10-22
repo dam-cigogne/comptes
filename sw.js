@@ -1,8 +1,17 @@
-const C = 'comptes-v27';
+const C = 'comptes-v30';
 const SHELL = ['./', './index.html', './manifest.json', './icon-180.png', './icon-192.png', './icon-512.png',
   'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'];
+const FONT_CSS = 'https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Instrument+Sans:wght@400;500;600&display=swap';
+const EXTRA = ['https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'];
 self.addEventListener('install', e => e.waitUntil(
-  caches.open(C).then(c => Promise.allSettled(SHELL.map(u => c.add(u)))).then(() => self.skipWaiting())));
+  caches.open(C).then(async c => {
+    await Promise.allSettled(SHELL.concat(EXTRA).map(u => c.add(u)));   // appli + Excel + PDF hors ligne
+    try {   // polices : la feuille de style puis chaque fichier de police qu'elle cite
+      const r = await fetch(FONT_CSS); await c.put(FONT_CSS, r.clone());
+      const urls = [...(await r.text()).matchAll(/url\((https:[^)]+)\)/g)].map(m => m[1]);
+      await Promise.allSettled(urls.map(u => c.add(u)));
+    } catch (err) {}
+  }).then(() => self.skipWaiting())));
 self.addEventListener('activate', e => e.waitUntil(
   caches.keys().then(k => Promise.all(k.filter(x => x !== C).map(x => caches.delete(x)))).then(() => self.clients.claim())));
 self.addEventListener('fetch', e => {

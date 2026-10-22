@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
 <style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}</style>
-<title>Mes comptes perso</title>
+<title>Les comptes en poches</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="theme-color" content="#0E6B5C">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Comptes">
+<meta name="apple-mobile-web-app-title" content="Comptes poches">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -63,7 +63,7 @@ button{cursor:pointer}
 .monthnav{display:flex;align-items:center;gap:2px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:2px}
 .monthnav button{border:0;background:none;width:36px;height:36px;border-radius:50%;font-size:20px;line-height:1;color:var(--ink)}
 .monthnav button:active{background:var(--accent-soft)}
-.monthnav span{min-width:108px;text-align:center;font-weight:600}
+.monthnav span{min-width:100px;text-align:center;font-weight:600}
 
 .card{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:10px;box-shadow:0 1px 2px rgba(20,40,34,.05),0 6px 18px -10px rgba(20,40,34,.18)}
 .hero{background:linear-gradient(145deg,var(--accent) 0%,color-mix(in srgb,var(--accent) 72%,#000) 100%);color:var(--accent-ink);border:0;gap:6px;border-radius:24px;padding:20px 18px;box-shadow:0 14px 30px -16px color-mix(in srgb,var(--accent) 80%,#000)}
@@ -153,6 +153,7 @@ nav.tabs button.add span.pl{background:var(--accent);color:var(--accent-ink);wid
 nav.tabs button.add{color:var(--ink)}
 
 .top .app .help{display:inline-grid;vertical-align:middle}
+.top .app.tt{font-size:15px;line-height:1.15;white-space:nowrap}
 .help{width:28px;height:28px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--accent);font-weight:700;font-size:15px;display:grid;place-items:center;padding:0;flex:none;margin-left:2px}
 .wiz{display:flex;flex-direction:column;gap:14px;padding-top:6px}
 .wiz .dots{display:flex;gap:5px}.wiz .dots i{flex:1;height:5px;border-radius:3px;background:var(--line)}.wiz .dots i.on{background:var(--accent)}
@@ -209,7 +210,7 @@ body.priv #main,body.priv #tabs{visibility:hidden}
 <body>
 <div class="wrap" id="main"></div>
 <nav class="tabs" id="tabs"><div class="in"></div></nav>
-<div id="lock" hidden><div class="lockin"><div class="lockt">Mes comptes</div><div id="lockmsg">Entrez votre code</div><div class="dots" id="lockdots"></div>
+<div id="lock" hidden><div class="lockin"><div class="lockt">Les comptes en poches</div><div id="lockmsg">Entrez votre code</div><div class="dots" id="lockdots"></div>
   <div class="pad" id="lockpad"></div><div id="lockextra" class="btns" style="justify-content:center"></div></div></div>
 <div id="sheetbg" hidden><div id="sheet" role="dialog" aria-modal="true"></div></div>
 <div id="toast" hidden></div>
@@ -279,8 +280,8 @@ async function idbGet(k){ const db = await idb(); return new Promise((res,rej) =
 async function idbDel(k){ try { const db = await idb(); await new Promise(res => { const t = db.transaction("k","readwrite"); t.objectStore("k").delete(k); t.oncomplete = () => res(); t.onerror = () => res(); }); } catch(e){} }
 const secAvailable = () => !!subtle && lsWorks() && location.protocol.indexOf("http") === 0;
 async function faceOK(){ try { return !!(window.PublicKeyCredential && PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable && window.indexedDB && window.top === window.self && await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()); } catch(e){ return false; } }
-async function faceRegister(){ const cred = await navigator.credentials.create({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)), rp:{name:"Mes comptes", id:location.hostname},
-  user:{id:crypto.getRandomValues(new Uint8Array(16)), name:"comptes", displayName:"Mes comptes"}, pubKeyCredParams:[{type:"public-key",alg:-7},{type:"public-key",alg:-257}],
+async function faceRegister(){ const cred = await navigator.credentials.create({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)), rp:{name:"Les comptes en poches", id:location.hostname},
+  user:{id:crypto.getRandomValues(new Uint8Array(16)), name:"comptes", displayName:"Les comptes en poches"}, pubKeyCredParams:[{type:"public-key",alg:-7},{type:"public-key",alg:-257}],
   authenticatorSelection:{authenticatorAttachment:"platform", userVerification:"required", residentKey:"preferred"}, timeout:60000, attestation:"none"}}); return b64(new Uint8Array(cred.rawId)); }
 async function faceAsk(){ await navigator.credentials.get({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)), rpId:location.hostname,
   allowCredentials:[{type:"public-key", id:unb64(SEC.cfg.cred), transports:["internal"]}], userVerification:"required", timeout:60000}}); }
@@ -638,7 +639,7 @@ function splitCard(c){
 function bkpAge(){ return S.lastBackup ? Math.floor((Date.now() - S.lastBackup) / 864e5) : null; }
 function bkpBanner(){ if (S.demo) return ""; const a = bkpAge(); if (a !== null && a < 14) return "";
   return `<div class="banner">${a === null ? "Aucune sauvegarde faite pour l'instant." : "Dernière sauvegarde il y a " + a + " jours."} <button class="btn sm" data-act="exp-json">Sauvegarder</button></div>`; }
-function topbar(){ return `<div class="top"><div class="app">Mes comptes</div><div class="topr">${monthNav()}<button class="gear" data-act="tab" data-v="set" aria-label="Réglages">${ICON.set}</button></div></div>` + bkpBanner() + (S.demo ? `<div class="banner">Données d'exemple. Importez votre classeur Excel dans <b>Réglages</b> pour travailler avec vos vrais comptes.</div>` : ""); }
+function topbar(){ return `<div class="top"><div class="app tt">Les comptes<br>en poches</div><div class="topr">${monthNav()}<button class="gear" data-act="tab" data-v="set" aria-label="Réglages">${ICON.set}</button></div></div>` + bkpBanner() + (S.demo ? `<div class="banner">Données d'exemple. Importez votre classeur Excel dans <b>Réglages</b> pour travailler avec vos vrais comptes.</div>` : ""); }
 
 function periodInfo(){
   const r = periodRange(V.m, V.y), t = todayIso();
@@ -999,7 +1000,12 @@ function viewSet(){
     <label class="f">Importer un fichier (classeur .xlsm / .xlsx, journal d'échange, sauvegarde .json)<input id="file" type="file" accept=".xlsm,.xlsx,.json,.xls"></label></div>
   <div class="card"><h2>Apparence</h2><div class="seg">${[["auto","Automatique"],["light","Clair"],["dark","Sombre"]].map(([k,l]) => `<button class="${(lsGet("mc-theme") || "auto") === k ? "on" : ""}" data-act="theme" data-v="${k}">${l}</button>`).join("")}</div>
     <div class="small muted">Automatique suit le réglage de votre iPhone.</div></div>
-  <div class="card"><h2>Compte et épargne</h2><div class="grid2">
+  <div class="card"><h2>Compte et épargne</h2>
+    <div class="hbody small"><p><b>Solde du compte</b> : ce qu'il y a sur ton compte courant maintenant (regarde dans l'appli de ta banque). C'est le point de départ du reste à vivre.</p>
+    <p><b>Jour de paie</b> : 1 = mois normal (du 1er à la fin du mois). Si tu es payé le 25, mets 25 : ton mois va alors du 25 au 24. De 1 à 28.</p>
+    <p><b>Livret A au départ</b> et <b>date de ce solde</b> : le solde de ton Livret A à un jour précis. L'appli y ajoute ensuite tous les mouvements <b>après</b> cette date : mets la date du jour où tu as relevé ce solde.</p>
+    <p><b>Enveloppe versée sur le Livret</b> : l'enveloppe dans laquelle tu notes tes virements vers le Livret A (souvent « Épargne »). Quand tu notes une dépense dans cette enveloppe et que tu la <b>pointes</b>, l'appli la compte comme un <b>versement sur ton Livret A</b> : ton Livret augmente. Le budget de cette enveloppe, c'est ce que tu veux mettre de côté chaque mois. Laisse « — » si tu n'en utilises pas.</p></div>
+    <div class="grid2">
     <label class="f">Solde du compte (€)<input id="s-solde" inputmode="decimal" value="${isNum(S.settings.solde) ? String(S.settings.solde).replace(".",",") : ""}"></label>
     <label class="f">Jour de paie (1 = mois normal)<input id="s-pay" inputmode="numeric" value="${payday()}"></label>
     <label class="f">Livret A au départ (€)<input id="s-livret" inputmode="decimal" value="${String(N(S.settings.livretDepart)).replace(".",",")}"></label>
@@ -1012,6 +1018,14 @@ function viewSet(){
       <label class="f">Budget<input data-env="b" data-i="${i}" inputmode="decimal" value="${String(N(e.b)).replace(".",",")}"></label>
       <button class="btn danger sm" data-act="envdel" data-i="${i}" aria-label="Supprimer">✕</button></div>`).join("")}</div>
   <div class="card"><h2>Rapprochement bancaire</h2><div class="small muted">Importez un relevé (PDF ou CSV) pour pointer vos opérations et retrouver celles qui manquent.${S.undo ? ` Dernier rapprochement : ${esc(S.undo.txt)}.` : ""}</div>
+    <div class="hbody small"><p><b>À quoi ça sert ?</b> À vérifier que ton journal correspond à ton relevé de banque : rien d'oublié, rien de faux. Les opérations retrouvées sont pointées pour toi.</p>
+    <p><b>Comment faire :</b></p>
+    <p>1. Dans l'appli ou sur le site de ta banque, télécharge le <b>relevé de compte</b> du mois (PDF, ou fichier CSV / Excel).</p>
+    <p>2. Ici, touche <b>Importer un relevé</b> et choisis le fichier.</p>
+    <p>3. L'appli te montre ce qu'elle a trouvé : les opérations <b>déjà dans ton journal</b> (elle propose de les pointer : même montant, date à 4 jours près), les <b>fixes retrouvés</b> (salaire, loyer… pointés dans « Fixes »), et celles qui sont <b>absentes du journal</b> (tu choisis l'enveloppe pour les créer, « Ignorer », ou tu décides plus tard).</p>
+    <p>4. Rien ne change avant d'appuyer sur <b>Appliquer</b>. Après, tu peux <b>annuler le dernier rapprochement</b> dans Réglages.</p>
+    <p><b>Et ma vie privée ?</b> Le fichier est lu sur ton téléphone : il n'est ni envoyé, ni conservé. L'appli ne retient ni ton nom, ni ton adresse, ni ton IBAN, ni ton numéro de compte : elle ne lit que les lignes d'opérations (date, libellé, montant) et le solde. Les opérations que tu choisis de créer deviennent des lignes de ton journal avec le libellé de la banque, qui peut contenir un nom de personne (un virement reçu, par exemple). L'appli garde aussi un repère de chaque opération (date, montant, début du libellé) pour ne pas la compter deux fois. Tout reste sur ton téléphone, mais se retrouve dans ta sauvegarde .json et ton export Excel : ne les partage pas.</p>
+    <p><b>Conseil :</b> fais-le de temps en temps, par exemple une fois par mois.</p></div>
     <div class="btns"><button class="btn" data-act="bk-open">Importer un relevé</button>${S.undo ? `<button class="btn ghost" data-act="bk-undo">Annuler le dernier rapprochement</button>` : ""}</div></div>
   ${secCard()}
   <div class="card"><h2>Données</h2>
@@ -1056,11 +1070,18 @@ const HELP = {
   set:{t:"Les réglages", p:[
     "<b>Synchroniser avec Excel</b> : exporte ton journal vers Excel ou importe un classeur. C'est facultatif.",
     "<b>Sauvegarde complète (.json)</b> : une copie de toutes tes données à garder (dans ton cloud, par mail…). À refaire de temps en temps : un rappel s'affiche après 14 jours.",
-    "<b>Compte et épargne</b> : solde de ton compte, jour de paie, solde de départ du Livret A.",
+    "<b>Compte et épargne</b> : solde de ton compte courant (point de départ du reste à vivre), jour de paie, solde de départ du Livret A et date de ce solde.",
+    "<b>Enveloppe versée sur le Livret</b> : l'enveloppe où tu notes tes virements vers le Livret A (souvent « Épargne »). Une dépense notée dans cette enveloppe et pointée est comptée comme un versement sur ton Livret A.",
+    "<b>Rapprochement bancaire</b> : compare ton journal avec ton relevé de banque (voir le « ? » de cet écran).",
     "<b>Enveloppes</b> : ton budget mensuel par catégorie. Tu peux en ajouter ou en supprimer.",
     "<b>Verrouillage</b> : protège l'appli par un code (et Face ID sur iPhone)."]},
+  bank:{t:"Le rapprochement bancaire", p:[
+    "<b>À quoi ça sert ?</b> À vérifier que ton journal correspond à ton relevé de banque : rien d'oublié, rien de faux. Les opérations retrouvées sont pointées pour toi.",
+    "<b>Comment faire :</b> 1) télécharge le relevé de compte du mois dans l'appli ou sur le site de ta banque (PDF, ou fichier CSV / Excel) ; 2) touche « Importer un relevé » et choisis le fichier ; 3) l'appli te propose de pointer les opérations déjà notées, de pointer tes fixes retrouvés (salaire, loyer…) et de créer celles qui manquent dans le journal (tu choisis l'enveloppe, « Ignorer », ou tu décides plus tard) ; 4) rien ne change avant « Appliquer », et tu peux annuler le dernier rapprochement dans Réglages.",
+    "<b>Vie privée :</b> le fichier est lu sur ton téléphone : il n'est ni envoyé, ni conservé. L'appli ne retient ni ton nom, ni ton adresse, ni ton IBAN, ni ton numéro de compte : elle ne lit que les lignes d'opérations (date, libellé, montant) et le solde. Les opérations que tu choisis de créer deviennent des lignes de ton journal avec le libellé de la banque, qui peut contenir un nom de personne (un virement reçu, par exemple). Elle garde aussi un repère de chaque opération (date, montant, début du libellé) pour ne pas la compter deux fois. Tout reste sur ton téléphone, mais se retrouve dans ta sauvegarde .json et ton export Excel : ne les partage pas.",
+    "<b>Conseil :</b> fais-le une fois par mois, ou une fois par semaine si tu veux un suivi précis."]},
   about:{t:"Fonctionnement, données et risques", p:[
-    "<b>Comment elle est faite.</b> « Mes comptes » est une appli web : un fichier de code qui s'exécute dans le navigateur de ton téléphone. Elle a été conçue avec l'aide de Claude (une intelligence artificielle d'Anthropic), à partir d'un classeur Excel de suivi de budget.",
+    "<b>Comment elle est faite.</b> « Les comptes en poches » est une appli web : un fichier de code qui s'exécute dans le navigateur de ton téléphone. Elle a été conçue avec l'aide de Claude (une intelligence artificielle d'Anthropic), à partir d'un classeur Excel de suivi de budget.",
     "<b>C'est quoi GitHub ?</b> Un site où l'on range et publie du code. Ici il ne sert que de <b>vitrine</b> : il met les fichiers de l'appli à une adresse web. Quand tu ouvres le lien (ou que tu l'ajoutes à l'écran d'accueil), ton téléphone télécharge ces fichiers, puis l'appli tourne chez toi. Ces fichiers sont publics et ne contiennent aucune donnée personnelle.",
     "<b>Où vont tes données ?</b> Nulle part ailleurs que dans la mémoire de ton téléphone (stockage local du navigateur). Il n'y a ni compte, ni serveur, ni base de données en ligne : ni GitHub, ni l'auteur de l'appli, ni Anthropic ne voient tes chiffres. Les relevés bancaires (PDF ou CSV) sont lus sur ton téléphone et ne sont pas envoyés.",
     "<b>Ce qui passe quand même par Internet.</b> Au démarrage, l'appli charge des polices (Google Fonts) et deux outils de lecture de fichiers Excel et PDF (cdnjs). Ces sites voient seulement qu'un téléphone a demandé ces fichiers (son adresse IP), jamais tes données. Après la première ouverture, l'appli marche aussi sans connexion.",
@@ -1072,7 +1093,7 @@ const HELP = {
     "<b>Mises à jour et confiance.</b> L'appli se met à jour toute seule quand son auteur publie une nouvelle version : ferme-la et rouvre-la pour la recevoir. Le code est public, donc n'importe qui peut le lire pour vérifier ce qu'il fait. Utilise uniquement le lien que t'a donné une personne de confiance.",
     "<b>Plusieurs appareils.</b> Les données ne se synchronisent pas toutes seules entre deux téléphones : passe par l'export / import ou par Excel."]}
 };
-const HELP_ORDER = ["home","month","add","fix","sav","web","set","about"];
+const HELP_ORDER = ["home","month","add","fix","sav","web","set","bank","about"];
 const helpBtn = k => `<button class="help" data-act="help" data-v="${k}" aria-label="Aide">?</button>`;
 function sheetHelp(k){ const h = HELP[k]; if (!h) return;
   openSheet(`<h2>${esc(h.t)}</h2><div class="hbody">${h.p.map(x => `<p>${x}</p>`).join("")}</div>
@@ -1101,7 +1122,7 @@ function viewWiz(){
   const W = V.wiz, d = W.d, s = W.step, last = WIZ_STEPS.length - 1;
   const dots = `<div class="dots">${WIZ_STEPS.map((_,i) => `<i class="${i <= s ? "on" : ""}"></i>`).join("")}</div><div class="small muted">Étape ${s+1} sur ${WIZ_STEPS.length} · ${WIZ_STEPS[s]}</div>`;
   let body = "";
-  if (s === 0) body = `<div class="card"><h2>Bienvenue dans Mes comptes</h2>
+  if (s === 0) body = `<div class="card"><h2>Bienvenue dans « Les comptes en poches »</h2>
       <p>Cette appli t'aide à suivre ton argent : ce que tu gagnes, ce que tu dois payer, ce qu'il te reste pour vivre, et ton épargne.</p>
       <p>On va la préparer ensemble en quelques minutes. Tu peux <b>passer</b> n'importe quelle étape et tout modifier plus tard.</p>
       <p class="small muted">Tes données restent sur ton téléphone : pas de compte, pas de serveur qui les reçoit.</p>
@@ -1194,7 +1215,7 @@ function render(){
   const main = $("#main");
   const keepY = (V.lt === V.tab && V.lm === V.m && V.ly === V.y) ? window.scrollY : 0;
   main.innerHTML = V.tab === "home" ? viewHome() : V.tab === "month" ? viewMonth() : V.tab === "add" ? viewAdd() : V.tab === "fix" ? viewFix() : V.tab === "sav" ? viewSav() : V.tab === "web" ? viewWeb() : V.tab === "bank" ? viewBank() : viewSet();
-  { const hk = {home:"home",month:"month",add:"add",fix:"fix",sav:"sav",web:"web",set:"set"}[V.tab]; const tp = hk && main.querySelector(".top"); if (tp){ const r = tp.querySelector(".app"); (r || tp).insertAdjacentHTML("beforeend", helpBtn(hk)); } }
+  { const hk = {home:"home",month:"month",add:"add",fix:"fix",sav:"sav",web:"web",set:"set",bank:"bank"}[V.tab]; const tp = hk && main.querySelector(".top"); if (tp){ const r = tp.querySelector(".app"); (r || tp).insertAdjacentHTML("beforeend", helpBtn(hk)); } }
   if (V.tab === "add") updateInfo();
   V.lt = V.tab; V.lm = V.m; V.ly = V.y;
   window.scrollTo(0, keepY);
@@ -1632,7 +1653,15 @@ function viewBank(){
   const B = V.bk, back = `<div class="top"><button class="btn ghost sm" data-act="tab" data-v="set">‹ Réglages</button><div class="app">Rapprochement</div></div>`;
   if (!B) return back + (V.bkMsg ? `<div class="info ${/impossible/.test(V.bkMsg) ? "bad" : ""}">${esc(V.bkMsg)}</div>` : "") + `<div class="card"><h2>Relevé de banque</h2>
     <div class="small muted">Choisissez le relevé de votre compte (PDF ou CSV). L'appli compare avec votre journal et vous propose les changements. Rien n'est modifié avant « Appliquer », et vous pourrez annuler.</div>
-    <label class="f">Relevé<input id="bkfile" type="file" accept=".pdf,.csv,.txt"></label></div>`;
+    <label class="f">Relevé<input id="bkfile" type="file" accept=".pdf,.csv,.txt"></label></div>
+    <div class="card"><h2>Comment ça marche ?</h2><div class="hbody small"><p><b>À quoi ça sert ?</b> À vérifier que ton journal correspond à ton relevé de banque : rien d'oublié, rien de faux. Les opérations retrouvées sont pointées pour toi.</p>
+    <p><b>Comment faire :</b></p>
+    <p>1. Dans l'appli ou sur le site de ta banque, télécharge le <b>relevé de compte</b> du mois (PDF, ou fichier CSV / Excel).</p>
+    <p>2. Ici, touche <b>Importer un relevé</b> et choisis le fichier.</p>
+    <p>3. L'appli te montre ce qu'elle a trouvé : les opérations <b>déjà dans ton journal</b> (elle propose de les pointer : même montant, date à 4 jours près), les <b>fixes retrouvés</b> (salaire, loyer… pointés dans « Fixes »), et celles qui sont <b>absentes du journal</b> (tu choisis l'enveloppe pour les créer, « Ignorer », ou tu décides plus tard).</p>
+    <p>4. Rien ne change avant d'appuyer sur <b>Appliquer</b>. Après, tu peux <b>annuler le dernier rapprochement</b> dans Réglages.</p>
+    <p><b>Et ma vie privée ?</b> Le fichier est lu sur ton téléphone : il n'est ni envoyé, ni conservé. L'appli ne retient ni ton nom, ni ton adresse, ni ton IBAN, ni ton numéro de compte : elle ne lit que les lignes d'opérations (date, libellé, montant) et le solde. Les opérations que tu choisis de créer deviennent des lignes de ton journal avec le libellé de la banque, qui peut contenir un nom de personne (un virement reçu, par exemple). L'appli garde aussi un repère de chaque opération (date, montant, début du libellé) pour ne pas la compter deux fois. Tout reste sur ton téléphone, mais se retrouve dans ta sauvegarde .json et ton export Excel : ne les partage pas.</p>
+    <p><b>Conseil :</b> fais-le de temps en temps, par exemple une fois par mois.</p></div></div>`;
   const all = S.settings.envelopes.map(e => e.n).concat(S.settings.cats.filter(c => !S.settings.envelopes.some(e => e.n === c)));
   const c = bkCounts(B), before = calc(V.m, V.y).d18, after = bkSim(B);
   const sel = (r, i) => { const opts = r.o.cred ? ["Remboursement"] : all, fxs = (r.o.cred ? S.fixRev : S.fixCh).slice().sort((a,b) => a.n.localeCompare(b.n, "fr"));
