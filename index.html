@@ -152,6 +152,25 @@ nav.tabs button.on{color:var(--accent);font-weight:600}
 nav.tabs button.add span.pl{background:var(--accent);color:var(--accent-ink);width:44px;height:44px;border-radius:50%;display:grid;place-items:center;margin-top:-16px;box-shadow:0 6px 14px -4px color-mix(in srgb,var(--accent) 70%,#000)}
 nav.tabs button.add{color:var(--ink)}
 
+.top .app .help{display:inline-grid;vertical-align:middle}
+.help{width:28px;height:28px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--accent);font-weight:700;font-size:15px;display:grid;place-items:center;padding:0;flex:none;margin-left:2px}
+.wiz{display:flex;flex-direction:column;gap:14px;padding-top:6px}
+.wiz .dots{display:flex;gap:5px}.wiz .dots i{flex:1;height:5px;border-radius:3px;background:var(--line)}.wiz .dots i.on{background:var(--accent)}
+.wiz p{margin:6px 0}
+.wrow{display:grid;grid-template-columns:1fr 92px 54px 38px;gap:6px;align-items:center;margin:6px 0}
+.wrow.head{font-size:11.5px;color:var(--muted);margin-bottom:0}
+.wrow.env{grid-template-columns:30px 1fr 84px 38px}
+.wrow.pk{grid-template-columns:1fr 100px 38px}
+.wrow.ac{grid-template-columns:1fr 104px 84px 38px}
+.wrow input,.wrow select{min-width:0;width:100%;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:9px 10px;color:var(--ink);font-size:16px}
+.wrow input[type=checkbox]{width:22px;height:22px;padding:0}
+.chkl input,.chkl2 input{width:22px;height:22px;accent-color:var(--accent)}
+.chkl2{display:flex;gap:10px;align-items:center;font-weight:600}
+.wnav{position:sticky;bottom:calc(14px + env(safe-area-inset-bottom,0px));background:var(--bg);padding:8px 0}
+.hsec{border-top:1px solid var(--line);padding:10px 0}
+.hbody p{margin:7px 0;font-size:14.5px}
+body.wiz nav.tabs{display:none}
+body.wiz{padding-bottom:30px}
 #sheetbg{position:fixed;inset:0;height:100dvh;background:rgba(0,0,0,.45);z-index:40;display:flex;align-items:flex-end;justify-content:center}
 #sheet{background:var(--surface);width:100%;max-width:560px;border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));max-height:88%;overflow:auto;display:flex;flex-direction:column;gap:12px}
 #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:9px 14px;border-radius:999px;font-size:13.5px;z-index:50;max-width:90%}
@@ -712,6 +731,7 @@ function viewMonth(){
   <div class="card"><div class="top"><h2>Fixes et revenus</h2>
     <div class="seg"><button class="${V.hidePast?"on":""}" data-act="hidepast">Masquer les pointés</button></div></div>
     <div class="small muted">Touchez le rond pour pointer. Touchez la ligne pour saisir un montant différent ce mois-ci.</div>
+    <div class="btns"><button class="btn ghost sm" data-act="fixmonthnew" data-k="rev">+ Revenu pour ce mois</button><button class="btn ghost sm" data-act="fixmonthnew" data-k="ch">+ Charge pour ce mois</button></div>
     <div><div class="small muted" style="margin-top:4px">Revenus</div><div class="rows">${revRows.length ? revRows.map(r => fixRowHtml("rev",r)).join("") : '<div class="empty">Rien à pointer.</div>'}</div></div>
     <div><div class="small muted">Charges fixes</div><div class="rows">${chRows.length ? chRows.map(r => fixRowHtml("ch",r)).join("") : '<div class="empty">Rien à pointer.</div>'}</div></div></div>
   <div class="card"><h2>Opérations du mois</h2><div class="rows">${jHtml}</div></div>`;
@@ -969,6 +989,8 @@ function viewSet(){
     <div class="btns">${p.kind === "json" ? `<button class="btn" data-act="imp-replace">Restaurer cette sauvegarde</button><button class="btn ghost" data-act="imp-merge">Fusionner le journal seulement</button>` : p.kind === "classeur" || (p.kind === "echange" && (p.full.settings || p.full.fixRev || p.full.epargne)) ? `<button class="btn" data-act="imp-replace">Remplacer mes données</button><button class="btn ghost" data-act="imp-merge">Fusionner (avec choix des différences)</button>` : `<button class="btn" data-act="imp-merge">Fusionner</button>`}
     <button class="btn ghost" data-act="imp-cancel">Annuler</button></div></div>` : "";
   return `<div class="top"><div class="app">Réglages</div></div>${V.msg ? `<div class="info">${esc(V.msg)}</div>` : ""}${pend}
+  <div class="card"><h2>Guide d'utilisation</h2><div class="small muted">Comment marche chaque partie de l'appli, expliqué simplement. Le bouton ? en haut de chaque écran donne aussi l'aide de l'écran.</div>
+    <div class="btns"><button class="btn" data-act="guide">Ouvrir le guide</button></div></div>
   <div class="card"><h2>Synchroniser avec Excel</h2>
     <div class="small muted">Le fichier d'échange contient toutes les opérations avec un identifiant. Importez-le à nouveau pour fusionner : les lignes déjà connues sont mises à jour, les nouvelles sont ajoutées.</div>
     <div class="btns"><button class="btn" data-act="exp-journal">Exporter le journal (.xlsx)</button>
@@ -997,12 +1019,182 @@ function viewSet(){
              : `<div class="btns"><button class="btn ghost" data-act="wipe">Tout effacer</button></div>`}</div>`;
 }
 
+/* ============ Aide « ? » et guide d'utilisation ============ */
+const HELP = {
+  home:{t:"L'accueil", p:[
+    "<b>C'est quoi ?</b> Le résumé de ton mois d'un coup d'œil.",
+    "<b>Reste à vivre</b> : l'argent que tu peux encore dépenser jusqu'à ta prochaine paie, une fois payées les charges fixes qui restent à passer. C'est LE chiffre à regarder.",
+    "<b>Prochains mouvements</b> : les prochains revenus et charges fixes prévus (salaire, loyer, abonnements…).",
+    "<b>Enveloppes</b> : un budget par catégorie (Nourriture, Essence…). Barre verte = tout va bien, orange = presque atteint, rouge = dépassé. Touche une enveloppe pour changer son budget <b>de ce mois seulement</b>.",
+    "<b>À mettre de côté en fin de mois</b> : ce que tu pourrais épargner si tu dépensais tous tes budgets."]},
+  month:{t:"Le mois", p:[
+    "<b>C'est quoi ?</b> Tout ce qui se passe dans le mois choisi (flèches ‹ › en haut pour changer de mois).",
+    "<b>Fixes et revenus</b> : touche le <b>rond</b> pour dire « c'est passé » (payé ou reçu). Touche la <b>ligne</b> pour saisir un montant <b>différent pour ce mois seulement</b> : par exemple un salaire plus élevé en décembre, ou une facture qui change. Les autres mois gardent le montant habituel.",
+    "<b>Un revenu ou une charge qui ne concerne que ce mois</b> (une prime, une réparation…) : utilise les boutons <b>+ Revenu pour ce mois</b> et <b>+ Charge pour ce mois</b> dans « Fixes et revenus ». La ligne ne compte que pour le mois affiché.",
+    "<b>Opérations du mois</b> : tes dépenses et revenus du quotidien. Le rond = « pointé », c'est-à-dire vérifié sur ton relevé de banque. Touche une ligne pour la modifier.",
+    "<b>Nouvelle année</b> : au premier mois de l'année, l'appli te propose de remettre à zéro les pointés et les montants propres à chaque mois (après une sauvegarde). Tes montants habituels ne changent pas.",
+    "<b>Le mois budgétaire</b> : si tu es payé le 25, ton mois va du 25 au 24 (réglable dans Réglages)."]},
+  add:{t:"Ajouter une opération", p:[
+    "<b>C'est quoi ?</b> L'écran pour noter une dépense ou un revenu en quelques secondes.",
+    "Tape le <b>montant</b> avec le pavé, donne un <b>libellé</b> (« Courses »), choisis une <b>catégorie</b> (l'enveloppe qui paie) et la <b>date</b>.",
+    "<b>Dépense</b> : retire de l'enveloppe choisie. <b>Revenu</b> : ajoute de l'argent. <b>Livret A</b> : un virement vers ou depuis ton Livret.",
+    "<b>Déjà pointé</b> : active-le si tu as déjà vu l'opération passer sur ton relevé de banque."]},
+  sav:{t:"L'épargne", p:[
+    "<b>C'est quoi ?</b> Ton Livret A et tes autres comptes d'épargne.",
+    "<b>Livret A vraiment à moi</b> : le solde du Livret moins l'argent déjà réservé dans les poches. C'est ce dont tu peux disposer librement.",
+    "<b>Poche</b> : une réserve à l'intérieur du Livret pour un projet ou une facture à venir (taxe foncière, travaux…). L'argent est dans ton Livret mais « mis de côté » pour ça.",
+    "<b>FUTUR</b> : les mouvements prévus (un impôt en novembre, une rentrée d'argent…). Tant que la ligne n'est pas cochée « fait », elle ne change que l'épargne <b>prévue</b>. Une fois cochée, elle compte vraiment dans ton Livret.",
+    "<b>Autres comptes</b> : LDDS, LEP, PEL, assurance vie, bourse… Saisis un solde de départ, puis note les mouvements. Le total de l'épargne s'affiche en haut."]},
+  fix:{t:"Revenus et charges fixes", p:[
+    "<b>C'est quoi ?</b> Tout ce qui revient chaque mois : salaire, loyer, assurances, abonnements…",
+    "Pour chaque ligne : un <b>libellé</b>, un <b>montant habituel</b> et le <b>jour du mois</b>. L'appli s'en sert pour prévoir ton reste à vivre.",
+    "<b>Montant différent selon le mois ?</b> Oui ! Garde le montant habituel ici, puis dans l'écran <b>Mois</b> touche la ligne pour saisir un autre montant pour ce mois-là uniquement. Les autres mois ne changent pas.",
+    "<b>Une ligne qui n'existe que certains mois</b> (une taxe annuelle) : ajoute-la, puis dans les mois où elle ne tombe pas, mets 0 à ce mois."]},
+  web:{t:"Comptes en ligne", p:[
+    "<b>C'est quoi ?</b> Un carnet pour retrouver tes sites et comptes en ligne (banque, achats, administratif…).",
+    "Note le site, l'identifiant, la catégorie et l'état (« À changer », « Changé », « OK »). <b>Ne mets jamais tes mots de passe</b> : ils sont à garder dans un gestionnaire de mots de passe."]},
+  set:{t:"Les réglages", p:[
+    "<b>Synchroniser avec Excel</b> : exporte ton journal vers Excel ou importe un classeur. C'est facultatif.",
+    "<b>Sauvegarde complète (.json)</b> : une copie de toutes tes données à garder (dans ton cloud, par mail…). À refaire de temps en temps : un rappel s'affiche après 14 jours.",
+    "<b>Compte et épargne</b> : solde de ton compte, jour de paie, solde de départ du Livret A.",
+    "<b>Enveloppes</b> : ton budget mensuel par catégorie. Tu peux en ajouter ou en supprimer.",
+    "<b>Verrouillage</b> : protège l'appli par un code (et Face ID sur iPhone)."]},
+  about:{t:"Fonctionnement, données et risques", p:[
+    "<b>Comment elle est faite.</b> « Mes comptes » est une appli web : un fichier de code qui s'exécute dans le navigateur de ton téléphone. Elle a été conçue avec l'aide de Claude (une intelligence artificielle d'Anthropic), à partir d'un classeur Excel de suivi de budget.",
+    "<b>C'est quoi GitHub ?</b> Un site où l'on range et publie du code. Ici il ne sert que de <b>vitrine</b> : il met les fichiers de l'appli à une adresse web. Quand tu ouvres le lien (ou que tu l'ajoutes à l'écran d'accueil), ton téléphone télécharge ces fichiers, puis l'appli tourne chez toi. Ces fichiers sont publics et ne contiennent aucune donnée personnelle.",
+    "<b>Où vont tes données ?</b> Nulle part ailleurs que dans la mémoire de ton téléphone (stockage local du navigateur). Il n'y a ni compte, ni serveur, ni base de données en ligne : ni GitHub, ni l'auteur de l'appli, ni Anthropic ne voient tes chiffres. Les relevés bancaires (PDF ou CSV) sont lus sur ton téléphone et ne sont pas envoyés.",
+    "<b>Ce qui passe quand même par Internet.</b> Au démarrage, l'appli charge des polices (Google Fonts) et deux outils de lecture de fichiers Excel et PDF (cdnjs). Ces sites voient seulement qu'un téléphone a demandé ces fichiers (son adresse IP), jamais tes données. Après la première ouverture, l'appli marche aussi sans connexion.",
+    "<b>Tes fichiers exportés.</b> L'export Excel et la sauvegarde .json sont créés sur ton téléphone, puis enregistrés là où tu choisis (Fichiers, OneDrive…). Ils ne sont <b>pas chiffrés</b> : garde-les en lieu sûr.",
+    "<b>Risque : perdre ses données.</b> Tout est sur le téléphone : téléphone perdu, cassé, réinitialisé ou données du site effacées = données perdues. Fais une <b>sauvegarde complète (.json)</b> régulièrement (un rappel s'affiche après 14 jours). Sur iPhone, ajoute l'appli à l'écran d'accueil : iOS peut effacer les données d'un site simple qu'on n'ouvre plus.",
+    "<b>Risque : téléphone volé ou prêté.</b> Active le <b>verrouillage par code</b> (et Face ID) dans Réglages : tes données sont alors chiffrées (AES-256) sur le téléphone. Si tu oublies ton code et que tu n'as aucune sauvegarde, elles sont irrécupérables.",
+    "<b>Risque : mots de passe.</b> N'écris jamais de mot de passe ni de numéro de carte dans l'appli. Le carnet « Comptes en ligne » sert à noter les sites, pas les secrets : utilise un gestionnaire de mots de passe.",
+    "<b>Risque : erreurs.</b> L'appli calcule à partir de ce que tu notes : ce n'est pas ta banque et ce n'est pas un conseil financier. Compare de temps en temps avec ton relevé (pointage, rapprochement bancaire).",
+    "<b>Mises à jour et confiance.</b> L'appli se met à jour toute seule quand son auteur publie une nouvelle version : ferme-la et rouvre-la pour la recevoir. Le code est public, donc n'importe qui peut le lire pour vérifier ce qu'il fait. Utilise uniquement le lien que t'a donné une personne de confiance.",
+    "<b>Plusieurs appareils.</b> Les données ne se synchronisent pas toutes seules entre deux téléphones : passe par l'export / import ou par Excel."]}
+};
+const HELP_ORDER = ["home","month","add","fix","sav","web","set","about"];
+const helpBtn = k => `<button class="help" data-act="help" data-v="${k}" aria-label="Aide">?</button>`;
+function sheetHelp(k){ const h = HELP[k]; if (!h) return;
+  openSheet(`<h2>${esc(h.t)}</h2><div class="hbody">${h.p.map(x => `<p>${x}</p>`).join("")}</div>
+    <div class="btns"><button class="btn ghost" data-act="guide">Tout le guide</button><button class="btn" data-act="sheetclose" style="flex:1">Compris</button></div>`); }
+function sheetGuide(){
+  openSheet(`<h2>Guide d'utilisation</h2><div class="small muted">Explications simples, partie par partie.</div>
+    <div class="hbody">${HELP_ORDER.map(k => `<details class="hsec"><summary>${esc(HELP[k].t)}<span class="muted">+</span></summary>${HELP[k].p.map(x => `<p>${x}</p>`).join("")}</details>`).join("")}</div>
+    <div class="btns"><button class="btn" data-act="sheetclose" style="flex:1">Fermer</button></div>`); }
+
+/* ============ Assistant de démarrage (premier lancement) ============ */
+const WIZ_STEPS = ["Bienvenue","Comprendre","Ma paie","Enveloppes","Revenus fixes","Charges fixes","Épargne","Terminé"];
+function wizInit(){ return {step:0, d:{
+  payday:"1", solde:"",
+  env:[["Nourriture",400,1],["Essence",100,1],["Restaurant",60,1],["Loisirs",80,0],["Vêtements",50,0],["Enfants",80,0],["Divers",100,1],["Épargne",100,1]].map(([n,b,on]) => ({n, b:String(b), on})),
+  rev:[["Salaire","Salaire"],["Allocations","Allocations"],["Autre revenu","Autre"]].map(([n,t]) => ({n, t, m:"", j:""})),
+  ch:[["Loyer / prêt","Logement"],["Électricité","Énergie / eau"],["Eau","Énergie / eau"],["Internet / mobile","Abonnements"],["Assurance auto","Assurances"],["Assurance habitation","Assurances"],["Abonnements (musique, vidéo…)","Abonnements"]].map(([n,t]) => ({n, t, m:"", j:""})),
+  livret:{on:true, depart:""}, poches:[{n:"", f:""}], accts:[{n:"", type:"Livret", depart:""}] }}; }
+function wizSet(path, val){ const p = path.split("."); let o = V.wiz.d; for (let i = 0; i < p.length - 1; i++) o = o[p[i]]; o[p[p.length-1]] = val; }
+function collectWiz(){ if (!V.wiz) return; document.querySelectorAll("#main [data-w]").forEach(el => wizSet(el.dataset.w, el.type === "checkbox" ? el.checked : el.value)); }
+const wizIn = (path, val, ph, extra) => `<input data-w="${path}" value="${esc(val)}" placeholder="${esc(ph || "")}" ${extra || ""}>`;
+function wizFixRows(key, rows){
+  return `<div class="wrow head"><span>Nom</span><span>Montant (€)</span><span>Jour</span><span></span></div>` + rows.map((r,i) => `<div class="wrow">${wizIn(key+"."+i+".n", r.n, "Nom")}${wizIn(key+"."+i+".m", r.m, "0", 'inputmode="decimal"')}${wizIn(key+"."+i+".j", r.j, "1-31", 'inputmode="numeric"')}<button class="btn danger sm" data-act="w-del" data-k="${key}" data-i="${i}" aria-label="Supprimer">✕</button></div>`).join("")
+    + `<div class="btns"><button class="btn ghost sm" data-act="w-add" data-k="${key}">+ Ajouter une ligne</button></div>`;
+}
+function viewWiz(){
+  const W = V.wiz, d = W.d, s = W.step, last = WIZ_STEPS.length - 1;
+  const dots = `<div class="dots">${WIZ_STEPS.map((_,i) => `<i class="${i <= s ? "on" : ""}"></i>`).join("")}</div><div class="small muted">Étape ${s+1} sur ${WIZ_STEPS.length} · ${WIZ_STEPS[s]}</div>`;
+  let body = "";
+  if (s === 0) body = `<div class="card"><h2>Bienvenue dans Mes comptes</h2>
+      <p>Cette appli t'aide à suivre ton argent : ce que tu gagnes, ce que tu dois payer, ce qu'il te reste pour vivre, et ton épargne.</p>
+      <p>On va la préparer ensemble en quelques minutes. Tu peux <b>passer</b> n'importe quelle étape et tout modifier plus tard.</p>
+      <p class="small muted">Tes données restent sur ton téléphone : pas de compte, pas de serveur qui les reçoit.</p>
+      <div class="btns"><button class="btn" data-act="w-next" style="flex:1">Commencer</button></div>
+      <div class="btns"><button class="btn ghost sm" data-act="help" data-v="about">Comment ça marche, où vont mes données, quels risques ?</button></div></div>
+    <div class="card"><h2>Tu as déjà des données ?</h2><div class="small muted">Si tu utilises déjà un classeur Excel ou une sauvegarde de cette appli, tu pourras l'importer dans les réglages.</div>
+      <div class="btns"><button class="btn ghost" data-act="w-import">Importer un fichier</button><button class="btn ghost" data-act="w-demo">Voir avec des exemples</button></div></div>`;
+  else if (s === 1) body = `<div class="card"><h2>Comprendre en 1 minute</h2>
+      <div class="hbody"><p><b>1. Le reste à vivre.</b> C'est le chiffre principal : l'argent que tu peux encore dépenser jusqu'à ta prochaine paie, une fois les charges fixes payées.</p>
+      <p><b>2. Les revenus et charges fixes</b> reviennent chaque mois (salaire, loyer, assurances…). Tu les saisis une fois avec un montant habituel. <b>Si un montant change un mois précis</b> (un salaire plus gros en décembre, une facture plus chère), tu le modifies <b>pour ce mois seulement</b> dans l'écran « Mois » : les autres mois ne bougent pas.</p>
+      <p><b>Un revenu ou une charge exceptionnel</b> (une prime, une réparation) se rajoute dans « Mois » avec les boutons <b>+ Revenu pour ce mois</b> / <b>+ Charge pour ce mois</b> : ils ne comptent que pour ce mois-là.</p>
+      <p><b>3. Les enveloppes</b> sont des budgets par catégorie (Nourriture, Essence…). Chaque dépense que tu notes retire de l'enveloppe choisie.</p>
+      <p><b>4. Pointer.</b> Quand tu vois une opération passer sur ton relevé de banque, tu la « pointes » (le petit rond) : tu sais qu'elle est bien passée.</p>
+      <p><b>5. L'épargne.</b> Ton Livret A, ses « poches » (argent réservé pour un projet) et tes autres comptes d'épargne.</p>
+      <p class="small muted">Sur chaque écran, le bouton <b>?</b> en haut te réexplique la partie.</p></div></div>`;
+  else if (s === 2) body = `<div class="card"><h2>Ta paie et ton compte</h2>
+      <label class="f">Quel jour du mois es-tu payé ?${wizIn("payday", d.payday, "1", 'inputmode="numeric"')}</label>
+      <div class="info">Si tu es payé le 25, ton « mois » va du 25 au 24. Mets <b>1</b> si tu veux le mois normal du 1er au 31. Valeurs possibles : de 1 à 28.</div>
+      <label class="f">Combien y a-t-il sur ton compte courant aujourd'hui (€) ?${wizIn("solde", d.solde, "ex. 850,00", 'inputmode="decimal"')}</label>
+      <div class="small muted">Tu peux le mettre à jour quand tu veux dans l'appli.</div></div>`;
+  else if (s === 3) body = `<div class="card"><h2>Tes enveloppes</h2>
+      <div class="info">Une enveloppe = un budget mensuel pour une catégorie de dépenses. Coche celles qui te servent et ajuste le montant par mois. « Épargne » = ce que tu veux mettre de côté chaque mois.</div>
+      ${d.env.map((e,i) => `<div class="wrow env"><label class="chkl"><input type="checkbox" data-w="env.${i}.on" ${e.on ? "checked" : ""}></label>${wizIn("env."+i+".n", e.n, "Nom")}${wizIn("env."+i+".b", e.b, "0", 'inputmode="decimal"')}<button class="btn danger sm" data-act="w-del" data-k="env" data-i="${i}" aria-label="Supprimer">✕</button></div>`).join("")}
+      <div class="btns"><button class="btn ghost sm" data-act="w-add" data-k="env">+ Ajouter une enveloppe</button></div></div>`;
+  else if (s === 4) body = `<div class="card"><h2>Tes revenus fixes</h2>
+      <div class="info">Ce que tu reçois régulièrement (salaire, allocations…). Remplis seulement les lignes qui te concernent : celles sans montant sont ignorées. <b>Le montant habituel suffit</b> : si un mois est différent, tu pourras le changer pour ce mois seulement dans l'écran « Mois ».</div>
+      ${wizFixRows("rev", d.rev)}</div>`;
+  else if (s === 5) body = `<div class="card"><h2>Tes charges fixes</h2>
+      <div class="info">Ce que tu paies chaque mois (loyer, assurances, abonnements…), avec le jour du prélèvement. Les lignes sans montant sont ignorées. Un montant qui change certains mois se corrige ensuite dans « Mois ».</div>
+      ${wizFixRows("ch", d.ch)}</div>`;
+  else if (s === 6) body = `<div class="card"><h2>Ton épargne</h2>
+      <label class="chkl2"><input type="checkbox" data-w="livret.on" ${d.livret.on ? "checked" : ""}> J'ai un Livret A</label>
+      ${d.livret.on ? `<label class="f">Solde du Livret A aujourd'hui (€)${wizIn("livret.depart", d.livret.depart, "ex. 3 200", 'inputmode="decimal"')}</label>
+      <div class="small muted">Une <b>poche</b> est une réserve dans ton Livret pour un projet ou une facture à venir (taxe foncière, travaux…). Facultatif :</div>
+      ${d.poches.map((p,i) => `<div class="wrow pk">${wizIn("poches."+i+".n", p.n, "Nom de la poche")}${wizIn("poches."+i+".f", p.f, "Déjà mis (€)", 'inputmode="decimal"')}<button class="btn danger sm" data-act="w-del" data-k="poches" data-i="${i}" aria-label="Supprimer">✕</button></div>`).join("")}
+      <div class="btns"><button class="btn ghost sm" data-act="w-add" data-k="poches">+ Ajouter une poche</button></div>` : ""}</div>
+    <div class="card"><h2>Autres comptes d'épargne</h2><div class="small muted">LDDS, LEP, PEL, assurance vie, bourse… Facultatif :</div>
+      ${d.accts.map((a,i) => `<div class="wrow ac">${wizIn("accts."+i+".n", a.n, "Nom (ex. LDDS)")}<select data-w="accts.${i}.type">${ACCT_TYPES.map(t => `<option ${t === a.type ? "selected" : ""}>${esc(t)}</option>`).join("")}</select>${wizIn("accts."+i+".depart", a.depart, "Solde (€)", 'inputmode="decimal"')}<button class="btn danger sm" data-act="w-del" data-k="accts" data-i="${i}" aria-label="Supprimer">✕</button></div>`).join("")}
+      <div class="btns"><button class="btn ghost sm" data-act="w-add" data-k="accts">+ Ajouter un compte</button></div></div>`;
+  else body = `<div class="card"><h2>C'est prêt !</h2>
+      <p>Ton appli est configurée. Voici comment l'utiliser au quotidien :</p>
+      <div class="hbody"><p>• Touche le gros bouton <b>+</b> pour noter une dépense ou un revenu.</p><p>• Regarde ton <b>reste à vivre</b> sur l'écran d'accueil.</p><p>• Dans l'écran <b>Mois</b>, pointe tes fixes quand ils passent, et change un montant pour un mois précis en touchant la ligne.</p><p>• Le bouton <b>?</b> en haut de chaque écran explique la partie. Le guide complet est dans <b>Réglages</b>.</p>
+      <p>• Pense à faire une <b>sauvegarde</b> de temps en temps (Réglages).</p></div></div>`;
+  const nav = s === 0 ? "" : `<div class="btns wnav"><button class="btn ghost" data-act="w-back">‹ Retour</button>${s === last ? `<button class="btn" data-act="w-finish" style="flex:1">Terminer</button>` : `<button class="btn ghost" data-act="w-next">Passer</button><button class="btn" data-act="w-next" style="flex:1">Suivant ›</button>`}</div>`;
+  return `<div class="wiz">${dots}${body}${nav}</div>`;
+}
+function wizFinish(){
+  collectWiz(); const d = V.wiz.d, n = emptyData(), num = v => parseNum(v) || 0;
+  const P = Math.round(num(d.payday)); n.settings.payday = P >= 2 && P <= 28 ? P : 1;
+  n.settings.solde = String(d.solde).trim() === "" ? null : parseNum(d.solde);
+  n.settings.envelopes = d.env.filter(e => e.on && e.n.trim()).map(e => ({n:e.n.trim(), b:num(e.b), m:Array(12).fill(null)}));
+  const fx = rows => rows.filter(r => r.n.trim() && num(r.m) > 0).map(r => { const j = parseInt(r.j,10); return {id:uid(), n:r.n.trim(), t:r.t || "", montant:num(r.m), jour:(j >= 1 && j <= 31) ? j : null, m:Array(12).fill("")}; });
+  n.fixRev = fx(d.rev); n.fixCh = fx(d.ch);
+  if (d.livret.on){ n.settings.livretDepart = num(d.livret.depart); n.epargne.dateDepart = todayIso();
+    n.epargne.envA = n.settings.envelopes.some(e => e.n === "Épargne") ? "Épargne" : "";
+    n.epargne.poches = d.poches.filter(p => p.n.trim()).map(p => ({id:uid(), n:p.n.trim(), f:num(p.f)})); }
+  n.accts = d.accts.filter(a => a.n.trim()).map(a => ({id:uid(), n:a.n.trim(), type:a.type, depart:num(a.depart), date:todayIso(), upd:Date.now()}));
+  S = n; V.wiz = null; document.body.classList.remove("wiz"); const cp = curPeriod(); V.m = cp.m; V.y = cp.y; V.tab = "home"; persist(); render(); toast("Appli prête !"); }
+
+/* ============ Nouvelle année : remise à zéro des montants propres à chaque mois ============ */
+function yearCheck(){
+  if (!S || V.wiz || !$("#sheetbg").hidden) return;
+  const cy = curPeriod().y;
+  if (S.fixYear === undefined){ S.fixYear = cy; persist(); return; }
+  if (cy > S.fixYear) sheetYear(cy);
+}
+function sheetYear(cy){
+  openSheet(`<h2>Bonne année ${cy} !</h2>
+    <div class="small">Pour repartir propre, l'appli remet à zéro ce qui est propre à chaque mois de l'année écoulée :</div>
+    <div class="hbody"><p>• les <b>pointés</b> des revenus et charges fixes ;</p><p>• les <b>montants saisis pour un mois précis</b> (primes, factures différentes…) ;</p><p>• les <b>budgets d'enveloppe propres à un mois</b>.</p>
+    <p>Ne changent pas : tes montants habituels, tes budgets habituels, ton journal, ton épargne.</p></div>
+    <div class="info">Les mois de l'année passée n'afficheront plus leur état pointé. Fais d'abord une sauvegarde complète si tu veux garder une copie.</div>
+    <div class="btns"><button class="btn" data-act="yr-save" style="flex:1">Sauvegarder puis remettre à zéro</button></div>
+    <div class="btns"><button class="btn ghost" data-act="yr-reset" data-v="${cy}">Remettre à zéro sans sauvegarde</button><button class="btn ghost" data-act="sheetclose">Plus tard</button></div>`);
+}
+function yearReset(cy){
+  S.fixRev = S.fixRev.filter(r => !(r.t === "Ce mois seulement" && !N(r.montant)));
+  S.fixCh = S.fixCh.filter(r => !(r.t === "Ce mois seulement" && !N(r.montant)));
+  for (const r of S.fixRev.concat(S.fixCh)) r.m = Array(12).fill("");
+  S.settings.envelopes = S.settings.envelopes.filter(e => !(!N(e.b) && e.m.some(isNum)));
+  for (const e of S.settings.envelopes) e.m = Array(12).fill(null);
+  S.fixYear = cy; persist(); closeSheet(); render(); toast("Nouvelle année : compteurs remis à zéro");
+}
+
 function render(){
   if (!S) return;
+  if (V.wiz){ document.body.classList.add("wiz"); const y0 = window.scrollY; $("#main").innerHTML = viewWiz(); window.scrollTo(0, V.wizTop ? 0 : y0); V.wizTop = false; return; }
+  document.body.classList.remove("wiz");
   renderTabs();
   const main = $("#main");
   const keepY = (V.lt === V.tab && V.lm === V.m && V.ly === V.y) ? window.scrollY : 0;
   main.innerHTML = V.tab === "home" ? viewHome() : V.tab === "month" ? viewMonth() : V.tab === "add" ? viewAdd() : V.tab === "fix" ? viewFix() : V.tab === "sav" ? viewSav() : V.tab === "web" ? viewWeb() : V.tab === "bank" ? viewBank() : viewSet();
+  { const hk = {home:"home",month:"month",add:"add",fix:"fix",sav:"sav",web:"web",set:"set"}[V.tab]; const tp = hk && main.querySelector(".top"); if (tp){ const r = tp.querySelector(".app"); (r || tp).insertAdjacentHTML("beforeend", helpBtn(hk)); } }
   if (V.tab === "add") updateInfo();
   V.lt = V.tab; V.lm = V.m; V.ly = V.y;
   window.scrollTo(0, keepY);
@@ -1034,6 +1226,16 @@ function sheetEnvNew(){
     <label class="f">Nom<input id="en-name" placeholder="Ex. Cadeaux"></label>
     <label class="f">Budget de ce mois (€)<input id="en-val" inputmode="decimal"></label>
     <div class="btns"><button class="btn" data-act="en-save" style="flex:1">Ajouter</button><button class="btn ghost" data-act="sheetclose">Fermer</button></div>`);
+}
+function sheetFixMonthNew(k){
+  const rev = k === "rev";
+  openSheet(`<h2>${rev ? "Revenu" : "Charge"} pour ${MOIS[V.m].toLowerCase()}</h2>
+    <div class="small muted">${rev ? "Un revenu exceptionnel (prime, remboursement, vente…)" : "Une charge exceptionnelle (réparation, facture…)"} qui ne compte que pour ce mois : 0 € les autres mois. Si une ligne du même nom existe déjà, son montant de ce mois est modifié.</div>
+    <label class="f">Nom<input id="fm-n" placeholder="${rev ? "Ex. Prime" : "Ex. Réparation voiture"}"></label>
+    <div class="grid2"><label class="f">Montant de ce mois (€)<input id="fm-m" inputmode="decimal"></label>
+    <label class="f">Jour (facultatif)<input id="fm-j" inputmode="numeric" placeholder="1-31"></label></div>
+    <div class="small muted">Si le jour est passé (ou vide), la ligne compte tout de suite comme ${rev ? "reçue" : "payée"} ; si le jour est à venir, elle est « à venir ».</div>
+    <div class="btns"><button class="btn" data-act="fmn-save" data-k="${k}" style="flex:1">Ajouter</button><button class="btn ghost" data-act="sheetclose">Fermer</button></div>`);
 }
 function sheetFix(k,id){
   const r = id ? findFix(k,id) : {n:"",t:"",montant:"",jour:""};
@@ -1149,6 +1351,17 @@ document.addEventListener("click", ev => {
   const a = b.dataset.act, id = b.dataset.id, k = b.dataset.k;
   switch (a){
     case "tab": V.webMsg = ""; if (V.tab === "add") collectDraft(); if (b.dataset.v === "add" && V.tab !== "add"){ V.editId = null; V.draft = null; } V.tab = b.dataset.v; render(); break;
+    case "help": sheetHelp(b.dataset.v); break;
+    case "yr-reset": yearReset(+b.dataset.v); break;
+    case "yr-save": { const cy = curPeriod().y; saveFile("mes-comptes-sauvegarde.json", JSON.stringify(S,null,1), "application/json").then(ok => { if (ok){ S.lastBackup = Date.now(); yearReset(cy); } }); break; }
+    case "guide": sheetGuide(); break;
+    case "w-next": collectWiz(); if (V.wiz.step < WIZ_STEPS.length - 1) V.wiz.step++; V.wizTop = true; render(); break;
+    case "w-back": collectWiz(); if (V.wiz.step > 0) V.wiz.step--; V.wizTop = true; render(); break;
+    case "w-add": { collectWiz(); const d = V.wiz.d; d[k].push(k === "env" ? {n:"", b:"", on:true} : k === "poches" ? {n:"", f:""} : k === "accts" ? {n:"", type:"Livret", depart:""} : {n:"", t:"", m:"", j:""}); render(); break; }
+    case "w-del": { collectWiz(); V.wiz.d[k].splice(+b.dataset.i, 1); if (!V.wiz.d[k].length && (k === "poches" || k === "accts")) V.wiz.d[k].push(k === "poches" ? {n:"", f:""} : {n:"", type:"Livret", depart:""}); render(); break; }
+    case "w-finish": wizFinish(); break;
+    case "w-import": S = emptyData(); V.wiz = null; V.tab = "set"; V.msg = "Choisis ton fichier dans « Synchroniser avec Excel » (bouton Importer un fichier)."; persist(); render(); break;
+    case "w-demo": S = demoData(); V.wiz = null; persist(); render(); break;
     case "mprev": setMonth(-1); break; case "mnext": setMonth(1); break;
     case "hidepast": V.hidePast = !V.hidePast; render(); break;
     case "fixtoggle": { const r = findFix(k,id); r.m[V.m] = r.m[V.m] === "x" ? "" : "x"; persist(); render(); break; }
@@ -1233,6 +1446,11 @@ document.addEventListener("click", ev => {
     case "futtoggle": { const f = S.epargne.futur.find(x => x.id === id); f.fait = f.fait === "x" ? "" : "x"; persist(); render(); break; }
     case "envmonth": sheetEnvMonth(+b.dataset.i); break;
     case "envmonthnew": sheetEnvNew(); break;
+    case "fixmonthnew": sheetFixMonthNew(k); break;
+    case "fmn-save": { const n = $("#fm-n").value.trim(), v = parseNum($("#fm-m").value); if (!n) return toast("Donnez un nom"); if (v === null) return toast("Saisissez un montant");
+      const arr = k === "rev" ? S.fixRev : S.fixCh; const ex = arr.find(r => r.n.trim().toLowerCase() === n.toLowerCase());
+      if (ex) ex.m[V.m] = v; else { const j = parseInt($("#fm-j").value,10); const r = {id:uid(), n, t:"Ce mois seulement", montant:0, jour:(j >= 1 && j <= 31) ? j : null, m:Array(12).fill("")}; r.m[V.m] = v; arr.push(r); }
+      persist(); closeSheet(); render(); toast((k === "rev" ? "Revenu" : "Charge") + " ajouté pour " + MOIS[V.m].toLowerCase()); break; }
     case "em-save": { const e = S.settings.envelopes[+b.dataset.i], raw = $("#em-val").value.trim(), v = parseNum(raw); e.m[V.m] = raw === "" || v === null ? null : v; persist(); closeSheet(); render(); toast("Budget de " + MOIS[V.m].toLowerCase() + " enregistré"); break; }
     case "em-reset": { S.settings.envelopes[+b.dataset.i].m[V.m] = null; persist(); closeSheet(); render(); break; }
     case "en-save": { const name = $("#en-name").value.trim(), v = parseNum($("#en-val").value); if (!name) return toast("Donnez un nom"); if (v === null || v < 0) return toast("Saisissez un budget");
@@ -1261,6 +1479,7 @@ document.addEventListener("click", ev => {
 document.addEventListener("input", ev => { if (ev.target.id === "web-q"){ V.wq = ev.target.value; $("#web-list").innerHTML = webList(); } });
 document.addEventListener("change", ev => {
   const t = ev.target;
+  if (V.wiz && t.dataset.w !== undefined){ collectWiz(); if (t.dataset.w === "livret.on") render(); return; }
   if (t.id === "file" && t.files[0]) { onFile(t.files[0]); t.value = ""; return; }
   if (t.id === "solde" || t.id === "s-solde"){ const v = parseNum(t.value); S.settings.solde = t.value.trim() === "" ? null : v; persist(); if (V.tab === "home") render(); return; }
   if (t.id === "webfile" && t.files[0]){ const f = t.files[0]; t.value = "";
@@ -1447,8 +1666,8 @@ function applyTheme(){ const t = lsGet("mc-theme"); if (t === "light" || t === "
 applyTheme();
 function startApp(){
   S = load();
-  if (!S || !S.settings){ S = demoData(); persist(); }
-  migrate(); render();
+  if (!S || !S.settings){ S = emptyData(); V.wiz = wizInit(); }
+  migrate(); render(); yearCheck();
 }
 if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) { try { navigator.serviceWorker.register("sw.js").catch(() => {}); } catch(e){} }
 secCfgLoad();
@@ -1457,7 +1676,7 @@ if (secAvailable() && lsGet(ENC)){ SEC.on = true; showLock(); } else startApp();
 /* iOS : recale les éléments fixes (barre d'onglets, feuilles) après reprise, rotation ou clavier */
 (function(){ const fix = () => { try { const n = document.querySelector("nav.tabs"); if (n){ n.style.display = "none"; void n.offsetHeight; n.style.display = ""; } window.scrollTo(window.scrollX, window.scrollY); } catch(e){} };
   window.addEventListener("pageshow", fix); window.addEventListener("orientationchange", () => setTimeout(fix, 300)); window.addEventListener("resize", () => setTimeout(fix, 150));
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) setTimeout(fix, 100); });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden){ setTimeout(fix, 100); setTimeout(() => { try { yearCheck(); } catch(e){} }, 400); } });
   document.addEventListener("focusout", () => setTimeout(fix, 250)); })();
 </script>
 
