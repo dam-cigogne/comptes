@@ -750,10 +750,10 @@ function viewMonth(){
   const J = live().filter(j => inMonth(j,V.m,V.y)).sort((a,b) => b.date.localeCompare(a.date) || b.upd - a.upd);
   const jHtml = J.length ? J.map(j => {
     const sign = j.type === "Revenu" || j.type === "Retrait du Livret A" ? 1 : -1;
-    const wait = j.type === "Avance (à rembourser)" && !j.remb;
+    const wait = j.type === "Avance (à rembourser)" && !j.remb, recv = j.type === "Revenu" && j.pointe !== "x";
     return `<div class="row"><button class="chk ${j.pointe==="x"?"on":""}" data-act="jtoggle" data-id="${j.id}" aria-label="Pointer">${ICON.check}</button>${dotHtml(j.cat || TYPE_SHORT[j.type])}
       <button class="rowbtn" data-act="jedit" data-id="${j.id}"><div class="t">${esc(j.lib || j.cat || j.type)}</div>
-      <div class="s">${frDate(j.date)} · ${esc(j.cat || TYPE_SHORT[j.type])}${wait ? ' · <span class="chip warn">à rembourser</span>' : ""}</div></button>
+      <div class="s">${frDate(j.date)} · ${esc(j.cat || TYPE_SHORT[j.type])}${wait ? ' · <span class="chip warn">à rembourser</span>' : ""}${recv ? ' · <span class="chip warn">à recevoir</span>' : ""}</div></button>
       <div class="amt num ${sign>0?"pos":""}">${sign>0?"+":"−"} ${eur(j.montant)}</div></div>`;
   }).join("") : `<div class="empty">Aucune opération ce mois-ci.</div>`;
   const kv = (l,v,cl) => `<div class="kv"><span>${l}</span><span class="num ${cl||""}">${eur(v)}</span></div>`;
@@ -804,6 +804,7 @@ function viewAdd(){
     <div class="pills"><button data-act="datepick" data-v="t" class="${d.date === todayIso() ? "on" : ""}">Aujourd'hui</button><button data-act="datepick" data-v="y" class="${d.date === yIso ? "on" : ""}">Hier</button></div>
     <label class="f">Date<input id="f-date" type="date" value="${esc(d.date)}"></label>
     <div class="swrow"><span>Déjà passé en banque</span><label class="sw"><input type="checkbox" id="f-pt" ${d.pt ? "checked" : ""} aria-label="Déjà passé en banque"><i></i></label></div>
+    ${d.type === "Avance (à rembourser)" ? `<div class="info">« Avance » = tu as <b>payé de ta poche</b> pour quelqu'un, et il te rembourse. C'est une sortie d'argent (affichée en −). Si tu <b>attends juste un remboursement</b> (ex. Amazon), choisis plutôt <b>Revenu</b> et laisse « Déjà passé en banque » éteint : ça compte comme un revenu à recevoir et s'ajoute à ton reste à vivre. Coche-le quand l'argent arrive.</div>` : d.type === "Revenu" ? `<div class="small muted">Pour un remboursement attendu : laisse « Déjà passé en banque » éteint, il sera marqué « à recevoir ».</div>` : ""}
     ${d.type === "Avance (à rembourser)" ? `<label class="f">Remboursé le<input id="f-remb" type="date" value="${esc(d.remb)}"></label>` : ""}
     <label class="f">Note<input id="f-note" value="${esc(d.note)}"></label>
     <div class="btns"><button class="btn" data-act="save" style="flex:1;padding:16px;font-size:17px">${ed ? "Enregistrer les modifications" : "Enregistrer"}</button>
@@ -1084,7 +1085,7 @@ const HELP = {
   month:{t:"Le mois", p:[
     "<b>C'est quoi ?</b> Tout ce qui se passe dans le mois choisi (flèches ‹ › en haut pour changer de mois).",
     "<b>Fixes et revenus</b> : touche le <b>rond</b> pour dire « c'est passé » (payé ou reçu). Touche la <b>ligne</b> pour saisir un montant <b>différent pour ce mois seulement</b> : par exemple un salaire plus élevé en décembre, ou une facture qui change. Les autres mois gardent le montant habituel.",
-    "<b>Un revenu ou une charge qui ne concerne que ce mois</b> (une prime, une réparation…) : utilise les boutons <b>+ Revenu pour ce mois</b> et <b>+ Charge pour ce mois</b> dans « Fixes et revenus ». La ligne ne compte que pour le mois affiché.",
+    "<b>Un remboursement attendu</b> (Amazon, Vinted…) : ajoute-le comme <b>Revenu</b> en laissant « Déjà passé en banque » éteint. Il apparaît « à recevoir » avec un +, et s'ajoute à ton reste à vivre. Coche le rond quand l'argent est arrivé. Le type « Avance » sert pour l'inverse : tu as payé pour quelqu'un d'autre.","<b>Un revenu ou une charge qui ne concerne que ce mois</b> (une prime, une réparation…) : utilise les boutons <b>+ Revenu pour ce mois</b> et <b>+ Charge pour ce mois</b> dans « Fixes et revenus ». La ligne ne compte que pour le mois affiché.",
     "<b>Opérations du mois</b> : tes dépenses et revenus du quotidien. Le rond = « pointé », c'est-à-dire vérifié sur ton relevé de banque. Touche une ligne pour la modifier.",
     "<b>Nouvelle année</b> : au premier mois de l'année, l'appli te propose de remettre à zéro les pointés et les montants propres à chaque mois (après une sauvegarde). Tes montants habituels ne changent pas.",
     "<b>Le mois budgétaire</b> : si tu es payé le 25, ton mois va du 25 au 24 (réglable dans Réglages).",
@@ -1335,7 +1336,9 @@ function sheetMonth(k,id){
     <div class="small muted">Montant habituel : ${eur(r.montant)}. Saisissez un montant différent pour ce mois seulement (vide = montant habituel).</div>
     <label class="f">Montant de ce mois (€)<input id="m-val" inputmode="decimal" value="${isNum(c) ? String(c).replace(".",",") : ""}"></label>
     <div class="btns"><button class="btn" data-act="sm-save" data-k="${k}" data-id="${id}" style="flex:1">Enregistrer</button>
-    <button class="btn ghost" data-act="sm-reset" data-k="${k}" data-id="${id}">Non pointé</button><button class="btn ghost" data-act="sheetclose">Fermer</button></div>`);
+    <button class="btn ghost" data-act="sm-reset" data-k="${k}" data-id="${id}">Non pointé</button><button class="btn ghost" data-act="sheetclose">Fermer</button></div>
+    <div class="small muted" style="margin-top:10px">${r.t === "Ce mois seulement" ? "Cette ligne n'existe que pour un mois précis." : "C'est une ligne habituelle : la supprimer l'enlève de tous les mois."}</div>
+    ${V.fmdel === id ? `<div class="btns"><button class="btn danger" data-act="sm-del" data-k="${k}" data-id="${id}" style="flex:1">Oui, supprimer la ligne « ${esc(r.n)} »</button></div>` : `<div class="btns"><button class="btn ghost sm" data-act="sm-delask" data-k="${k}" data-id="${id}">Supprimer cette ligne</button></div>`}`);
 }
 function sheetEnvMonth(i){
   const e = S.settings.envelopes[i]; if (!e) return; const c = e.m[V.m];
@@ -1552,7 +1555,9 @@ document.addEventListener("click", ev => {
     case "mprev": setMonth(-1); break; case "mnext": setMonth(1); break;
     case "hidepast": V.hidePast = !V.hidePast; render(); break;
     case "fixtoggle": { const r = findFix(k,id), mi = b.dataset.pm !== undefined ? +b.dataset.pm : V.m; r.m[mi] = r.m[mi] === "x" ? "" : "x"; persist(); render(); break; }
-    case "fixmonth": sheetMonth(k,id); break;
+    case "fixmonth": V.fmdel = null; sheetMonth(k,id); break;
+    case "sm-delask": V.fmdel = id; sheetMonth(k,id); break;
+    case "sm-del": { const arr = k === "rev" ? S.fixRev : S.fixCh; const ix = arr.findIndex(r => r.id === id); if (ix >= 0) arr.splice(ix,1); V.fmdel = null; persist(); closeSheet(); render(); toast("Ligne supprimée"); break; }
     case "sm-save": { const r = findFix(k,id); const v = parseNum($("#m-val").value); r.m[V.m] = $("#m-val").value.trim() === "" ? "" : (v === null ? "" : v); persist(); closeSheet(); render(); break; }
     case "sm-reset": { findFix(k,id).m[V.m] = ""; persist(); closeSheet(); render(); break; }
     case "sheetclose": closeSheet(); break;
