@@ -1,4 +1,4 @@
-const C = 'comptes-v41';
+const C = 'comptes-v42';
 const SHELL = ['./', './index.html', './manifest.json', './icon-180.png', './icon-192.png', './icon-512.png',
   'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'];
 const FONT_CSS = 'https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Instrument+Sans:wght@400;500;600&display=swap';
@@ -18,7 +18,7 @@ self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   const same = new URL(e.request.url).origin === self.location.origin;
   if (same) {   // fichiers de l'appli : réseau d'abord (mises à jour), cache si hors ligne
-    e.respondWith(fetch(e.request).then(n => { const cp = n.clone(); caches.open(C).then(c => c.put(e.request, cp)); return n; })
+    e.respondWith(fetch(e.request, {cache:'no-cache'}).then(n => { const cp = n.clone(); caches.open(C).then(c => c.put(e.request, cp)); return n; })
       .catch(() => caches.match(e.request).then(r => r || caches.match('./index.html'))));
   } else {      // bibliothèque externe : cache d'abord
     e.respondWith(caches.match(e.request).then(r => r || fetch(e.request).then(n => { const cp = n.clone(); caches.open(C).then(c => c.put(e.request, cp)); return n; })));
