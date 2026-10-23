@@ -39,6 +39,22 @@
   --ok:#5BD08F; --warn:#E2B04E; --bad:#F08B7E; --bad-soft:#3A201C; --warn-soft:#3A2F15;
   color-scheme:dark;
 }
+/* ===== Style moderne : reflets (gloss), verre, palettes ===== */
+.hero{position:relative;overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -20px 40px -30px rgba(0,0,0,.35),0 18px 36px -18px color-mix(in srgb,var(--accent) 80%,#000)}
+.hero>*{position:relative;z-index:1}
+.hero::before{content:"";position:absolute;inset:0;background:radial-gradient(130% 70% at 10% -10%,rgba(255,255,255,.38),transparent 55%),linear-gradient(180deg,rgba(255,255,255,.16),transparent 38%);pointer-events:none;z-index:0}
+.hero::after{content:"";position:absolute;right:-70px;bottom:-90px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.22),transparent 68%);pointer-events:none;z-index:0}
+.hero .big{text-shadow:0 2px 14px rgba(0,0,0,.18)}
+.soldebox{backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:inset 0 1px 0 rgba(255,255,255,.35)}
+.hstats>div{box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}
+.card:not(.hero){background-image:linear-gradient(180deg,color-mix(in srgb,#fff 55%,transparent),transparent 42%);background-color:var(--surface);box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 1px 2px rgba(20,40,34,.05),0 10px 24px -14px rgba(20,40,34,.28)}
+:root[data-theme="dark"] .card:not(.hero){background-image:linear-gradient(180deg,rgba(255,255,255,.055),transparent 45%);box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 10px 24px -14px rgba(0,0,0,.6)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .card:not(.hero){background-image:linear-gradient(180deg,rgba(255,255,255,.055),transparent 45%);box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 10px 24px -14px rgba(0,0,0,.6)}}
+.btn:not(.ghost):not(.danger){background-image:linear-gradient(180deg,rgba(255,255,255,.28),rgba(255,255,255,0) 55%);box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 6px 14px -8px color-mix(in srgb,var(--accent) 80%,#000)}
+nav.tabs .in{box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 12px 30px -12px rgba(0,0,0,.35)}
+nav.tabs button.add span.pl{background-image:linear-gradient(160deg,rgba(255,255,255,.4),rgba(255,255,255,0) 55%);box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 8px 18px -6px color-mix(in srgb,var(--accent) 75%,#000)}
+.bar i{background-image:linear-gradient(180deg,rgba(255,255,255,.35),rgba(255,255,255,0) 60%)}
+.pal{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}.pal button{width:44px;height:44px;border-radius:50%;border:3px solid transparent;box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 0 0 1px var(--line);background-image:linear-gradient(160deg,rgba(255,255,255,.4),transparent 55%)}.pal button.on{border-color:var(--ink)}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.4;
@@ -1063,15 +1079,16 @@ function viewSet(){
     <button class="btn ghost" data-act="imp-cancel">Annuler</button></div></div>` : "";
   return `<div class="top"><div class="app">Réglages</div></div>${V.msg ? `<div class="info">${esc(V.msg)}</div>` : ""}${pend}
   <div class="card"><h2>Guide d'utilisation</h2><div class="small muted">Comment marche chaque partie de l'appli, expliqué simplement. Le bouton ? en haut de chaque écran donne aussi l'aide de l'écran.</div>
-    <div class="btns"><button class="btn" data-act="guide">Ouvrir le guide</button></div></div>
+    <div class="btns"><button class="btn" data-act="guide">Ouvrir le guide</button><button class="btn ghost" data-act="upd-hist">Historique des mises à jour</button></div></div>
   <div class="card"><h2>Synchroniser avec Excel</h2>
     <div class="small muted">Le fichier d'échange contient toutes les opérations avec un identifiant. Importez-le à nouveau pour fusionner : les lignes déjà connues sont mises à jour, les nouvelles sont ajoutées.</div>
     <div class="btns"><button class="btn" data-act="exp-journal">Exporter le journal (.xlsx)</button>
     <button class="btn ghost" data-act="exp-json">Sauvegarde complète (.json)</button></div>
     <div class="small muted">${bkpAge() === null ? "Aucune sauvegarde complète faite pour l'instant." : "Dernière sauvegarde complète : " + (bkpAge() === 0 ? "aujourd'hui" : "il y a " + bkpAge() + " jour(s)") + "."} Un rappel s'affiche en haut après 14 jours.</div>
     <label class="f">Importer un fichier (classeur .xlsm / .xlsx, journal d'échange, sauvegarde .json)<input id="file" type="file" accept=".xlsm,.xlsx,.json,.xls"></label></div>
-  <div class="card"><h2>Apparence</h2><div class="seg">${[["auto","Automatique"],["light","Clair"],["dark","Sombre"]].map(([k,l]) => `<button class="${(lsGet("mc-theme") || "auto") === k ? "on" : ""}" data-act="theme" data-v="${k}">${l}</button>`).join("")}</div>
-    <div class="small muted">Automatique suit le réglage de votre iPhone.</div></div>
+  <div class="card"><h2>Apparence</h2><div class="small muted">Couleur de l'appli</div><div class="pal">${Object.keys(PALS).map(k => `<button class="${(lsGet("mc-pal") || "emeraude") === k ? "on" : ""}" data-act="pal" data-v="${k}" aria-label="${PALS[k].n}" title="${PALS[k].n}" style="background-color:${k === "emeraude" ? "#0E6B5C" : PALS[k].l[0]}"></button>`).join("")}</div><div class="small muted" style="margin-top:8px">Mode</div><div class="seg">${[["auto","Automatique"],["light","Clair"],["dark","Sombre"],["sched","Horaires"]].map(([k,l]) => `<button class="${(lsGet("mc-theme") || "auto") === k ? "on" : ""}" data-act="theme" data-v="${k}">${l}</button>`).join("")}</div>
+    <div class="small muted">Automatique suit le réglage de ton téléphone (Réglages → Affichage et luminosité). Horaires : tu choisis toi-même quand l'appli passe en sombre.</div>
+    ${lsGet("mc-theme") === "sched" ? `<div class="grid2" style="margin-top:8px"><label class="f">Sombre à partir de<input id="sch-a" type="time" value="${schedGet()[0]}"></label><label class="f">Clair à partir de<input id="sch-b" type="time" value="${schedGet()[1]}"></label></div>` : ""}</div>
   <div class="card"><h2>Compte et épargne</h2>
     <div class="hbody small"><p><b>Solde du compte</b> : ce qu'il y a sur ton compte courant maintenant (regarde dans l'appli de ta banque). C'est le point de départ du reste à vivre.</p>
     <p><b>Jour de paie</b> : 1 = mois normal (du 1er à la fin du mois). Si tu es payé le 25, mets 25 : ton mois va alors du 25 au 24. De 1 à 28.</p>
@@ -1581,6 +1598,8 @@ document.addEventListener("click", ev => {
     case "hy": V.hy = +b.dataset.v; render(); break;
     case "yr-save": { const cy = curPeriod().y; saveFile("mes-comptes-sauvegarde.json", JSON.stringify(S,null,1), "application/json").then(ok => { if (ok){ S.lastBackup = Date.now(); yearReset(cy); } }); break; }
     case "guide": sheetGuide(); break;
+    case "upd-hist": sheetUpdHist(); break;
+    case "upd-ok": lsSet("mc-seen-ver", CHANGELOG[0].v); closeSheet(); break;
     case "w-next": collectWiz(); if (V.wiz.step < WIZ_STEPS.length - 1) V.wiz.step++; V.wizTop = true; render(); break;
     case "w-back": collectWiz(); if (V.wiz.step > 0) V.wiz.step--; V.wizTop = true; render(); break;
     case "w-add": { collectWiz(); const d = V.wiz.d; d[k].push(k === "env" ? {n:"", b:"", on:true} : k === "poches" ? {n:"", f:""} : k === "accts" ? {n:"", type:"Livret", depart:""} : {n:"", t:"", m:"", j:""}); render(); break; }
@@ -1689,6 +1708,7 @@ document.addEventListener("click", ev => {
     case "exp-journal": saveFile("journal_appli.xlsx", buildEchange(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"); break;
     case "exp-json": saveFile("mes-comptes-sauvegarde.json", JSON.stringify(S,null,1), "application/json").then(ok => { if (ok){ S.lastBackup = Date.now(); persist(); render(); } }); break;
     case "df-apply": { const ch = [...document.querySelectorAll("[data-df]")].filter(c => c.checked).map(c => +c.dataset.df); for (const i of ch) V.diff[i].ap(); V.diff = null; persist(); closeSheet(); render(); toast(ch.length + " différence(s) reprise(s)"); break; }
+    case "pal": { const v = b.dataset.v; if (v === "emeraude") { try { localStorage.removeItem("mc-pal"); } catch(e){} } else lsSet("mc-pal", v); applyTheme(); render(); break; }
     case "theme": { const v = b.dataset.v; if (v === "auto") { try { localStorage.removeItem("mc-theme"); } catch(e){} } else lsSet("mc-theme", v); applyTheme(); render(); break; }
     case "key": { const i = $("#f-mont"); if (!i) break; let v = i.value; const k = b.dataset.v;
       if (k === "del") v = v.slice(0,-1);
@@ -1901,12 +1921,64 @@ function viewBank(){
 
 /* ============ Démarrage ============ */
 const migrate = () => { if (!S.epargne) S.epargne = emptyEpargne(); if (!Array.isArray(S.accts)) S.accts = []; if (!Array.isArray(S.acctMv)) S.acctMv = []; if (!Array.isArray(S.web)) S.web = []; if (!S.bank) S.bank = {seen:[]}; if (!S.rules) S.rules = {}; if (!V.pinit){ const cp = curPeriod(); V.m = cp.m; V.y = cp.y; V.pinit = true; } };
-function applyTheme(){ const t = lsGet("mc-theme"); if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); else document.documentElement.removeAttribute("data-theme"); }
+const PALS = {emeraude:{n:"Émeraude"}, ocean:{n:"Océan", l:["#1769C2","#FFFFFF","#DCE9F8"], d:["#5AA9FF","#04162B","#172B45"]},
+  violet:{n:"Violet", l:["#6D3FD1","#FFFFFF","#E9E0F8"], d:["#A98BFF","#1A0B3D","#2B2147"]},
+  sunset:{n:"Coucher de soleil", l:["#C2410C","#FFFFFF","#FBE5DA"], d:["#FF9A62","#3A1300","#3F2418"]},
+  rose:{n:"Rose", l:["#BE185D","#FFFFFF","#FADCE8"], d:["#FF7EB6","#3B0620","#3D1D2D"]}};
+function schedGet(){ const v = String(lsGet("mc-sched") || "20:00|07:00").split("|"); return [v[0] || "20:00", v[1] || "07:00"]; }
+function schedDark(){ const [a,b] = schedGet(), d = new Date(), n = d.getHours()*60 + d.getMinutes(), f = x => { const q = String(x).split(":"); return (+q[0] || 0)*60 + (+q[1] || 0); };
+  const A = f(a), B = f(b); return A === B ? false : (A < B ? (n >= A && n < B) : (n >= A || n < B)); }
+function applyTheme(){ let t = lsGet("mc-theme"); if (t === "sched") t = schedDark() ? "dark" : "light"; const R = document.documentElement; if (t === "light" || t === "dark") R.setAttribute("data-theme", t); else R.removeAttribute("data-theme");
+  const pk = lsGet("mc-pal"), P = PALS[pk]; const dark = t === "dark" || (t !== "light" && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
+  const v = P && (dark ? P.d : P.l); for (const k of ["--accent","--accent-ink","--accent-soft"]) R.style.removeProperty(k);
+  if (v){ R.style.setProperty("--accent", v[0]); R.style.setProperty("--accent-ink", v[1]); R.style.setProperty("--accent-soft", v[2]); }
+  try { const m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute("content", getComputedStyle(R).getPropertyValue("--accent").trim() || "#0E6B5C"); } catch(e){} }
+try { matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => applyTheme()); } catch(e){}
+setInterval(() => { if (lsGet("mc-theme") === "sched") applyTheme(); }, 60000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden && lsGet("mc-theme") === "sched") applyTheme(); });
+document.addEventListener("change", ev => { if (ev.target.id === "sch-a" || ev.target.id === "sch-b"){ lsSet("mc-sched", ($("#sch-a").value || "20:00") + "|" + ($("#sch-b").value || "07:00")); applyTheme(); } });
 applyTheme();
+/* ===== Historique des mises à jour ===== */
+const CHANGELOG = [
+ {v:"1.8", d:"Octobre 2026", t:"Design moderne, couleurs et horaires", i:[
+  "Nouvelle présentation de l'Accueil : reste à vivre, enveloppes, mise de côté, épargne.",
+  "Effets brillants (gloss) et verre sur les cartes, les boutons et la barre du bas.",
+  "Choix de la couleur de l'appli : Émeraude, Océan, Violet, Coucher de soleil, Rose (Réglages → Apparence).",
+  "Nouveau mode « Horaires » : tu choisis toi-même l'heure où l'appli passe en sombre.",
+  "Saisie du solde du compte plus claire, avec le calcul du reste à vivre expliqué.",
+  "Le graphique des 6 derniers mois est retiré de l'Accueil."]},
+ {v:"1.7", d:"Octobre 2026", t:"Clôture fin de mois et Livret A", i:[
+  "Bouton « Clôture fin de mois » : tu indiques ton solde et ta paie reçue, l'appli calcule ce que tu peux mettre de côté.",
+  "Le Livret A reçoit l'épargne prévue et le surplus ; ce qui n'est pas pointé est repris dans le mois suivant sans consommer ses enveloppes.",
+  "Possibilité d'annuler la dernière clôture (Réglages).",
+  "Réajustement du Livret A avec le solde réel de la banque (intérêts, centimes).",
+  "Le message d'enveloppe à l'ajout d'une dépense suit désormais le bon mois budgétaire."]},
+ {v:"1.6", d:"Octobre 2026", t:"Remboursements et lignes", i:[
+  "Un remboursement attendu s'ajoute comme Revenu « à recevoir ».",
+  "Une ligne de fixes peut être supprimée depuis l'écran Mois.",
+  "Correction de l'affichage des barres d'enveloppes sur iPad."]},
+ {v:"1.5", d:"Octobre 2026", t:"Nouvelle année et historique", i:[
+  "Remise à zéro annuelle avec sauvegarde et récapitulatif de l'année.",
+  "Historique des années passées et feuille « Archives_appli » pour Excel."]},
+ {v:"1.4", d:"Octobre 2026", t:"Les comptes en poches", i:[
+  "Nouveau nom, assistant de démarrage en 8 étapes et aide « ? » sur chaque écran.",
+  "Fonctionnement hors ligne, explications sur les données et la confidentialité.",
+  "Revenus et charges propres à un mois (+ Revenu / + Charge pour ce mois)."]}
+];
+const lastSeenVer = () => lsGet("mc-seen-ver");
+function sheetUpdate(first){ const e = CHANGELOG[0];
+  openSheet(`<h2>Mise à jour ${esc(e.v)}</h2><div class="small muted">${esc(e.t)}</div>
+    <ul class="hbody" style="padding-left:18px;margin:8px 0">${e.i.map(x => `<li>${esc(x)}</li>`).join("")}</ul>
+    <div class="btns"><button class="btn ghost" data-act="upd-hist">Toutes les mises à jour</button><button class="btn" data-act="upd-ok" style="flex:1">Compris</button></div>`); }
+function sheetUpdHist(){ openSheet(`<h2>Historique des mises à jour</h2>${CHANGELOG.map(e => `<div style="margin:10px 0"><b>${esc(e.t)}</b> <span class="muted small">· v${esc(e.v)} · ${esc(e.d)}</span><ul style="padding-left:18px;margin:4px 0">${e.i.map(x => `<li class="small">${esc(x)}</li>`).join("")}</ul></div>`).join("")}
+    <div class="btns"><button class="btn" data-act="sheetclose" style="flex:1">Fermer</button></div>`); }
+function updateNotice(hadData){ const v = CHANGELOG[0].v; if (lastSeenVer() === v) return;
+  if (hadData && !V.wiz && $("#sheetbg").hidden) sheetUpdate();
+  lsSet("mc-seen-ver", v); }
 function startApp(){
-  S = load();
+  S = load(); const hadData = !!(S && S.settings);
   if (!S || !S.settings){ S = emptyData(); V.wiz = wizInit(); }
-  migrate(); render(); yearCheck();
+  migrate(); render(); yearCheck(); updateNotice(hadData);
 }
 if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) { try { navigator.serviceWorker.register("sw.js").catch(() => {}); } catch(e){} }
 secCfgLoad();
