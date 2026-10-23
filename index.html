@@ -1607,6 +1607,7 @@ document.addEventListener("click", ev => {
     case "yr-save": { const cy = curPeriod().y; saveFile("mes-comptes-sauvegarde.json", JSON.stringify(S,null,1), "application/json").then(ok => { if (ok){ S.lastBackup = Date.now(); yearReset(cy); } }); break; }
     case "guide": sheetGuide(); break;
     case "upd-hist": sheetUpdHist(); break;
+    case "upd-all": sheetUpdHist(true); break;
     case "pt-open": sheetPoint(); break;
     case "remind-toggle": lsSet("mc-remind", lsGet("mc-remind") === "off" ? "on" : "off"); render(); break;
     case "pt-tog": { if (b.dataset.kk === "fix"){ const r = findFix(b.dataset.k, b.dataset.id), mi = +b.dataset.pm; r.m[mi] = "x"; } else { const j = S.journal.find(x => x.id === b.dataset.id); if (j){ j.pointe = "x"; j.upd = Date.now(); } }
@@ -1952,9 +1953,12 @@ document.addEventListener("change", ev => { if (ev.target.id === "sch-a" || ev.t
 applyTheme();
 /* ===== Historique des mises à jour ===== */
 const CHANGELOG = [
- {v:"1.8", d:"Octobre 2026", t:"Design moderne, couleurs et horaires", i:[
-  "Bouton « ‹ Accueil » sur l'écran Ajouter pour revenir en arrière.",
+ {v:"1.9", d:"Octobre 2026", t:"Rappel à pointer et historique", i:[
   "Rappel à l'ouverture : la liste des fixes et opérations à pointer, une fois par jour (désactivable dans Réglages).",
+  "Bouton « ‹ Accueil » sur l'écran Ajouter pour revenir en arrière.",
+  "Les 10 dernières mises à jour sont listées dans cette fenêtre et dans Réglages.",
+  "Mode d'emploi complété : couleurs, horaires, rappel, historique."]},
+ {v:"1.8", d:"Octobre 2026", t:"Design moderne, couleurs et horaires", i:[
   "Nouvelle présentation de l'Accueil : reste à vivre, enveloppes, mise de côté, épargne.",
   "Effets brillants (gloss) et verre sur les cartes, les boutons et la barre du bas.",
   "Choix de la couleur de l'appli : Émeraude, Océan, Violet, Coucher de soleil, Rose (Réglages → Apparence).",
@@ -1977,15 +1981,24 @@ const CHANGELOG = [
  {v:"1.4", d:"Octobre 2026", t:"Les comptes en poches", i:[
   "Nouveau nom, assistant de démarrage en 8 étapes et aide « ? » sur chaque écran.",
   "Fonctionnement hors ligne, explications sur les données et la confidentialité.",
-  "Revenus et charges propres à un mois (+ Revenu / + Charge pour ce mois)."]}
+  "Revenus et charges propres à un mois (+ Revenu / + Charge pour ce mois)."]},
+ {v:"1.3", d:"Octobre 2026", t:"Rapprochement bancaire et sécurité", i:[
+  "Import d'un relevé de banque (PDF ou CSV) pour pointer tes opérations et retrouver celles qui manquent.",
+  "Verrouillage de l'appli par un code, avec Face ID sur iPhone, et sauvegarde complète de tes données."]},
+ {v:"1.2", d:"Octobre 2026", t:"Synchronisation avec Excel", i:[
+  "Export du journal, des fixes, des poches et du Livret A vers Excel, et import du classeur dans l'appli.",
+  "Comptes web et comptes d'épargne ajoutés."]},
+ {v:"1.1", d:"Octobre 2026", t:"Première version", i:[
+  "Journal des opérations, enveloppes mensuelles, revenus et charges fixes, reste à vivre et épargne (Livret A et poches)."]}
 ];
 const lastSeenVer = () => lsGet("mc-seen-ver");
-function sheetUpdate(first){ const e = CHANGELOG[0];
+function sheetUpdate(first){ const e = CHANGELOG[0], prev = CHANGELOG.slice(1,10);
   openSheet(`<h2>Mise à jour ${esc(e.v)}</h2><div class="small muted">${esc(e.t)}</div>
     <ul class="hbody" style="padding-left:18px;margin:8px 0">${e.i.map(x => `<li>${esc(x)}</li>`).join("")}</ul>
-    <div class="btns"><button class="btn ghost" data-act="upd-hist">Toutes les mises à jour</button><button class="btn" data-act="upd-ok" style="flex:1">Compris</button></div>`); }
-function sheetUpdHist(){ openSheet(`<h2>Historique des mises à jour</h2>${CHANGELOG.map(e => `<div style="margin:10px 0"><b>${esc(e.t)}</b> <span class="muted small">· v${esc(e.v)} · ${esc(e.d)}</span><ul style="padding-left:18px;margin:4px 0">${e.i.map(x => `<li class="small">${esc(x)}</li>`).join("")}</ul></div>`).join("")}
-    <div class="btns"><button class="btn" data-act="sheetclose" style="flex:1">Fermer</button></div>`); }
+    ${prev.length ? `<div class="small muted" style="margin-top:6px">Mises à jour précédentes</div>${prev.map(x => `<div class="small" style="margin:3px 0">• <b>${esc(x.t)}</b> <span class="muted">v${esc(x.v)}</span></div>`).join("")}` : ""}
+    <div class="btns"><button class="btn ghost" data-act="upd-hist">Voir le détail</button><button class="btn" data-act="upd-ok" style="flex:1">Compris</button></div>`); }
+function sheetUpdHist(all){ const L = all ? CHANGELOG : CHANGELOG.slice(0,10); openSheet(`<h2>Historique des mises à jour</h2><div class="small muted">${L.length === CHANGELOG.length ? "Toutes les mises à jour" : "Les 10 dernières mises à jour"}.</div>${L.map(e => `<div style="margin:10px 0"><b>${esc(e.t)}</b> <span class="muted small">· v${esc(e.v)} · ${esc(e.d)}</span><ul style="padding-left:18px;margin:4px 0">${e.i.map(x => `<li class="small">${esc(x)}</li>`).join("")}</ul></div>`).join("")}
+    <div class="btns">${CHANGELOG.length > L.length ? `<button class="btn ghost" data-act="upd-all">Afficher tout</button>` : ""}<button class="btn" data-act="sheetclose" style="flex:1">Fermer</button></div>`); }
 function updateNotice(hadData){ const v = CHANGELOG[0].v; if (lastSeenVer() === v) return;
   if (hadData && !V.wiz && $("#sheetbg").hidden) sheetUpdate();
   lsSet("mc-seen-ver", v); }
