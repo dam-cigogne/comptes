@@ -72,10 +72,17 @@ button{cursor:pointer}
 .hero .sub{font-size:13px;opacity:.85}
 .hero input{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);color:var(--accent-ink);border-radius:10px;padding:8px 10px;width:150px;text-align:right}
 .hero input::placeholder{color:var(--accent-ink);opacity:.6}
+.soldebox{display:block;margin:6px 0 4px;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3)}
+.soldebox .sl{display:block;font-size:12.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;opacity:.9}
+.soldebox .sin{display:flex;align-items:center;gap:8px;margin:6px 0 4px}
+.soldebox .sin input{flex:1;width:auto;min-width:0;font-size:24px;font-weight:700;text-align:left;background:rgba(255,255,255,.2);padding:8px 12px}
+.soldebox .sin b{font-size:22px}
+.soldebox .sh{display:block;font-size:12px;opacity:.8;line-height:1.35}
 .herorow{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 
 .prog{height:8px;border-radius:999px;background:rgba(255,255,255,.28);overflow:hidden}.prog i{display:block;height:100%;background:var(--accent-ink);border-radius:999px;opacity:.95}
-.hstats{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px;margin-top:4px}.hstats b{display:block;font-size:16px;font-weight:700}.hstats span{font-size:12px;opacity:.85}
+.aside2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:2px 0 10px}.aside2>div{background:var(--bg);border:1px solid var(--line);border-radius:16px;padding:12px}.aside2 span{display:block;font-size:12.5px;color:var(--muted);line-height:1.3;min-height:32px}.aside2 b{display:block;margin-top:4px;font-size:21px}
+.hstats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.hstats>div{background:rgba(0,0,0,.14);border-radius:14px;padding:9px 12px}.hstats b{display:block;font-size:16px;font-weight:700}.hstats span{font-size:12px;opacity:.85}
 .mv{display:flex;align-items:center;gap:12px;min-height:48px;border-top:1px solid var(--line)}.mv:first-child{border-top:0}
 .dt{width:52px;text-align:center;font-size:12px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:8px;padding:5px 0;flex:none}
 .mv .nm{flex:1;min-width:0;overflow-wrap:anywhere}
@@ -699,20 +706,29 @@ function viewHome(){
   <div class="card hero">
     <div class="lbl">Reste à vivre après enveloppes</div>
     <div class="big num">${isNum(soldeVal) ? eur(c.d18) : "—"}</div>
-    <div class="herorow"><span class="sub">${isNum(soldeVal) ? "Solde banque, fixes à venir et enveloppes déduits" : "Saisissez le solde de votre compte pour le calculer"}</span>
-      <input id="solde" inputmode="decimal" placeholder="Solde banque (€)" value="${isNum(soldeVal) ? String(soldeVal).replace(".",",") : ""}" aria-label="Solde actuel du compte"></div>
+    <div class="sub">${isNum(soldeVal) ? "= solde du compte − fixes à payer − dépenses non pointées − enveloppes restantes" : "Saisissez le solde de votre compte pour le calculer"}</div>
+    <label class="soldebox"><span class="sl">Solde actuel de ton compte</span>
+      <span class="sin"><input id="solde" inputmode="decimal" placeholder="0,00" value="${isNum(soldeVal) ? String(soldeVal).replace(".",",") : ""}" aria-label="Solde actuel du compte"><b>€</b></span>
+      <span class="sh">Recopie le solde de ton appli bancaire. Touche le montant pour le modifier : tout est recalculé.</span></label>
     ${(() => { const P = periodInfo(); return P.active ? `<div class="sub">jusqu'à la paie du ${P.pay} · ${P.left === 0 ? "dernier jour" : P.left + " jour" + (P.left > 1 ? "s" : "") + " restant" + (P.left > 1 ? "s" : "")}</div><div class="prog" role="img" aria-label="Période écoulée : ${P.done} jours sur ${P.total}"><i style="width:${Math.round(P.done / P.total * 100)}%"></i></div>` : ""; })()}
     ${isNum(soldeVal) ? `<div class="hstats"><div><span>Fixes à payer</span><b class="num">− ${eur(c.d13)}</b></div><div><span>Dépenses non pointées</span><b class="num">− ${eur(c.d14)}</b></div>${c.d15 > 0 ? `<div><span>Épargne non pointée</span><b class="num">− ${eur(c.d15)}</b></div>` : ""}<div><span>Enveloppes restantes</span><b class="num">− ${eur(c.d17)}</b></div></div>` : ""}
   </div>
-  ${(() => { const M = nextMoves(); return M.length ? `<div class="card"><h2>Prochains mouvements</h2><div>${M.map(m => `<div class="mv"><span class="dt num">${pad(m.dt.getDate())}/${pad(m.dt.getMonth()+1)}</span><span class="nm">${esc(m.name)}</span><span class="num ${m.sign > 0 ? "pos" : ""}" style="font-weight:700">${m.sign > 0 ? "+ " : "− "}${eur(m.amt)}</span></div>`).join("")}</div></div>` : ""; })()}
+  <div class="card"><h2>Enveloppes de ${MOIS[V.m].toLowerCase()}</h2><div class="small muted">Touchez une enveloppe pour changer son budget de ce mois seulement.</div><div>${envHtml}</div><div class="btns" style="margin-top:10px"><button class="btn ghost sm" data-act="envmonthnew">+ Enveloppe pour ce mois</button></div></div>
   ${isNum(soldeVal) ? `<div class="card"><h2>À mettre de côté en fin de mois</h2>
+    <div class="aside2"><div><span>Possible si tu dépenses tous tes budgets</span><b class="num ${c.d18<0?"neg":"pos"}">${eur(c.d18)}</b></div><div><span>Possible si tu ne dépenses plus rien</span><b class="num ${c.d16<0?"neg":"pos"}">${eur(c.d16)}</b></div></div>
     <div class="kv"><span>Déjà mis de côté ce mois</span><span class="num">${eur(c.epargne)}</span></div>
-    <div class="kv"><span>Encore possible si vous dépensez tous vos budgets</span><span class="num ${c.d18<0?"neg":"pos"}">${eur(c.d18)}</span></div>
-    <div class="kv"><span>Encore possible si vous ne dépensez plus rien</span><span class="num ${c.d16<0?"neg":"pos"}">${eur(c.d16)}</span></div>
     <div class="small muted">Calculé avec le solde de votre compte, ce qui reste à recevoir et à payer. Les enveloppes déjà entamées comptent pour ce qui reste dedans.</div>
     ${(() => { const cp = curPeriod(); if (V.m !== cp.m || V.y !== cp.y) return ""; const x = closeCtx(), cu = cutsOf()[ckey(cp.m,cp.y)];
       if (x.avail) return `<div class="btns" style="margin-top:10px"><button class="btn ghost sm" data-act="cl-open">Clôture fin de mois</button></div>`;
       return cu ? `<div class="small muted" style="margin-top:10px">✓ Mois précédent clôturé le ${frDate(cu)}. Le bouton « Clôture fin de mois » revient dans quelques jours, pour clôturer ${MOIS[cp.m].toLowerCase()}.</div>${S.lastClose ? `<div class="btns"><button class="btn ghost sm" data-act="cl-undo">Annuler la clôture</button></div>` : ""}` : ""; })()}</div>` : ""}
+  ${(() => { const M = nextMoves(); return M.length ? `<div class="card"><h2>Prochains mouvements</h2><div>${M.map(m => `<div class="mv"><span class="dt num">${pad(m.dt.getDate())}/${pad(m.dt.getMonth()+1)}</span><span class="nm">${esc(m.name)}</span><span class="num ${m.sign > 0 ? "pos" : ""}" style="font-weight:700">${m.sign > 0 ? "+ " : "− "}${eur(m.amt)}</span></div>`).join("")}</div></div>` : ""; })()}
+  <div class="card"><div class="top"><h2>Épargne</h2><button class="btn sm" data-act="gosav">Détail</button></div>
+    <div class="kv"><span>Livret A</span><span class="num">${eur(L.solde)}</span></div>
+    <div class="kv"><span>Livret A vraiment à moi</span><span class="num">${eur(L.aMoi)}</span></div>
+    ${acctLive().length ? `<div class="kv"><span>Autres comptes d'épargne</span><span class="num">${eur(acctTotal())}</span></div>` : ""}
+    <div class="kv"><span>Épargne du mois</span><span class="num">${eur(c.epargne)}</span></div>
+    <div class="kv"><span>Résultat prévu du mois</span><span class="num ${c.resultat<0?"neg":"pos"}">${eur(c.resultat)}</span></div>
+    <div class="small muted">Revenus moins dépenses et épargne déjà notées. Ne dépend pas du solde du compte.</div></div>
   <div class="card"><details><summary><span>Détail du calcul</span><span class="muted small">voir</span></summary>
     <div style="margin-top:8px">
       <div class="kv"><span>Solde actuel du compte</span><span class="num">${eur(N(soldeVal))}</span></div>
@@ -723,16 +739,7 @@ function viewHome(){
       <div class="kv tot"><span>Reste à vivre actuel</span><span class="num">${eur(c.d16)}</span></div>
       ${kv("Reste dans les enveloppes",c.d17,1)}
       <div class="kv tot"><span>Reste à vivre après enveloppes</span><span class="num">${eur(c.d18)}</span></div>
-    </div></details></div>
-  <div class="card"><h2>Enveloppes de ${MOIS[V.m].toLowerCase()}</h2><div class="small muted">Touchez une enveloppe pour changer son budget de ce mois seulement.</div><div>${envHtml}</div><div class="btns" style="margin-top:10px"><button class="btn ghost sm" data-act="envmonthnew">+ Enveloppe pour ce mois</button></div></div>
-  ${chart6()}
-  <div class="card"><div class="top"><h2>Épargne</h2><button class="btn sm" data-act="gosav">Détail</button></div>
-    <div class="kv"><span>Livret A</span><span class="num">${eur(L.solde)}</span></div>
-    <div class="kv"><span>Livret A vraiment à moi</span><span class="num">${eur(L.aMoi)}</span></div>
-    ${acctLive().length ? `<div class="kv"><span>Autres comptes d'épargne</span><span class="num">${eur(acctTotal())}</span></div>` : ""}
-    <div class="kv"><span>Épargne du mois</span><span class="num">${eur(c.epargne)}</span></div>
-    <div class="kv"><span>Résultat prévu du mois</span><span class="num ${c.resultat<0?"neg":"pos"}">${eur(c.resultat)}</span></div>
-    <div class="small muted">Revenus moins dépenses et épargne déjà notées. Ne dépend pas du solde du compte.</div></div>`;
+    </div></details></div>`;
 }
 
 function fixRowHtml(kind,r,pm){
@@ -887,6 +894,7 @@ function viewSav(){
   <div class="card"><div class="kv"><span>Épargne prévue (après FUTUR)</span><span class="num">${eur(L.prevu)}</span></div>
     <div class="small muted">« Livret A vraiment à moi » ne bouge que quand une ligne FUTUR est cochée « fait ». Tant qu'elle ne l'est pas, elle ne change que « Épargne prévue ». Départ : ${eur(S.settings.livretDepart)}${e.dateDepart ? " au " + e.dateDepart.slice(8,10) + "/" + e.dateDepart.slice(5,7) + "/" + e.dateDepart.slice(0,4) : ""}. Les mouvements pointés du journal après cette date s'ajoutent automatiquement.</div></div>
   <div class="card"><div class="top"><h2>Mouvements du Livret A</h2><button class="btn sm" data-act="lvnew">Ajouter</button></div>
+    <div class="btns" style="margin:0 0 8px"><button class="btn ghost sm" data-act="lvadj">⚖ Réajuster avec le solde réel</button></div>
     <div class="rows">${moves.length ? moves.map(m => `<div class="row"><button class="rowbtn" ${m.kind === "S" ? `data-act="lvedit" data-id="${m.id}"` : m.kind === "J" ? `data-act="jedit" data-id="${m.id}"` : "disabled"}><div class="t">${esc(m.lib || m.org)}</div><div class="s">${frDate(m.date)} · ${esc(m.org)}</div></button>
       <div class="amt num ${m.vers ? "pos" : "neg"}">${m.vers ? "+ " + eur(m.vers) : "− " + eur(m.ret)}</div></div>`).join("") : '<div class="empty">Aucun mouvement.</div>'}</div></div>
   <div class="card"><div class="top"><h2>Poches (argent qui n'est pas à moi)</h2><button class="btn sm" data-act="pochenew">Ajouter</button></div>
@@ -907,6 +915,24 @@ function sheetLivret(id){
     <div class="small muted">« Versement… » fait entrer l'argent sur le Livret A, tout le reste le fait sortir.</div>
     <div class="btns"><button class="btn" data-act="lv-save" data-id="${id||""}" style="flex:1">Enregistrer</button>${id ? `<button class="btn danger" data-act="lv-del" data-id="${id}">Supprimer</button>` : ""}<button class="btn ghost" data-act="sheetclose">Fermer</button></div>`);
 }
+function adjCalc(){ const L = livretCalc(), v = parseNum($("#adj-real").value); return {calc:L.solde, real:v, diff: v === null ? null : Math.round((v - L.solde)*100)/100}; }
+function sheetAdjust(){
+  const L = livretCalc();
+  openSheet(`<div id="adjsheet"><h2>Réajuster le Livret A</h2>
+    <div class="small muted">Avec le temps (intérêts de janvier, centimes arrondis…), le total calculé par l'appli peut s'écarter du vrai solde de ton Livret A. Recopie le solde de ton appli bancaire : l'appli ajoute une ligne « Ajustement » pour la différence, sans toucher à tes poches ni à l'historique.</div>
+    <div class="card" style="margin:8px 0"><div class="kv"><span>Solde calculé par l'appli</span><span class="num">${eur(L.solde)}</span></div></div>
+    <label class="f">Solde réel de ton Livret A (€)<input id="adj-real" inputmode="decimal" placeholder="Ex. 3 215,47"></label>
+    <div id="adj-res" class="info" hidden></div>
+    <label class="f">Raison (facultatif)<input id="adj-lib" placeholder="Intérêts, arrondi, correction…"></label>
+    <div class="btns"><button class="btn" data-act="adj-go" style="flex:1">Réajuster</button><button class="btn ghost" data-act="sheetclose">Annuler</button></div></div>`);
+}
+function adjUpdate(){ const r = adjCalc(), el = $("#adj-res"); if (!el) return; if (r.diff === null){ el.hidden = true; return; }
+  el.hidden = false; el.classList.toggle("bad", r.diff < 0);
+  el.textContent = Math.abs(r.diff) < 0.005 ? "Aucun écart : l'appli est déjà exacte." : "Écart de " + (r.diff > 0 ? "+ " : "− ") + eur(Math.abs(r.diff)) + " : une ligne « Ajustement (" + (r.diff > 0 ? "+" : "-") + ") » sera ajoutée. Le Livret A passera à " + eur(r.real) + "."; }
+function adjGo(){ const r = adjCalc(); if (r.diff === null) return toast("Saisis le solde réel"); if (Math.abs(r.diff) < 0.005){ closeSheet(); return toast("Aucun écart"); }
+  const lib = ($("#adj-lib").value.trim() || "Réajustement au solde réel");
+  S.epargne.manuel.push({id:uid(), date:todayIso(), lib, montant:Math.abs(r.diff), pq: r.diff > 0 ? "Ajustement (+)" : "Ajustement (-)", upd:Date.now()});
+  persist(); closeSheet(); render(); toast("Livret A réajusté : " + eur(r.real)); }
 const e_manuel = id => S.epargne.manuel.find(x => x.id === id);
 function sheetPoche(id){
   const p = id ? S.epargne.poches.find(x => x.id === id) : {n:"", f:""};
@@ -1104,6 +1130,7 @@ const HELP = {
     "<b>Dépense</b> : retire de l'enveloppe choisie. <b>Revenu</b> : ajoute de l'argent. <b>Livret A</b> : un virement vers ou depuis ton Livret.",
     "<b>Déjà pointé</b> : active-le si tu as déjà vu l'opération passer sur ton relevé de banque."]},
   sav:{t:"L'épargne", p:[
+    "<b>Réajuster le Livret A</b> : avec le temps (intérêts, centimes), le total de l'appli peut s'écarter du vrai solde. Bouton « Réajuster avec le solde réel » dans les mouvements : tu saisis le solde de ta banque, l'appli ajoute une ligne « Ajustement » pour la différence (poches et historique intacts).",
     "<b>C'est quoi ?</b> Ton Livret A et tes autres comptes d'épargne.",
     "<b>Livret A vraiment à moi</b> : le solde du Livret moins l'argent déjà réservé dans les poches. C'est ce dont tu peux disposer librement.",
     "<b>Poche</b> : une réserve à l'intérieur du Livret pour un projet ou une facture à venir (taxe foncière, travaux…). L'argent est dans ton Livret mais « mis de côté » pour ça.",
@@ -1546,6 +1573,8 @@ document.addEventListener("click", ev => {
     case "help": sheetHelp(b.dataset.v); break;
     case "yr-reset": yearReset(+b.dataset.v); break;
     case "recap": sheetRecap(); break;
+    case "lvadj": sheetAdjust(); break;
+    case "adj-go": adjGo(); break;
     case "cl-open": sheetClose(); break;
     case "cl-go": closeMonth(); break;
     case "cl-undo": undoClose(); break;
@@ -1697,6 +1726,7 @@ document.addEventListener("change", ev => {
     else e.b = parseNum(t.value) || 0; persist(); return; }
   if (V.tab === "add" && /^f-/.test(t.id)) updateInfo();
 });
+document.addEventListener("input", ev => { if (ev.target.id === "adj-real") adjUpdate(); });
 document.addEventListener("input", ev => { if (ev.target.id === "cl-amt") ev_amt_auto = false; else if (ev.target.closest && ev.target.closest("#clsheet")) clUpdate(); });
 document.addEventListener("change", ev => { if (ev.target.closest && ev.target.closest("#clsheet")) clUpdate(); });
 document.addEventListener("input", ev => { if (V.tab === "add" && /^f-(mont|date)$/.test(ev.target.id)) updateInfo(); });
