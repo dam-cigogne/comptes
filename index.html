@@ -794,7 +794,9 @@ function viewMonth(){
   return topbar() + `
   <div class="card"><h2>Bilan du mois</h2>
     <div class="tiles"><div class="tile"><span>Revenus</span><b class="num pos">${eur(c.revenus)}</b></div><div class="tile"><span>Dépenses</span><b class="num">${eur(c.depenses)}</b></div><div class="tile"><span>Résultat</span><b class="num ${c.resultat<0?"neg":"pos"}">${eur(c.resultat)}</b></div></div>
-    ${kv("Épargne du mois",c.epargne)}</div>
+    ${kv("Épargne du mois",c.epargne)}
+    <details><summary><span class="small">Comment c'est calculé ?</span><span class="muted small">voir</span></summary>
+      <div class="small muted" style="margin-top:6px"><b>Revenus</b> = tes revenus fixes prévus ce mois-ci (même pas encore reçus) + les revenus ajoutés au journal.<br><b>Dépenses</b> = tes charges fixes prévues (même pas encore passées) + les dépenses du journal, hors épargne.<br><b>Résultat</b> = revenus − dépenses − épargne. Il dit si le mois est équilibré, quel que soit le solde de ton compte.<br><b>Épargne du mois</b> = ce que tu as versé vers le Livret A ce mois-ci.</div></details></div>
   ${splitCard(c)}
   <div class="card"><div class="top"><h2>Fixes et revenus</h2>
     <div class="seg"><button class="${V.hidePast?"on":""}" data-act="hidepast">Masquer les pointés</button></div></div>
@@ -1139,6 +1141,7 @@ const HELP = {
     "<b>À mettre de côté en fin de mois</b> : ce que tu pourrais épargner si tu dépensais tous tes budgets.","<b>Clôture fin de mois</b> : à faire à chaque fin de mois, que tu sois payé à la date habituelle ou plus tôt (exemple : payé le 23 au lieu du 25). Le bouton est en bas de cette carte. Tu indiques : 1) le solde réel de ton compte (paie comprise) ; 2) la paie déjà reçue (case à cocher avec le montant réel, ou le champ « paie / revenu déjà reçu »). L'appli calcule alors : solde − paie − ce qui doit encore partir du compte (charges fixes et dépenses non pointées) = ce que tu peux vraiment mettre de côté. Elle le compare à l'épargne prévue (ton enveloppe d'épargne) et te propose le total, que tu peux modifier.","<b>Quand tu valides</b> : 1) le nouveau mois démarre (aujourd'hui si tu es payé plus tôt, cette fois seulement) ; 2) les opérations non pointées du journal restent datées dans leur mois d'origine (elles comptent dans les enveloppes de ce mois-là) ; 3) leur montant et celui des fixes non pointés sont repris dans le reste à vivre du nouveau mois, dans une carte « Repris de … » : ils ne consomment pas les enveloppes du nouveau mois, et disparaissent de la carte dès que tu les pointes ; 4) le Livret A reçoit tout de suite deux lignes : l'épargne prévue, puis le surplus ; 5) le solde du compte baisse du montant mis de côté, donc l'argent des prélèvements à venir reste sur le compte et tu ne passes pas à découvert. Pense à faire le virement réel vers ton Livret A. Si le montant reçu diffère du prévu, le montant du mois suivant est mis à jour.","<b>Se tromper ?</b> Réglages → Données → « Annuler la dernière clôture de mois » remet tout comme avant (opérations, solde, Livret A)."]},
   month:{t:"Le mois", p:[
     "<b>C'est quoi ?</b> Tout ce qui se passe dans le mois choisi (flèches ‹ › en haut pour changer de mois).",
+    "<b>Bilan du mois</b> : <b>Revenus</b> = revenus fixes prévus + revenus du journal. <b>Dépenses</b> = charges fixes prévues + dépenses du journal (hors épargne). <b>Résultat</b> = revenus − dépenses − épargne. Ce sont des chiffres <b>prévus pour tout le mois</b>, même ce qui n'est pas encore reçu ou payé : ils ne dépendent pas du solde de ton compte.",
     "<b>Fixes et revenus</b> : touche le <b>rond</b> pour dire « c'est passé » (payé ou reçu). Touche la <b>ligne</b> pour saisir un montant <b>différent pour ce mois seulement</b> : par exemple un salaire plus élevé en décembre, ou une facture qui change. Les autres mois gardent le montant habituel.",
     "<b>Un remboursement attendu</b> (Amazon, Vinted…) : ajoute-le comme <b>Revenu</b> en laissant « Déjà passé en banque » éteint. Il apparaît « à recevoir » avec un +, et s'ajoute à ton reste à vivre. Coche le rond quand l'argent est arrivé. Le type « Avance » sert pour l'inverse : tu as payé pour quelqu'un d'autre.","<b>Un revenu ou une charge qui ne concerne que ce mois</b> (une prime, une réparation…) : utilise les boutons <b>+ Revenu pour ce mois</b> et <b>+ Charge pour ce mois</b> dans « Fixes et revenus ». La ligne ne compte que pour le mois affiché.",
     "<b>Opérations du mois</b> : tes dépenses et revenus du quotidien. Le rond = « pointé », c'est-à-dire vérifié sur ton relevé de banque. Touche une ligne pour la modifier.",
@@ -1953,6 +1956,9 @@ document.addEventListener("change", ev => { if (ev.target.id === "sch-a" || ev.t
 applyTheme();
 /* ===== Historique des mises à jour ===== */
 const CHANGELOG = [
+ {v:"2.0", d:"Octobre 2026", t:"Bilan du mois expliqué", i:[
+  "Sous le Bilan du mois, un encart « Comment c'est calculé ? » explique revenus, dépenses, résultat et épargne.",
+  "Le mode d'emploi de l'écran Mois explique le bilan."]},
  {v:"1.9", d:"Octobre 2026", t:"Rappel à pointer et historique", i:[
   "Rappel à l'ouverture : la liste des fixes et opérations à pointer, une fois par jour (désactivable dans Réglages).",
   "Bouton « ‹ Accueil » sur l'écran Ajouter pour revenir en arrière.",
