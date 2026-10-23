@@ -362,10 +362,23 @@ function demoData(){
 /* ============ Calculs (mêmes règles que le classeur) ============ */
 const live = () => S.journal.filter(j => !j.del);
 const payday = () => { const p = Math.round(N(S && S.settings && S.settings.payday)); return p >= 2 && p <= 28 ? p : 1; };
-function periodRange(m,y){ const P = payday(), iso = (yy,mm,dd) => yy + "-" + pad(mm+1) + "-" + pad(dd);
+const ckey = (m,y) => y + "-" + pad(m+1);
+const cutsOf = () => (S && S.cuts) || {};
+const nextMY = (m,y) => m === 11 ? {m:0,y:y+1} : {m:m+1,y};
+const prevMY = (m,y) => m === 0 ? {m:11,y:y-1} : {m:m-1,y};
+function isoAdd(iso,n){ const d = new Date(iso + "T12:00:00"); d.setDate(d.getDate() + n); return d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate()); }
+function defRange(m,y){ const P = payday(), iso = (yy,mm,dd) => yy + "-" + pad(mm+1) + "-" + pad(dd);
   if (P === 1) return [iso(y,m,1), iso(y,m,new Date(y,m+1,0).getDate())];
   const d0 = new Date(y,m-1,1); return [iso(d0.getFullYear(), d0.getMonth(), P), iso(y,m,P-1)]; }
-function periodOf(iso){ const P = payday(); let y = +iso.slice(0,4), m = +iso.slice(5,7) - 1; if (P > 1 && +iso.slice(8,10) >= P){ m++; if (m > 11){ m = 0; y++; } } return {m,y}; }
+function periodRange(m,y){ const r = defRange(m,y), c = cutsOf(), n = nextMY(m,y);
+  if (c[ckey(m,y)]) r[0] = c[ckey(m,y)];
+  if (c[ckey(n.m,n.y)]) r[1] = isoAdd(c[ckey(n.m,n.y)], -1);
+  return r; }
+function periodOf(iso){ const P = payday(); let y = +iso.slice(0,4), m = +iso.slice(5,7) - 1; if (P > 1 && +iso.slice(8,10) >= P){ m++; if (m > 11){ m = 0; y++; } }
+  const c = cutsOf(), n = nextMY(m,y);
+  if (c[ckey(n.m,n.y)] && iso >= c[ckey(n.m,n.y)]) return n;
+  if (c[ckey(m,y)] && iso < c[ckey(m,y)]) return prevMY(m,y);
+  return {m,y}; }
 const curPeriod = () => periodOf(todayIso());
 function fixDate(jour,m,y){ const P = payday(); let mm = m, yy = y; if (P > 1 && jour >= P){ mm = m - 1; if (mm < 0){ mm = 11; yy--; } } return new Date(yy, mm, Math.min(jour, new Date(yy,mm+1,0).getDate())); }
 function inMonth(j,m,y){ const r = periodRange(m,y); return j.date >= r[0] && j.date <= r[1]; }
@@ -376,7 +389,8 @@ function fixCalc(rows,m,y){
     const c = r.m[m], d = N(r.montant);
     prevu += isNum(c) ? c : d;
     const fut = r.jour ? fixDate(r.jour,m,y) > today : false;
-    if (c === "x") passe += d; else if (isNum(c) && !fut) passe += c;
+    const got = r.got && r.got[y*12+m];
+    if (c === "x") passe += d; else if (isNum(c) && (!fut || got)) passe += c;
   }
   return {prevu, passe};
 }
@@ -384,6 +398,7 @@ function fixState(r,m,y){
   const c = r.m[m]; const nj = new Date(y,m+1,0).getDate(); const today = new Date(); today.setHours(0,0,0,0);
   const dp = r.jour ? fixDate(r.jour,m,y) : null;
   if (c === "x") return {k:"ok", t:"pointé", amt:N(r.montant)};
+  if (isNum(c) && r.got && r.got[y*12+m]) return {k:"ok", t:"reçu (montant réel)", amt:c};
   if (isNum(c)) return dp && dp > today ? {k:"wait", t:"à venir (montant saisi)", amt:c} : {k:"ok", t:"pointé (montant saisi)", amt:c};
   if (!dp) return {k:"wait", t:"à venir", amt:N(r.montant)};
   return dp < today ? {k:"late", t:"à pointer", amt:N(r.montant)} : {k:"wait", t:"à venir", amt:N(r.montant)};
@@ -403,15 +418,23 @@ function calc(m,y){
   const vers = sum(j => j.type === "Versement sur Livret A"), ret = sum(j => j.type === "Retrait du Livret A");
   const epargne = vers - ret + depEpargne;
   const solde = S.settings.solde;
-  const d11 = Math.max(0, rev.prevu - rev.passe);
+  let cD11 = 0, cD12 = 0, cD13 = 0, cD14 = 0, cD15 = 0;
+  let d11 = Math.max(0, rev.prevu - rev.passe);
   const avances = live().filter(j => j.type === "Avance (à rembourser)" && !j.remb && j.pointe === "x").reduce((a,j) => a + N(j.montant), 0);
-  const d12 = sum(j => j.type === "Revenu" && j.pointe !== "x") + avances;
-  const d13 = Math.max(0, ch.prevu - ch.passe);
-  const d14 = sum(j => j.type === "Dépense" && j.pointe !== "x");
-  const d15 = sum(j => j.type === "Versement sur Livret A" && j.pointe !== "x") - sum(j => j.type === "Retrait du Livret A" && j.pointe !== "x");
+  let d12 = sum(j => j.type === "Revenu" && j.pointe !== "x") + avances;
+  let d13 = Math.max(0, ch.prevu - ch.passe);
+  let d14 = sum(j => j.type === "Dépense" && j.pointe !== "x");
+  let d15 = sum(j => j.type === "Versement sur Livret A" && j.pointe !== "x") - sum(j => j.type === "Retrait du Livret A" && j.pointe !== "x");
+  let carry = 0;
+  if (cutsOf()[ckey(m,y)]){ const pv = prevMY(m,y), PJ = live().filter(j => inMonth(j,pv.m,pv.y)), ps = (f) => PJ.filter(f).reduce((a,j) => a + N(j.montant), 0);
+    const pr = fixCalc(S.fixRev,pv.m,pv.y), pc = fixCalc(S.fixCh,pv.m,pv.y);
+    cD11 = Math.max(0, pr.prevu - pr.passe); cD12 = ps(j => j.type === "Revenu" && j.pointe !== "x");
+    cD13 = Math.max(0, pc.prevu - pc.passe); cD14 = ps(j => j.type === "Dépense" && j.pointe !== "x");
+    cD15 = ps(j => j.type === "Versement sur Livret A" && j.pointe !== "x") - ps(j => j.type === "Retrait du Livret A" && j.pointe !== "x");
+    carry = cD11 + cD12 - cD13 - cD14 - cD15; d11 += cD11; d12 += cD12; d13 += cD13; d14 += cD14; d15 += cD15; }
   const d16 = N(solde) + d11 + d12 - d13 - d14 - d15;
   const d17 = envs.reduce((a,e) => a + Math.max(0,e.reste), 0);
-  return { envs, rev, ch, revExc, depJournal, epargne, d11, d12, d13, d14, d15, d16, d17, d18:d16-d17,
+  return { carry, hasCut: !!cutsOf()[ckey(m,y)], envs, rev, ch, revExc, depJournal, epargne, d11, d12, d13, d14, d15, d16, d17, d18:d16-d17,
     revenus: rev.prevu + revExc, depenses: ch.prevu + depJournal, resultat: rev.prevu + revExc - ch.prevu - depJournal - epargne };
 }
 function livretCalc(){
@@ -567,7 +590,7 @@ function buildEchange(){
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Journal_appli");
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["ID","Site","Adresse","Identifiant","Catégorie","État","Note","Modifié","Supprimé"]].concat((S.web || []).map(w => [w.id, w.site, w.url, w.ident, w.cat, w.st, w.note, w.upd || 0, w.del ? 1 : ""]))), "Comptes_web_appli");
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["Clé","Valeur"],["SoldeCompte", isNum(S.settings.solde) ? S.settings.solde : ""],["LivretADepart", N(S.settings.livretDepart)],["JourPaie", payday()],
-    ["LivretDateDepart", S.epargne.dateDepart ? isoToSerial(S.epargne.dateDepart) : ""],["EnveloppeLivret", S.epargne.envA],["Enveloppe2Livret", S.epargne.envB]]), "Reglages_appli");
+    ["LivretDateDepart", S.epargne.dateDepart ? isoToSerial(S.epargne.dateDepart) : ""],["EnveloppeLivret", S.epargne.envA],["Enveloppe2Livret", S.epargne.envB]].concat(Object.keys(cutsOf()).sort().map(k => ["Coupure_" + k, isoToSerial(cutsOf()[k])]))), "Reglages_appli");
   const dsh = (head, rows, dcols) => { const w = XLSX.utils.aoa_to_sheet([head].concat(rows)); for (let r=1;r<=rows.length;r++) for (const c of dcols){ const a = w[c+(r+1)]; if (a && isNum(a.v)) a.z = "dd/mm/yyyy"; } return w; };
   XLSX.utils.book_append_sheet(wb, dsh(["ID","Date","Libellé","Montant","Pour quoi","Modifié","Supprimé"], S.epargne.manuel.map(m => [m.id, m.date ? isoToSerial(m.date) : "", m.lib, m.montant, m.pq, m.upd || 0, m.del ? 1 : ""]), ["B"]), "Livret_appli");
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["Poche","Mis de côté (saisi à la main)"]].concat(S.epargne.poches.map(p => [p.n, N(p.f)]))), "Poches_appli");
@@ -685,13 +708,15 @@ function viewHome(){
     <div class="kv"><span>Déjà mis de côté ce mois</span><span class="num">${eur(c.epargne)}</span></div>
     <div class="kv"><span>Encore possible si vous dépensez tous vos budgets</span><span class="num ${c.d18<0?"neg":"pos"}">${eur(c.d18)}</span></div>
     <div class="kv"><span>Encore possible si vous ne dépensez plus rien</span><span class="num ${c.d16<0?"neg":"pos"}">${eur(c.d16)}</span></div>
-    <div class="small muted">Calculé avec le solde de votre compte, ce qui reste à recevoir et à payer. Les enveloppes déjà entamées comptent pour ce qui reste dedans.</div></div>` : ""}
+    <div class="small muted">Calculé avec le solde de votre compte, ce qui reste à recevoir et à payer. Les enveloppes déjà entamées comptent pour ce qui reste dedans.</div>
+    ${(() => { const cp = curPeriod(), np = nextMY(cp.m,cp.y); return (V.m === cp.m && V.y === cp.y && !cutsOf()[ckey(np.m,np.y)]) ? `<div class="btns" style="margin-top:10px"><button class="btn ghost sm" data-act="cl-open">Clôturer le mois (payé plus tôt ?)</button></div>` : ""; })()}</div>` : ""}
   <div class="card"><details><summary><span>Détail du calcul</span><span class="muted small">voir</span></summary>
     <div style="margin-top:8px">
       <div class="kv"><span>Solde actuel du compte</span><span class="num">${eur(N(soldeVal))}</span></div>
       ${kv("Revenus fixes pas encore reçus",c.d11)}${kv("Revenus et remboursements à venir",c.d12)}
       ${kv("Charges fixes pas encore passées",c.d13,1)}${kv("Dépenses du journal non pointées",c.d14,1)}
       ${kv("Épargne non pointée",c.d15,1)}
+      ${c.hasCut ? `<div class="small muted">Dont repris du mois précédent (non pointé) : ${eur(c.carry)}</div>` : ""}
       <div class="kv tot"><span>Reste à vivre actuel</span><span class="num">${eur(c.d16)}</span></div>
       ${kv("Reste dans les enveloppes",c.d17,1)}
       <div class="kv tot"><span>Reste à vivre après enveloppes</span><span class="num">${eur(c.d18)}</span></div>
@@ -707,8 +732,11 @@ function viewHome(){
     <div class="small muted">Revenus moins dépenses et épargne déjà notées. Ne dépend pas du solde du compte.</div></div>`;
 }
 
-function fixRowHtml(kind,r){
-  const st = fixState(r,V.m,V.y); const on = st.k === "ok";
+function fixRowHtml(kind,r,pm){
+  const st = pm ? fixState(r,pm.m,pm.y) : fixState(r,V.m,V.y);
+  if (pm) return `<div class="row"><button class="chk" data-act="fixtoggle" data-k="${kind}" data-id="${r.id}" data-pm="${pm.m}" aria-label="Pointer ${esc(r.n)}">${ICON.check}</button>
+    <div class="rowbtn"><div class="t">${esc(r.n)} <span class="muted small">(${MOIS[pm.m].toLowerCase()})</span></div><div class="s">${r.jour ? "le " + r.jour + " · " : ""}<span class="chip ${st.k === "late" ? "bad" : "warn"}">${st.t}</span></div></div>
+    <div class="amt num">${eur(st.amt)}</div></div>`; const on = st.k === "ok";
   const chip = st.k === "late" ? "bad" : (st.k === "wait" ? "warn" : "");
   return `<div class="row"><button class="chk ${on?"on":""}" data-act="fixtoggle" data-k="${kind}" data-id="${r.id}" aria-label="Pointer ${esc(r.n)}">${ICON.check}</button>
     <button class="rowbtn" data-act="fixmonth" data-k="${kind}" data-id="${r.id}"><div class="t">${esc(r.n)}</div>
@@ -729,6 +757,9 @@ function viewMonth(){
       <div class="amt num ${sign>0?"pos":""}">${sign>0?"+":"−"} ${eur(j.montant)}</div></div>`;
   }).join("") : `<div class="empty">Aucune opération ce mois-ci.</div>`;
   const kv = (l,v,cl) => `<div class="kv"><span>${l}</span><span class="num ${cl||""}">${eur(v)}</span></div>`;
+  const pv = prevMY(V.m,V.y);
+  const carried = cutsOf()[ckey(V.m,V.y)] ? [["rev",S.fixRev],["ch",S.fixCh]].flatMap(([k,rows]) => rows.filter(r => N(r.montant) > 0 || isNum(r.m[pv.m])).filter(r => fixState(r,pv.m,pv.y).k !== "ok").map(r => fixRowHtml(k,r,pv))) : [];
+  const carryHtml = carried.length ? `<div class="card"><h2>Repris de ${MOIS[pv.m].toLowerCase()}</h2><div class="small muted">Fixes de ${MOIS[pv.m].toLowerCase()} pas encore pointés : touchez le rond quand ils sont passés.</div><div class="rows">${carried.join("")}</div></div>` : "";
   return topbar() + `
   <div class="card"><h2>Bilan du mois</h2>
     <div class="tiles"><div class="tile"><span>Revenus</span><b class="num pos">${eur(c.revenus)}</b></div><div class="tile"><span>Dépenses</span><b class="num">${eur(c.depenses)}</b></div><div class="tile"><span>Résultat</span><b class="num ${c.resultat<0?"neg":"pos"}">${eur(c.resultat)}</b></div></div>
@@ -740,6 +771,7 @@ function viewMonth(){
     <div class="btns"><button class="btn ghost sm" data-act="fixmonthnew" data-k="rev">+ Revenu pour ce mois</button><button class="btn ghost sm" data-act="fixmonthnew" data-k="ch">+ Charge pour ce mois</button></div>
     <div><div class="small muted" style="margin-top:4px">Revenus</div><div class="rows">${revRows.length ? revRows.map(r => fixRowHtml("rev",r)).join("") : '<div class="empty">Rien à pointer.</div>'}</div></div>
     <div><div class="small muted">Charges fixes</div><div class="rows">${chRows.length ? chRows.map(r => fixRowHtml("ch",r)).join("") : '<div class="empty">Rien à pointer.</div>'}</div></div></div>
+  ${carryHtml}
   <div class="card"><h2>Opérations du mois</h2><div class="rows">${jHtml}</div></div>`;
 }
 
@@ -1035,6 +1067,7 @@ function viewSet(){
   ${secCard()}
   <div class="card"><h2>Données</h2>
     <div class="btns"><button class="btn ghost" data-act="tab" data-v="hist">Historique des années (${(S.archives || []).length})</button></div>
+    ${S.lastClose ? `<div class="btns"><button class="btn ghost sm" data-act="cl-undo">Annuler la dernière clôture de mois</button></div>` : ""}
     ${S.yearRecap ? `<div class="small muted">Dernière remise à zéro annuelle : ${S.yearRecap.year}.</div><div class="btns"><button class="btn ghost sm" data-act="recap">Revoir le récapitulatif</button></div>` : ""}
     ${V.wipe ? `<div class="small">Cette action efface tout ce qui est stocké sur cet appareil.</div><div class="btns"><button class="btn danger" data-act="wipe-yes">Oui, tout effacer</button><button class="btn ghost" data-act="wipe-no">Annuler</button></div>`
              : `<div class="btns"><button class="btn ghost" data-act="wipe">Tout effacer</button></div>`}</div>`;
@@ -1047,14 +1080,15 @@ const HELP = {
     "<b>Reste à vivre</b> : l'argent que tu peux encore dépenser jusqu'à ta prochaine paie, une fois payées les charges fixes qui restent à passer. C'est LE chiffre à regarder.",
     "<b>Prochains mouvements</b> : les prochains revenus et charges fixes prévus (salaire, loyer, abonnements…).",
     "<b>Enveloppes</b> : un budget par catégorie (Nourriture, Essence…). Barre verte = tout va bien, orange = presque atteint, rouge = dépassé. Touche une enveloppe pour changer son budget <b>de ce mois seulement</b>.",
-    "<b>À mettre de côté en fin de mois</b> : ce que tu pourrais épargner si tu dépensais tous tes budgets."]},
+    "<b>À mettre de côté en fin de mois</b> : ce que tu pourrais épargner si tu dépensais tous tes budgets.","<b>Clôturer le mois (payé plus tôt que d'habitude)</b> : exemple, tu es payé le 23 au lieu du 25. Le bouton est en bas de cette carte. Tu indiques : 1) le solde réel de ton compte (paie comprise) ; 2) la paie déjà reçue (case à cocher avec le montant réel, ou le champ « paie / revenu déjà reçu »). L'appli calcule alors : solde − paie − ce qui doit encore partir du compte (charges fixes et dépenses non pointées) = ce que tu peux vraiment mettre de côté. Elle le compare à l'épargne prévue (ton enveloppe d'épargne) et te propose le total, que tu peux modifier.","<b>Quand tu valides</b> : 1) le nouveau mois démarre aujourd'hui, cette fois seulement ; 2) les opérations non pointées du journal passent dans le nouveau mois ; 3) les fixes non pointés sont repris dans une carte « Repris de … » du nouveau mois ; 4) le Livret A reçoit tout de suite deux lignes : l'épargne prévue, puis le surplus ; 5) le solde du compte baisse du montant mis de côté, donc l'argent des prélèvements à venir reste sur le compte et tu ne passes pas à découvert. Pense à faire le virement réel vers ton Livret A. Si le montant reçu diffère du prévu, le montant du mois suivant est mis à jour.","<b>Se tromper ?</b> Réglages → Données → « Annuler la dernière clôture de mois » remet tout comme avant (opérations, solde, Livret A)."]},
   month:{t:"Le mois", p:[
     "<b>C'est quoi ?</b> Tout ce qui se passe dans le mois choisi (flèches ‹ › en haut pour changer de mois).",
     "<b>Fixes et revenus</b> : touche le <b>rond</b> pour dire « c'est passé » (payé ou reçu). Touche la <b>ligne</b> pour saisir un montant <b>différent pour ce mois seulement</b> : par exemple un salaire plus élevé en décembre, ou une facture qui change. Les autres mois gardent le montant habituel.",
     "<b>Un revenu ou une charge qui ne concerne que ce mois</b> (une prime, une réparation…) : utilise les boutons <b>+ Revenu pour ce mois</b> et <b>+ Charge pour ce mois</b> dans « Fixes et revenus ». La ligne ne compte que pour le mois affiché.",
     "<b>Opérations du mois</b> : tes dépenses et revenus du quotidien. Le rond = « pointé », c'est-à-dire vérifié sur ton relevé de banque. Touche une ligne pour la modifier.",
     "<b>Nouvelle année</b> : au premier mois de l'année, l'appli te propose de remettre à zéro les pointés et les montants propres à chaque mois (après une sauvegarde). Tes montants habituels ne changent pas.",
-    "<b>Le mois budgétaire</b> : si tu es payé le 25, ton mois va du 25 au 24 (réglable dans Réglages)."]},
+    "<b>Le mois budgétaire</b> : si tu es payé le 25, ton mois va du 25 au 24 (réglable dans Réglages).",
+    "<b>Repris du mois précédent</b> : après une clôture anticipée (voir l'Accueil), une carte « Repris de … » liste les fixes du mois précédent pas encore pointés, avec le nom du mois entre parenthèses. Touche le rond quand ils sont passés. Les opérations non pointées du journal, elles, sont directement déplacées dans le nouveau mois."]},
   add:{t:"Ajouter une opération", p:[
     "<b>C'est quoi ?</b> L'écran pour noter une dépense ou un revenu en quelques secondes.",
     "Tape le <b>montant</b> avec le pavé, donne un <b>libellé</b> (« Courses »), choisis une <b>catégorie</b> (l'enveloppe qui paie) et la <b>date</b>.",
@@ -1231,7 +1265,7 @@ function yearReset(cy){
   const ponctRev = S.fixRev.filter(isPonct).length, ponctCh = S.fixCh.filter(isPonct).length;
   S.fixRev = S.fixRev.filter(r => !isPonct(r)); S.fixCh = S.fixCh.filter(r => !isPonct(r));
   const nRev = S.fixRev.filter(filled).length, nCh = S.fixCh.filter(filled).length;
-  for (const r of S.fixRev.concat(S.fixCh)) r.m = Array(12).fill("");
+  for (const r of S.fixRev.concat(S.fixCh)) { r.m = Array(12).fill(""); delete r.got; }
   S.settings.envelopes = S.settings.envelopes.filter(e => !(!N(e.b) && e.m.some(isNum)));
   const envDel = env0 - S.settings.envelopes.length, nEnv = S.settings.envelopes.filter(e => e.m.some(isNum)).length;
   for (const e of S.settings.envelopes) e.m = Array(12).fill(null);
@@ -1317,6 +1351,59 @@ function sheetEnvNew(){
     <label class="f">Budget de ce mois (€)<input id="en-val" inputmode="decimal"></label>
     <div class="btns"><button class="btn" data-act="en-save" style="flex:1">Ajouter</button><button class="btn ghost" data-act="sheetclose">Fermer</button></div>`);
 }
+/* ===== Clôture anticipée du mois (payé avant la date habituelle) ===== */
+function closeCtx(){ const cp = curPeriod(), np = nextMY(cp.m,cp.y), td0 = new Date(); td0.setHours(0,0,0,0);
+  const lines = S.fixRev.map((r,i) => ({r,i})).filter(o => N(o.r.montant) > 0 && o.r.jour && fixDate(o.r.jour,np.m,np.y) >= td0 && o.r.m[np.m] !== "x" && !isNum(o.r.m[np.m]));
+  return {cp, np, lines}; }
+function closeSim(solde, checked, man){ const x = closeCtx(), cp = x.cp;
+  const c0 = calc(cp.m,cp.y); const rec = checked.reduce((a,o) => a + o.a, 0) + (man || 0);
+  const reste = N(solde) - rec + c0.d11 + c0.d12 - c0.d13 - c0.d14 - c0.d15;
+  const eA = c0.envs.find(e => e.n === S.epargne.envA); const plan = eA ? Math.max(0, eA.bud - eA.dep) : 0;
+  return {c0, rec, reste, plan, surplus: reste - plan, np:x.np, cp}; }
+function sheetClose(){ const x = closeCtx(), cp = x.cp, np = x.np;
+  if (cutsOf()[ckey(np.m,np.y)]) return toast("Ce mois est déjà clôturé");
+  const sd = isNum(S.settings.solde) ? S.settings.solde : "";
+  openSheet(`<div id="clsheet"><h2>Clôturer ${MOIS[cp.m].toLowerCase()}</h2>
+    <div class="small muted">Utile quand tu es payé avant la date habituelle. Le mois de <b>${MOIS[np.m].toLowerCase()}</b> démarre aujourd'hui (cette fois seulement). Tout ce qui n'est pas pointé de ${MOIS[cp.m].toLowerCase()} est déplacé dans ${MOIS[np.m].toLowerCase()} (les opérations du journal changent de mois, les charges fixes sont reprises) : l'argent reste sur ton compte pour couvrir ce qui va encore être débité.</div>
+    <label class="f">Solde actuel de ton compte, paie comprise : regarde ta banque (€)<input id="cl-solde" inputmode="decimal" value="${sd === "" ? "" : String(sd).replace(".",",")}"></label>
+    <label class="f">Paie / revenu déjà reçu non listé ci-dessous (€)<input id="cl-man" inputmode="decimal" placeholder="Ex. 2300 : ta paie, déjà dans le solde"></label>
+    ${x.lines.length ? `<div class="small" style="margin-top:6px"><b>Revenus de ${MOIS[np.m].toLowerCase()} déjà reçus</b> : coche et mets le montant réellement reçu (déjà dans le solde ci-dessus). S'il diffère du prévu, le montant de ${MOIS[np.m].toLowerCase()} est mis à jour :</div>${x.lines.map(o => `<div class="chkl2" style="margin:4px 0"><input type="checkbox" class="cl-rev" data-i="${o.i}" ${(fixDate(o.r.jour,np.m,np.y) - new Date()) < 7*864e5 ? "checked" : ""}><span style="flex:1">${esc(o.r.n)} <span class="muted small">(prévu ${eur(o.r.montant)})</span></span><input class="cl-ra" data-i="${o.i}" inputmode="decimal" value="${String(o.r.montant).replace(".",",")}" style="width:96px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:8px;font-size:16px;text-align:right"></div>`).join("")}` : ""}
+    <div id="cl-sum"></div>
+    <label class="f">Montant à mettre de côté (€)<input id="cl-amt" inputmode="decimal"></label>
+    <div class="small muted">Proposé = ce qu'il reste une fois tout ce qui doit encore partir du compte réservé. Il est ajouté tout de suite au Livret A en deux lignes : l'épargne prévue (enveloppe), puis le surplus. Le solde du compte est diminué d'autant : pense à faire le virement réel vers ton Livret A.</div>
+    <div class="btns"><button class="btn" data-act="cl-go" style="flex:1">Clôturer et passer à ${MOIS[np.m].toLowerCase()}</button><button class="btn ghost" data-act="sheetclose">Annuler</button></div></div>`);
+  ev_amt_auto = true; clUpdate(true); }
+function clRead(){ const sv = parseNum($("#cl-solde").value); const ch = [...document.querySelectorAll("#clsheet .cl-rev")].filter(e => e.checked).map(e => { const v = parseNum(document.querySelector('#clsheet .cl-ra[data-i="' + e.dataset.i + '"]').value); return {i:+e.dataset.i, a: v === null ? 0 : v}; }); const mv = parseNum($("#cl-man").value); return {solde: sv === null ? 0 : sv, ch, man: mv === null ? 0 : mv}; }
+function clUpdate(init){ const r = clRead(), o = closeSim(r.solde, r.ch, r.man), f = n => eur(n);
+  $("#cl-sum").innerHTML = `<div class="card" style="margin:8px 0">
+    <div class="kv"><span>Solde du compte</span><span class="num">${f(r.solde)}</span></div>
+    ${o.rec ? `<div class="kv"><span>− revenu déjà reçu (${MOIS[o.np.m].toLowerCase()})</span><span class="num">− ${f(o.rec)}</span></div>` : ""}
+    <div class="kv"><span>+ encore à recevoir</span><span class="num">+ ${f(o.c0.d11 + o.c0.d12)}</span></div>
+    <div class="kv"><span>− charges fixes à passer</span><span class="num">− ${f(o.c0.d13)}</span></div>
+    <div class="kv"><span>− dépenses non pointées</span><span class="num">− ${f(o.c0.d14)}</span></div>
+    ${o.c0.d15 ? `<div class="kv"><span>− épargne non pointée</span><span class="num">− ${f(o.c0.d15)}</span></div>` : ""}
+    <div class="kv tot"><span>Reste réellement disponible</span><span class="num ${o.reste<0?"neg":"pos"}">${f(o.reste)}</span></div>
+    <div class="kv"><span>Épargne prévue (enveloppe ${esc(S.epargne.envA || "—")})</span><span class="num">${f(o.plan)}</span></div>
+    <div class="kv"><span>Surplus par rapport au prévu</span><span class="num ${o.surplus<0?"neg":"pos"}">${f(o.surplus)}</span></div></div>
+    ${o.reste < 0 ? `<div class="small neg">Attention : le compte ne couvrira pas tout ce qui reste à passer (${f(-o.reste)} manquants). Rien n'est mis de côté.</div>` : ""}`;
+  if (init || ev_amt_auto){ $("#cl-amt").value = String(Math.max(0, Math.round(o.reste*100)/100)).replace(".",","); } }
+let ev_amt_auto = true;
+function closeMonth(){ const r = clRead(), o = closeSim(r.solde, r.ch, r.man), cp = o.cp, np = o.np, today = todayIso();
+  let amt = parseNum($("#cl-amt").value); if (amt === null || amt < 0) amt = 0;
+  S.lastClose = {at:Date.now(), key:ckey(np.m,np.y), journal:JSON.stringify(S.journal), fixRev:JSON.stringify(S.fixRev), solde:S.settings.solde, m:V.m, y:V.y};
+  S.cuts = S.cuts || {}; S.cuts[ckey(np.m,np.y)] = today;
+  const r0 = periodRange(cp.m,cp.y); let moved = 0;
+  for (const j of S.journal){ if (!j.del && j.pointe !== "x" && j.date >= r0[0] && j.date <= isoAdd(today,-1) && ["Dépense","Revenu","Versement sur Livret A","Retrait du Livret A"].includes(j.type)){ j.date = today; j.upd = Date.now(); moved++; } }
+  const dt = isoAdd(today,-1), pl = Math.min(amt, o.plan), su = Math.round((amt - pl)*100)/100, A = S.epargne.envA;
+  const mk = (type,cat,lib,mt) => S.journal.push({id:uid(), date:dt, type, cat, lib, montant:mt, pointe:"x", note:"", remb:"", upd:Date.now()});
+  if (pl > 0 && A) mk("Dépense", A, "Mise de côté " + MOIS[cp.m].toLowerCase(), pl);
+  const rest = (A && pl > 0) ? su : amt; if (rest > 0) mk("Versement sur Livret A", "", "Surplus " + MOIS[cp.m].toLowerCase(), rest);
+  for (const o of r.ch){ const f = S.fixRev[o.i]; if (Math.abs(o.a - N(f.montant)) < 0.005) f.m[np.m] = "x"; else { f.m[np.m] = o.a; f.got = f.got || {}; f.got[np.y*12+np.m] = true; } }
+  S.settings.solde = Math.round((r.solde - amt)*100)/100;
+  V.m = np.m; V.y = np.y; persist(); closeSheet(); render(); toast("Mois clôturé · " + MOIS[np.m] + " commence" + (moved ? " · " + moved + " opération(s) reportée(s)" : "")); }
+function undoClose(){ const u = S.lastClose; if (!u) return; S.journal = JSON.parse(u.journal); S.fixRev = JSON.parse(u.fixRev); S.settings.solde = u.solde;
+  if (S.cuts) delete S.cuts[u.key]; S.lastClose = null; V.m = u.m; V.y = u.y; persist(); render(); toast("Clôture annulée"); }
+
 function sheetFixMonthNew(k){
   const rev = k === "rev";
   openSheet(`<h2>${rev ? "Revenu" : "Charge"} pour ${MOIS[V.m].toLowerCase()}</h2>
@@ -1403,7 +1490,7 @@ function sheetDiff(){
 }
 function commitImport(replace){
   const p = V.pending; if (!p) return;
- const keepWeb = S.web || [], keepSeen = S.webSeen, keepCats = S.webCatList, keepBank = S.bank, keepRules = S.rules, keepLB = S.lastBackup, keepAc = S.accts, keepMvv = S.acctMv, keepArch = S.archives, keepYR = S.yearRecap, keepFY = S.fixYear;
+ const keepWeb = S.web || [], keepSeen = S.webSeen, keepCats = S.webCatList, keepBank = S.bank, keepRules = S.rules, keepLB = S.lastBackup, keepAc = S.accts, keepMvv = S.acctMv, keepArch = S.archives, keepYR = S.yearRecap, keepFY = S.fixYear, keepCuts = S.cuts, keepLC = S.lastClose;
   const prevPay = S.settings.payday; if (replace && p.kind === "classeur"){ const prevCats = S.settings.cats; S = p.data; S.demo = false; if (!S.settings.cats.length) S.settings.cats = prevCats; V.msg = "Données remplacées par le classeur."; }
   else if (replace && p.kind === "echange"){ const f = p.full; const base = emptyData();
     S = Object.assign(base,{journal:p.rows}); if (f.settings) S.settings = f.settings; if (f.fixRev) S.fixRev = f.fixRev; if (f.fixCh) S.fixCh = f.fixCh; if (f.epargne) S.epargne = f.epargne; if (f.accts){ S.accts = f.accts; S.acctMv = f.acctMv; }
@@ -1430,7 +1517,7 @@ function commitImport(replace){
       S.seen = seenOf(p); }
   }
   if (replace && S.settings && S.settings.payday === undefined && prevPay !== undefined) S.settings.payday = prevPay;
-  if (replace && p.kind !== "json"){ S.web = keepWeb; S.webSeen = keepSeen; S.webCatList = keepCats; S.bank = keepBank; S.rules = keepRules; S.lastBackup = keepLB; S.archives = keepArch; S.yearRecap = keepYR; if (keepFY !== undefined) S.fixYear = keepFY; if (!(p.kind === "echange" && p.full.accts)){ S.accts = keepAc || []; S.acctMv = keepMvv || []; } }
+  if (replace && p.kind !== "json"){ S.web = keepWeb; S.webSeen = keepSeen; S.webCatList = keepCats; S.bank = keepBank; S.rules = keepRules; S.lastBackup = keepLB; S.archives = keepArch; S.yearRecap = keepYR; if (keepFY !== undefined) S.fixYear = keepFY; if (keepCuts) S.cuts = keepCuts; if (keepLC) S.lastClose = keepLC; if (!(p.kind === "echange" && p.full.accts)){ S.accts = keepAc || []; S.acctMv = keepMvv || []; } }
   V.diff = (!replace && p.kind === "echange") ? diffRef(p) : null;
   V.pending = null; migrate(); persist(); render();
   if (V.diff && V.diff.length) sheetDiff();
@@ -1444,6 +1531,9 @@ document.addEventListener("click", ev => {
     case "help": sheetHelp(b.dataset.v); break;
     case "yr-reset": yearReset(+b.dataset.v); break;
     case "recap": sheetRecap(); break;
+    case "cl-open": sheetClose(); break;
+    case "cl-go": closeMonth(); break;
+    case "cl-undo": undoClose(); break;
     case "hy": V.hy = +b.dataset.v; render(); break;
     case "yr-save": { const cy = curPeriod().y; saveFile("mes-comptes-sauvegarde.json", JSON.stringify(S,null,1), "application/json").then(ok => { if (ok){ S.lastBackup = Date.now(); yearReset(cy); } }); break; }
     case "guide": sheetGuide(); break;
@@ -1456,7 +1546,7 @@ document.addEventListener("click", ev => {
     case "w-demo": S = demoData(); V.wiz = null; persist(); render(); break;
     case "mprev": setMonth(-1); break; case "mnext": setMonth(1); break;
     case "hidepast": V.hidePast = !V.hidePast; render(); break;
-    case "fixtoggle": { const r = findFix(k,id); r.m[V.m] = r.m[V.m] === "x" ? "" : "x"; persist(); render(); break; }
+    case "fixtoggle": { const r = findFix(k,id), mi = b.dataset.pm !== undefined ? +b.dataset.pm : V.m; r.m[mi] = r.m[mi] === "x" ? "" : "x"; persist(); render(); break; }
     case "fixmonth": sheetMonth(k,id); break;
     case "sm-save": { const r = findFix(k,id); const v = parseNum($("#m-val").value); r.m[V.m] = $("#m-val").value.trim() === "" ? "" : (v === null ? "" : v); persist(); closeSheet(); render(); break; }
     case "sm-reset": { findFix(k,id).m[V.m] = ""; persist(); closeSheet(); render(); break; }
@@ -1590,6 +1680,8 @@ document.addEventListener("change", ev => {
     else e.b = parseNum(t.value) || 0; persist(); return; }
   if (V.tab === "add" && /^f-/.test(t.id)) updateInfo();
 });
+document.addEventListener("input", ev => { if (ev.target.id === "cl-amt") ev_amt_auto = false; else if (ev.target.closest && ev.target.closest("#clsheet")) clUpdate(); });
+document.addEventListener("change", ev => { if (ev.target.closest && ev.target.closest("#clsheet")) clUpdate(); });
 document.addEventListener("input", ev => { if (V.tab === "add" && /^f-(mont|date)$/.test(ev.target.id)) updateInfo(); });
 
 /* ============ Rapprochement bancaire ============ */
