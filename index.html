@@ -823,7 +823,7 @@ function viewAdd(){
   const livret = d.type.indexOf("Livret") >= 0;
   const yd = new Date(); yd.setDate(yd.getDate() - 1); const yIso = yd.getFullYear() + "-" + pad(yd.getMonth()+1) + "-" + pad(yd.getDate());
   const rc = livret ? [] : recentCats();
-  return `<div class="top"><div class="app">${ed ? "Modifier l'opération" : "Nouvelle opération"}</div></div>
+  return `<div class="top"><button class="btn ghost sm" data-act="tab" data-v="${ed ? "month" : "home"}">‹ ${ed ? "Mois" : "Accueil"}</button><div class="app">${ed ? "Modifier l'opération" : "Nouvelle opération"}</div></div>
   <div class="card">
     <div class="seg" id="types">${TYPES.map(t => `<button data-act="type" data-v="${esc(t)}" class="${d.type===t?"on":""}">${esc(TYPE_SHORT[t])}</button>`).join("")}</div>
     <div class="amtbig"><div class="l">Montant (€)</div><input id="f-mont" inputmode="none" autocomplete="off" placeholder="0,00" value="${esc(d.mont)}" aria-label="Montant en euros"></div>
@@ -1080,6 +1080,8 @@ function viewSet(){
   return `<div class="top"><div class="app">Réglages</div></div>${V.msg ? `<div class="info">${esc(V.msg)}</div>` : ""}${pend}
   <div class="card"><h2>Guide d'utilisation</h2><div class="small muted">Comment marche chaque partie de l'appli, expliqué simplement. Le bouton ? en haut de chaque écran donne aussi l'aide de l'écran.</div>
     <div class="btns"><button class="btn" data-act="guide">Ouvrir le guide</button><button class="btn ghost" data-act="upd-hist">Historique des mises à jour</button></div></div>
+  <div class="card"><h2>Rappel à l'ouverture</h2><div class="small muted">Au premier lancement de la journée, l'appli affiche ce qui reste à pointer (fixes passés et opérations pas encore pointées).</div>
+    <div class="btns"><button class="btn ${lsGet("mc-remind") === "off" ? "ghost" : ""}" data-act="remind-toggle">${lsGet("mc-remind") === "off" ? "Rappel désactivé · activer" : "Rappel activé · désactiver"}</button><button class="btn ghost" data-act="pt-open">Voir maintenant</button></div></div>
   <div class="card"><h2>Synchroniser avec Excel</h2>
     <div class="small muted">Le fichier d'échange contient toutes les opérations avec un identifiant. Importez-le à nouveau pour fusionner : les lignes déjà connues sont mises à jour, les nouvelles sont ajoutées.</div>
     <div class="btns"><button class="btn" data-act="exp-journal">Exporter le journal (.xlsx)</button>
@@ -1130,6 +1132,8 @@ const HELP = {
   home:{t:"L'accueil", p:[
     "<b>C'est quoi ?</b> Le résumé de ton mois d'un coup d'œil.",
     "<b>Reste à vivre</b> : l'argent que tu peux encore dépenser jusqu'à ta prochaine paie, une fois payées les charges fixes qui restent à passer. C'est LE chiffre à regarder.",
+    "<b>Le solde de ton compte</b> : recopie dans l'encadré le solde de ton appli bancaire. Tout le calcul part de ce chiffre : reste à vivre = solde − fixes à payer − dépenses non pointées − enveloppes restantes.",
+    "<b>Rappel « à pointer »</b> : au premier lancement de la journée, la liste de ce qui est passé sur ton compte et qu'il reste à pointer s'affiche. À désactiver dans Réglages.",
     "<b>Prochains mouvements</b> : les prochains revenus et charges fixes prévus (salaire, loyer, abonnements…).",
     "<b>Enveloppes</b> : un budget par catégorie (Nourriture, Essence…). Barre verte = tout va bien, orange = presque atteint, rouge = dépassé. Touche une enveloppe pour changer son budget <b>de ce mois seulement</b>.",
     "<b>À mettre de côté en fin de mois</b> : ce que tu pourrais épargner si tu dépensais tous tes budgets.","<b>Clôture fin de mois</b> : à faire à chaque fin de mois, que tu sois payé à la date habituelle ou plus tôt (exemple : payé le 23 au lieu du 25). Le bouton est en bas de cette carte. Tu indiques : 1) le solde réel de ton compte (paie comprise) ; 2) la paie déjà reçue (case à cocher avec le montant réel, ou le champ « paie / revenu déjà reçu »). L'appli calcule alors : solde − paie − ce qui doit encore partir du compte (charges fixes et dépenses non pointées) = ce que tu peux vraiment mettre de côté. Elle le compare à l'épargne prévue (ton enveloppe d'épargne) et te propose le total, que tu peux modifier.","<b>Quand tu valides</b> : 1) le nouveau mois démarre (aujourd'hui si tu es payé plus tôt, cette fois seulement) ; 2) les opérations non pointées du journal restent datées dans leur mois d'origine (elles comptent dans les enveloppes de ce mois-là) ; 3) leur montant et celui des fixes non pointés sont repris dans le reste à vivre du nouveau mois, dans une carte « Repris de … » : ils ne consomment pas les enveloppes du nouveau mois, et disparaissent de la carte dès que tu les pointes ; 4) le Livret A reçoit tout de suite deux lignes : l'épargne prévue, puis le surplus ; 5) le solde du compte baisse du montant mis de côté, donc l'argent des prélèvements à venir reste sur le compte et tu ne passes pas à découvert. Pense à faire le virement réel vers ton Livret A. Si le montant reçu diffère du prévu, le montant du mois suivant est mis à jour.","<b>Se tromper ?</b> Réglages → Données → « Annuler la dernière clôture de mois » remet tout comme avant (opérations, solde, Livret A)."]},
@@ -1168,7 +1172,11 @@ const HELP = {
     "<b>Enveloppe versée sur le Livret</b> : l'enveloppe où tu notes tes virements vers le Livret A (souvent « Épargne »). Une dépense notée dans cette enveloppe et pointée est comptée comme un versement sur ton Livret A.",
     "<b>Rapprochement bancaire</b> : compare ton journal avec ton relevé de banque (voir le « ? » de cet écran).",
     "<b>Enveloppes</b> : ton budget mensuel par catégorie. Tu peux en ajouter ou en supprimer.",
-    "<b>Verrouillage</b> : protège l'appli par un code (et Face ID sur iPhone)."]},
+    "<b>Verrouillage</b> : protège l'appli par un code (et Face ID sur iPhone).",
+    "<b>Apparence</b> : choisis la <b>couleur</b> de l'appli (Émeraude, Océan, Violet, Coucher de soleil, Rose) et le <b>mode</b> : Automatique (suit le réglage de ton téléphone), Clair, Sombre, ou <b>Horaires</b> (tu fixes toi-même l'heure où l'appli passe en sombre et l'heure où elle repasse en clair). Ce choix est propre à chaque appareil.",
+    "<b>Rappel à l'ouverture</b> : au premier lancement de la journée, une fenêtre « À pointer » liste les fixes passés et les opérations pas encore pointées. Touche le rond pour les pointer. Tu peux désactiver le rappel, ou l'ouvrir à la demande avec « Voir maintenant ».",
+    "<b>Historique des mises à jour</b> : la liste de tout ce qui a changé dans l'appli, version après version. À chaque mise à jour, une fenêtre te présente les nouveautés une fois.",
+    "<b>Annuler la dernière clôture de mois</b> (dans Données) : remet les opérations, le solde et le Livret A comme avant la clôture."]},
   bank:{t:"Le rapprochement bancaire", p:[
     "<b>À quoi ça sert ?</b> À vérifier que ton journal correspond à ton relevé de banque : rien d'oublié, rien de faux. Les opérations retrouvées sont pointées pour toi.",
     "<b>Comment faire :</b> 1) télécharge le relevé de compte du mois dans l'appli ou sur le site de ta banque (PDF, ou fichier CSV / Excel) ; 2) touche « Importer un relevé » et choisis le fichier ; 3) l'appli te propose de pointer les opérations déjà notées, de pointer tes fixes retrouvés (salaire, loyer…) et de créer celles qui manquent dans le journal (tu choisis l'enveloppe, « Ignorer », ou tu décides plus tard) ; 4) rien ne change avant « Appliquer », et tu peux annuler le dernier rapprochement dans Réglages.",
@@ -1599,6 +1607,10 @@ document.addEventListener("click", ev => {
     case "yr-save": { const cy = curPeriod().y; saveFile("mes-comptes-sauvegarde.json", JSON.stringify(S,null,1), "application/json").then(ok => { if (ok){ S.lastBackup = Date.now(); yearReset(cy); } }); break; }
     case "guide": sheetGuide(); break;
     case "upd-hist": sheetUpdHist(); break;
+    case "pt-open": sheetPoint(); break;
+    case "remind-toggle": lsSet("mc-remind", lsGet("mc-remind") === "off" ? "on" : "off"); render(); break;
+    case "pt-tog": { if (b.dataset.kk === "fix"){ const r = findFix(b.dataset.k, b.dataset.id), mi = +b.dataset.pm; r.m[mi] = "x"; } else { const j = S.journal.find(x => x.id === b.dataset.id); if (j){ j.pointe = "x"; j.upd = Date.now(); } }
+      persist(); render(); sheetPoint(); break; }
     case "upd-ok": lsSet("mc-seen-ver", CHANGELOG[0].v); closeSheet(); break;
     case "w-next": collectWiz(); if (V.wiz.step < WIZ_STEPS.length - 1) V.wiz.step++; V.wizTop = true; render(); break;
     case "w-back": collectWiz(); if (V.wiz.step > 0) V.wiz.step--; V.wizTop = true; render(); break;
@@ -1941,6 +1953,8 @@ applyTheme();
 /* ===== Historique des mises à jour ===== */
 const CHANGELOG = [
  {v:"1.8", d:"Octobre 2026", t:"Design moderne, couleurs et horaires", i:[
+  "Bouton « ‹ Accueil » sur l'écran Ajouter pour revenir en arrière.",
+  "Rappel à l'ouverture : la liste des fixes et opérations à pointer, une fois par jour (désactivable dans Réglages).",
   "Nouvelle présentation de l'Accueil : reste à vivre, enveloppes, mise de côté, épargne.",
   "Effets brillants (gloss) et verre sur les cartes, les boutons et la barre du bas.",
   "Choix de la couleur de l'appli : Émeraude, Océan, Violet, Coucher de soleil, Rose (Réglages → Apparence).",
@@ -1975,10 +1989,29 @@ function sheetUpdHist(){ openSheet(`<h2>Historique des mises à jour</h2>${CHANG
 function updateNotice(hadData){ const v = CHANGELOG[0].v; if (lastSeenVer() === v) return;
   if (hadData && !V.wiz && $("#sheetbg").hidden) sheetUpdate();
   lsSet("mc-seen-ver", v); }
+/* ===== Rappel « à pointer » à l'ouverture ===== */
+function pointItems(){ const cp = curPeriod(), pv = prevMY(cp.m,cp.y), t = todayIso(), out = [];
+  const addFix = (kind,rows,mm,yy,carried) => { for (const r of rows){ if (!(N(r.montant) > 0 || isNum(r.m[mm]))) continue; const st = fixState(r,mm,yy); if (st.k !== "late") continue;
+    out.push({k:"fix", kind, id:r.id, mi:mm, lib:r.n + (carried ? " (" + MOIS[mm].toLowerCase() + ")" : ""), sub:"le " + r.jour, amt:st.amt, sign:kind === "rev" ? 1 : -1}); } };
+  addFix("rev",S.fixRev,cp.m,cp.y,false); addFix("ch",S.fixCh,cp.m,cp.y,false);
+  if (cutsOf()[ckey(cp.m,cp.y)]){ addFix("rev",S.fixRev,pv.m,pv.y,true); addFix("ch",S.fixCh,pv.m,pv.y,true); }
+  const per = [cp].concat(cutsOf()[ckey(cp.m,cp.y)] ? [pv] : []);
+  for (const j of live()){ if (j.pointe === "x" || j.date > t || !["Dépense","Revenu","Versement sur Livret A","Retrait du Livret A"].includes(j.type)) continue;
+    if (!per.some(q => inMonth(j,q.m,q.y))) continue;
+    out.push({k:"j", id:j.id, lib:j.lib || j.cat || j.type, sub:frDate(j.date) + " · " + (j.cat || TYPE_SHORT[j.type]), amt:N(j.montant), sign:(j.type === "Revenu" || j.type === "Retrait du Livret A") ? 1 : -1}); }
+  return out; }
+function sheetPoint(){ const L = pointItems();
+  openSheet(`<h2>À pointer${L.length ? " (" + L.length + ")" : ""}</h2>
+    <div class="small muted">Touche le rond quand l'opération est passée sur ton compte.</div>
+    <div class="rows">${L.length ? L.map(o => `<div class="row"><button class="chk" data-act="pt-tog" data-kk="${o.k}" data-k="${o.kind || ""}" data-id="${o.id}" data-pm="${o.mi === undefined ? "" : o.mi}" aria-label="Pointer">${ICON.check}</button>
+      <div class="rowbtn"><div class="t">${esc(o.lib)}</div><div class="s">${esc(o.sub)}</div></div><div class="amt num ${o.sign>0?"pos":""}">${o.sign>0?"+":"−"} ${eur(o.amt)}</div></div>`).join("") : `<div class="empty">Tout est pointé. Bravo !</div>`}</div>
+    <div class="btns"><button class="btn" data-act="sheetclose" style="flex:1">Fermer</button></div>`); }
+function remindOpen(){ if (lsGet("mc-remind") === "off" || V.wiz || !$("#sheetbg").hidden) return false; const t = todayIso(); if (lsGet("mc-remind-day") === t) return false;
+  if (!pointItems().length) return false; lsSet("mc-remind-day", t); sheetPoint(); return true; }
 function startApp(){
   S = load(); const hadData = !!(S && S.settings);
   if (!S || !S.settings){ S = emptyData(); V.wiz = wizInit(); }
-  migrate(); render(); yearCheck(); updateNotice(hadData);
+  migrate(); render(); yearCheck(); updateNotice(hadData); if ($("#sheetbg").hidden) remindOpen();
 }
 if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) { try { navigator.serviceWorker.register("sw.js").catch(() => {}); } catch(e){} }
 secCfgLoad();
