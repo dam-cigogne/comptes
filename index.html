@@ -567,7 +567,7 @@ function parseEchange(wb){
           upd:withId ? (Number(r[o+4]) || 0) : 0, del:withId ? !!r[o+5] : false}); } }
     if (po) for (let i=1;i<po.length;i++){ const r = po[i]; if (!String(r[0]).trim()) continue; out.epargne.poches.push({id:uid(), n:String(r[0]).trim(), f:N(num(r[1]))}); }
     if (fu) for (let i=1;i<fu.length;i++){ const r = fu[i]; if (!(N(num(r[2])) || N(num(r[3])))) continue;
-      out.epargne.futur.push({id:uid(), date:r[0] === "" ? "" : anyToIso(r[0]), lib:String(r[1]), sortie:N(num(r[2])), entree:N(num(r[3])), fait:String(r[4]).trim().toLowerCase() === "x" ? "x" : ""}); }
+      out.epargne.futur.push({id:uid(), date:r[0] === "" ? "" : anyToIso(r[0]), lib:String(r[1]), sortie:N(num(r[2])), entree:N(num(r[3])), fait:String(r[4]).trim().toLowerCase() === "x" ? "x" : "", arch: String(r[4]).trim().toLowerCase() === "x" && (r[5] === 1 || String(r[5]).trim() === "1")}); }
   }
   if (reg || env){
     const st = {solde:null, livretDepart:0, envelopes:[], cats:CATS_EXC.slice()};
@@ -625,7 +625,7 @@ function buildEchange(){
       add("Revenus","",x.revenus); add("Dépenses","",x.depenses); add("Fixes revenus","",x.fixRev); add("Fixes charges","",x.fixCh); add("Revenus exceptionnels","",x.revExc); add("Dépenses courantes","",x.depJournal); add("Épargne","",x.epargne); add("Résultat","",x.resultat);
       Object.entries(x.cats || {}).forEach(([k,v]) => add("Dépense par catégorie", k, v)); (x.envs || []).forEach(e => add("Budget enveloppe", e.n, e.bud)); }
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["Année","Mois","Rubrique","Nom","Montant"]].concat(rows)), "Archives_appli"); }
-  XLSX.utils.book_append_sheet(wb, dsh(["Date prévue","Libellé","Sortie (-)","Entrée (+)","Fait ?"], S.epargne.futur.map(f => [f.date ? isoToSerial(f.date) : "", f.lib, f.sortie || "", f.entree || "", f.fait]), ["A"]), "Futur_appli");
+  XLSX.utils.book_append_sheet(wb, dsh(["Date prévue","Libellé","Sortie (-)","Entrée (+)","Fait ?","Archivé ?"], S.epargne.futur.map(f => [f.date ? isoToSerial(f.date) : "", f.lib, f.sortie || "", f.entree || "", f.fait, futArch(f) ? 1 : ""]), ["A"]), "Futur_appli");
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["Enveloppe","Budget"].concat(MC)].concat(S.settings.envelopes.map(e => [e.n, N(e.b)].concat(e.m.map(v => isNum(v) ? v : ""))))), "Enveloppes_appli");
   const fx = [["Sens","Libellé","Type / Famille","Montant","Jour"].concat(MC)];
   S.fixRev.forEach(r => fx.push(["Revenu", r.n, r.t, N(r.montant), r.jour || ""].concat(r.m)));
@@ -792,7 +792,7 @@ function viewMonth(){
       <div class="amt num ${sg>0?"pos":""}">${sg>0?"+":"−"} ${eur(j.montant)}</div></div>`); }
   const carryHtml = carried.length ? `<div class="card"><h2>Repris de ${MOIS[pv.m].toLowerCase()}</h2><div class="small muted">Éléments de ${MOIS[pv.m].toLowerCase()} pas encore pointés (fixes et opérations) : leur montant est déjà réservé dans votre reste à vivre. Touchez le rond quand ils sont passés.</div><div class="rows">${carried.join("")}</div></div>` : "";
   return topbar() + `
-  <div class="card"><h2>Bilan du mois</h2>
+  <div class="card"><div class="top"><h2>Bilan du mois</h2><button class="btn ghost sm" data-act="exopen">Exporter</button></div>
     <div class="tiles"><div class="tile"><span>Revenus</span><b class="num pos">${eur(c.revenus)}</b></div><div class="tile"><span>Dépenses</span><b class="num">${eur(c.depenses)}</b></div><div class="tile"><span>Résultat</span><b class="num ${c.resultat<0?"neg":"pos"}">${eur(c.resultat)}</b></div></div>
     ${kv("Épargne du mois",c.epargne)}
     <details><summary><span class="small">Comment c'est calculé ?</span><span class="muted small">voir</span></summary>
@@ -805,7 +805,7 @@ function viewMonth(){
     <div><div class="small muted" style="margin-top:4px">Revenus</div><div class="rows">${revRows.length ? revRows.map(r => fixRowHtml("rev",r)).join("") : '<div class="empty">Rien à pointer.</div>'}</div></div>
     <div><div class="small muted">Charges fixes</div><div class="rows">${chRows.length ? chRows.map(r => fixRowHtml("ch",r)).join("") : '<div class="empty">Rien à pointer.</div>'}</div></div></div>
   ${carryHtml}
-  <div class="card"><h2>Opérations du mois</h2><div class="rows">${jHtml}</div></div>`;
+  <div class="card"><div class="top"><h2>Opérations du mois</h2><button class="btn ghost sm" data-act="jsearch">🔍 Rechercher</button></div><div class="rows">${jHtml}</div></div>`;
 }
 
 function catOptions(sel){
@@ -841,7 +841,7 @@ function viewAdd(){
     ${d.type === "Avance (à rembourser)" ? `<label class="f">Remboursé le<input id="f-remb" type="date" value="${esc(d.remb)}"></label>` : ""}
     <label class="f">Note<input id="f-note" value="${esc(d.note)}"></label>
     <div class="btns"><button class="btn" data-act="save" style="flex:1;padding:16px;font-size:17px">${ed ? "Enregistrer les modifications" : "Enregistrer"}</button>
-      ${ed ? `<button class="btn danger" data-act="jdel">Supprimer</button>` : `<button class="btn ghost" data-act="clear">Effacer</button>`}</div>
+      ${ed ? `<button class="btn ghost" data-act="jdup">Dupliquer</button><button class="btn danger" data-act="jdel">Supprimer</button>` : `<button class="btn ghost" data-act="clear">Effacer</button>`}</div>
   </div>`;
 }
 function collectDraft(){
@@ -898,6 +898,8 @@ function sheetMv(id, aid){
     <label class="f">Libellé<input id="mv-l" value="${esc(m.lib)}"></label>
     <div class="btns"><button class="btn" data-act="mv-save" data-id="${id || ""}" data-a="${esc(m.a)}" style="flex:1">Enregistrer</button>${id ? `<button class="btn danger" data-act="mv-del" data-id="${id}">Supprimer</button>` : ""}<button class="btn ghost" data-act="acctopen" data-id="${esc(m.a)}">Retour</button></div>`);
 }
+const FUT_ARCH_DAYS = 30;
+function futArch(f){ if (f.fait !== "x") return false; if (f.arch) return true; if (!f.doneAt) return false; return (new Date(todayIso() + "T12:00:00") - new Date(f.doneAt + "T12:00:00")) / 864e5 >= FUT_ARCH_DAYS; }
 function viewSav(){
   const L = livretCalc(), e = S.epargne;
   const moves = L.moves.slice().sort((a,b) => b.date.localeCompare(a.date)).slice(0,30);
@@ -918,9 +920,10 @@ function viewSav(){
   <div class="card"><div class="top"><h2>Poches (argent qui n'est pas à moi)</h2><button class="btn sm" data-act="pochenew">Ajouter</button></div>
     <div class="rows">${L.poches.length ? L.poches.map(p => `<div class="row"><button class="rowbtn" data-act="pocheedit" data-id="${p.id}"><div class="t">${esc(p.n)}</div><div class="s">mis de côté ${eur(p.mis)} · utilisé ${eur(p.util)}</div></button><div class="amt num">${eur(p.reste)}</div></div>`).join("") : '<div class="empty">Aucune poche.</div>'}</div></div>
   <div class="card"><div class="top"><h2>FUTUR : sorties et entrées à venir</h2><button class="btn sm" data-act="futnew">Ajouter</button></div>
-    <div class="rows">${e.futur.length ? e.futur.map(f => `<div class="row"><button class="chk ${f.fait === "x" ? "on" : ""}" data-act="futtoggle" data-id="${f.id}" aria-label="Fait">${ICON.check}</button>
+    <div class="rows">${e.futur.filter(f => V.futArch || !futArch(f)).length ? e.futur.filter(f => V.futArch || !futArch(f)).map(f => `<div class="row" ${futArch(f) ? 'style="opacity:.6"' : ""}><button class="chk ${f.fait === "x" ? "on" : ""}" data-act="futtoggle" data-id="${f.id}" aria-label="Fait">${ICON.check}</button>
       <button class="rowbtn" data-act="futedit" data-id="${f.id}"><div class="t">${esc(f.lib)}</div><div class="s">${f.date ? frDate(f.date) : "sans date"} · ${f.fait === "x" ? '<span class="chip">fait</span>' : (f.date && f.date <= todayIso() ? '<span class="chip bad">à pointer</span>' : '<span class="chip warn">à venir</span>')}</div></button>
-      <div class="amt num ${N(f.entree) ? "pos" : "neg"}">${N(f.entree) ? "+ " + eur(f.entree) : "− " + eur(f.sortie)}</div></div>`).join("") : '<div class="empty">Rien de prévu.</div>'}</div></div>`;
+      <div class="amt num ${N(f.entree) ? "pos" : "neg"}">${N(f.entree) ? "+ " + eur(f.entree) : "− " + eur(f.sortie)}</div></div>`).join("") : '<div class="empty">Rien de prévu.</div>'}</div>
+    ${(() => { const n = e.futur.filter(futArch).length, d = e.futur.filter(f => f.fait === "x" && !futArch(f)).length; return (n || d) ? `<div class="btns" style="margin-top:8px">${d ? `<button class="btn ghost sm" data-act="futarch">Archiver les lignes faites (${d})</button>` : ""}${n ? `<button class="btn ghost sm" data-act="futshow">${V.futArch ? "Masquer" : "Voir"} les archivées (${n})</button>` : ""}</div><div class="small muted">Une ligne cochée « faite » est archivée automatiquement après ${FUT_ARCH_DAYS} jours : elle disparaît de la liste mais reste comptée dans le Livret A.</div>` : ""; })()}</div>`;
 }
 function sheetLivret(id){
   const m = id ? e_manuel(id) : {date:todayIso(), lib:"", montant:"", pq:"Versement épargne"};
@@ -1082,6 +1085,8 @@ function viewSet(){
   return `<div class="top"><div class="app">Réglages</div></div>${V.msg ? `<div class="info">${esc(V.msg)}</div>` : ""}${pend}
   <div class="card"><h2>Guide d'utilisation</h2><div class="small muted">Comment marche chaque partie de l'appli, expliqué simplement. Le bouton ? en haut de chaque écran donne aussi l'aide de l'écran.</div>
     <div class="btns"><button class="btn" data-act="guide">Ouvrir le guide</button><button class="btn ghost" data-act="upd-hist">Historique des mises à jour</button></div></div>
+  <div class="card"><h2>Écran au démarrage</h2><div class="small muted">Choisis l'écran qui s'ouvre quand tu lances l'appli. « Ajouter » est pratique pour noter une dépense tout de suite.</div>
+    <div class="seg" style="margin-top:6px">${[["home","Accueil"],["add","Ajouter"]].map(([k,l]) => `<button class="${(lsGet("mc-start") || "home") === k ? "on" : ""}" data-act="start" data-v="${k}">${l}</button>`).join("")}</div></div>
   <div class="card"><h2>Rappel à l'ouverture</h2><div class="small muted">Au premier lancement de la journée, l'appli affiche ce qui reste à pointer (fixes passés et opérations pas encore pointées).</div>
     <div class="btns"><button class="btn ${lsGet("mc-remind") === "off" ? "ghost" : ""}" data-act="remind-toggle">${lsGet("mc-remind") === "off" ? "Rappel désactivé · activer" : "Rappel activé · désactiver"}</button><button class="btn ghost" data-act="pt-open">Voir maintenant</button></div></div>
   <div class="card"><h2>Synchroniser avec Excel</h2>
@@ -1140,6 +1145,9 @@ const HELP = {
     "<b>Enveloppes</b> : un budget par catégorie (Nourriture, Essence…). Barre verte = tout va bien, orange = presque atteint, rouge = dépassé. Touche une enveloppe pour changer son budget <b>de ce mois seulement</b>.",
     "<b>À mettre de côté en fin de mois</b> : ce que tu pourrais épargner si tu dépensais tous tes budgets.","<b>Clôture fin de mois</b> : à faire à chaque fin de mois, que tu sois payé à la date habituelle ou plus tôt (exemple : payé le 23 au lieu du 25). Le bouton est en bas de cette carte. Tu indiques : 1) le solde réel de ton compte (paie comprise) ; 2) la paie déjà reçue (case à cocher avec le montant réel, ou le champ « paie / revenu déjà reçu »). L'appli calcule alors : solde − paie − ce qui doit encore partir du compte (charges fixes et dépenses non pointées) = ce que tu peux vraiment mettre de côté. Elle le compare à l'épargne prévue (ton enveloppe d'épargne) et te propose le total, que tu peux modifier.","<b>Quand tu valides</b> : 1) le nouveau mois démarre (aujourd'hui si tu es payé plus tôt, cette fois seulement) ; 2) les opérations non pointées du journal restent datées dans leur mois d'origine (elles comptent dans les enveloppes de ce mois-là) ; 3) leur montant et celui des fixes non pointés sont repris dans le reste à vivre du nouveau mois, dans une carte « Repris de … » : ils ne consomment pas les enveloppes du nouveau mois, et disparaissent de la carte dès que tu les pointes ; 4) le Livret A reçoit tout de suite deux lignes : l'épargne prévue, puis le surplus ; 5) le solde du compte baisse du montant mis de côté, donc l'argent des prélèvements à venir reste sur le compte et tu ne passes pas à découvert. Pense à faire le virement réel vers ton Livret A. Si le montant reçu diffère du prévu, le montant du mois suivant est mis à jour.","<b>Se tromper ?</b> Réglages → Données → « Annuler la dernière clôture de mois » remet tout comme avant (opérations, solde, Livret A)."]},
   month:{t:"Le mois", p:[
+    "<b>Rechercher</b> : le bouton « 🔍 Rechercher » (dans Opérations du mois) cherche dans tout le journal, tous mois confondus : un mot (Amazon), un montant (93), une catégorie ou une date. Touche un résultat pour le modifier.",
+    "<b>Exporter le bilan</b> : le bouton « Exporter » du Bilan du mois crée un fichier Excel (.xlsx) ou un PDF (impression ou partage) avec le bilan, les fixes et les opérations du mois.",
+    "<b>Dupliquer une opération</b> : ouvre une opération, touche « Dupliquer » : une copie datée d'aujourd'hui est prête, tu modifies ce qui change puis tu enregistres.",
     "<b>C'est quoi ?</b> Tout ce qui se passe dans le mois choisi (flèches ‹ › en haut pour changer de mois).",
     "<b>Bilan du mois</b> : <b>Revenus</b> = revenus fixes prévus + revenus du journal. <b>Dépenses</b> = charges fixes prévues + dépenses du journal (hors épargne). <b>Résultat</b> = revenus − dépenses − épargne. Ce sont des chiffres <b>prévus pour tout le mois</b>, même ce qui n'est pas encore reçu ou payé : ils ne dépendent pas du solde de ton compte.",
     "<b>Fixes et revenus</b> : touche le <b>rond</b> pour dire « c'est passé » (payé ou reçu). Touche la <b>ligne</b> pour saisir un montant <b>différent pour ce mois seulement</b> : par exemple un salaire plus élevé en décembre, ou une facture qui change. Les autres mois gardent le montant habituel.",
@@ -1154,6 +1162,7 @@ const HELP = {
     "<b>Dépense</b> : retire de l'enveloppe choisie. <b>Revenu</b> : ajoute de l'argent. <b>Livret A</b> : un virement vers ou depuis ton Livret.",
     "<b>Déjà pointé</b> : active-le si tu as déjà vu l'opération passer sur ton relevé de banque."]},
   sav:{t:"L'épargne", p:[
+    "<b>FUTUR : lignes faites</b> : quand tu coches une ligne FUTUR « faite », elle compte tout de suite dans le Livret A, puis elle disparaît de la liste après 30 jours (archivée). Le bouton « Archiver les lignes faites » le fait tout de suite ; « Voir les archivées » les réaffiche. Décocher une ligne la remet dans la liste.",
     "<b>Réajuster le Livret A</b> : avec le temps (intérêts, centimes), le total de l'appli peut s'écarter du vrai solde. Bouton « Réajuster avec le solde réel » dans les mouvements : tu saisis le solde de ta banque, l'appli ajoute une ligne « Ajustement » pour la différence (poches et historique intacts).",
     "<b>C'est quoi ?</b> Ton Livret A et tes autres comptes d'épargne.",
     "<b>Livret A vraiment à moi</b> : le solde du Livret moins l'argent déjà réservé dans les poches. C'est ce dont tu peux disposer librement.",
@@ -1169,6 +1178,7 @@ const HELP = {
     "<b>C'est quoi ?</b> Un carnet pour retrouver tes sites et comptes en ligne (banque, achats, administratif…).",
     "Note le site, l'identifiant, la catégorie et l'état (« À changer », « Changé », « OK »). <b>Ne mets jamais tes mots de passe</b> : ils sont à garder dans un gestionnaire de mots de passe."]},
   set:{t:"Les réglages", p:[
+    "<b>Écran au démarrage</b> : choisis si l'appli s'ouvre sur l'Accueil ou directement sur Ajouter. Sur ordinateur et Android, un appui long sur l'icône propose aussi « Ajouter une opération » (non disponible sur iPhone).",
     "<b>Synchroniser avec Excel</b> : exporte ton journal vers Excel ou importe un classeur. C'est facultatif.",
     "<b>Sauvegarde complète (.json)</b> : une copie de toutes tes données à garder (dans ton cloud, par mail…). À refaire de temps en temps : un rappel s'affiche après 14 jours.",
     "<b>Compte et épargne</b> : solde de ton compte courant (point de départ du reste à vivre), jour de paie, solde de départ du Livret A et date de ce solde.",
@@ -1633,6 +1643,13 @@ document.addEventListener("click", ev => {
     case "sm-reset": { findFix(k,id).m[V.m] = ""; persist(); closeSheet(); render(); break; }
     case "sheetclose": closeSheet(); break;
     case "jtoggle": { const j = S.journal.find(x => x.id === id); j.pointe = j.pointe === "x" ? "" : "x"; j.upd = Date.now(); persist(); render(); break; }
+    case "jsearch": sheetSearch(); break;
+    case "sq-edit": closeSheet(); V.editId = id; V.draft = null; V.tab = "add"; render(); break;
+    case "exopen": V.xm = V.m; V.xy = V.y; sheetExport(); break;
+    case "ex-csv": xread(); closeSheet(); exportCsv(); break;
+    case "ex-pdf": xread(); closeSheet(); exportPdf(); break;
+    case "jdup": { const j = S.journal.find(x => x.id === V.editId); if (!j) break; collectDraft(); V.editId = null; V.draft = {date:todayIso(), type:j.type, cat:j.cat, lib:j.lib, mont:String(j.montant).replace(".",","), pt:false, note:j.note || "", remb:""}; render(); toast("Copie prête : modifie puis enregistre"); break; }
+    case "start": lsSet("mc-start", b.dataset.v); render(); break;
     case "jedit": V.editId = id; V.draft = null; V.tab = "add"; render(); break;
     case "jdel": { const j = S.journal.find(x => x.id === V.editId); j.del = true; j.upd = Date.now(); V.editId = null; V.draft = null; persist(); toast("Opération supprimée"); V.tab = "month"; render(); break; }
     case "type": collectDraft(); V.draft.type = b.dataset.v; if (b.dataset.v.indexOf("Livret") >= 0) V.draft.cat = ""; render(); break;
@@ -1706,7 +1723,9 @@ document.addEventListener("click", ev => {
       const o = {lib:$("#u-lib").value.trim(), date:$("#u-date").value, sortie:so, entree:en};
       if (id) Object.assign(S.epargne.futur.find(x => x.id === id), o); else S.epargne.futur.push(Object.assign({id:uid(), fait:""}, o)); persist(); closeSheet(); render(); break; }
     case "fu-del": S.epargne.futur.splice(S.epargne.futur.findIndex(x => x.id === id),1); persist(); closeSheet(); render(); break;
-    case "futtoggle": { const f = S.epargne.futur.find(x => x.id === id); f.fait = f.fait === "x" ? "" : "x"; persist(); render(); break; }
+    case "futtoggle": { const f = S.epargne.futur.find(x => x.id === id); f.fait = f.fait === "x" ? "" : "x"; if (f.fait === "x") f.doneAt = todayIso(); else { delete f.doneAt; delete f.arch; } persist(); render(); break; }
+    case "futarch": { S.epargne.futur.forEach(f => { if (f.fait === "x") f.arch = true; }); persist(); render(); toast("Lignes faites archivées"); break; }
+    case "futshow": V.futArch = !V.futArch; render(); break;
     case "envmonth": sheetEnvMonth(+b.dataset.i); break;
     case "envmonthnew": sheetEnvNew(); break;
     case "fixmonthnew": sheetFixMonthNew(k); break;
@@ -1762,7 +1781,7 @@ document.addEventListener("change", ev => {
     else e.b = parseNum(t.value) || 0; persist(); return; }
   if (V.tab === "add" && /^f-/.test(t.id)) updateInfo();
 });
-document.addEventListener("input", ev => { if (ev.target.id === "adj-real") adjUpdate(); });
+document.addEventListener("input", ev => { if (ev.target.id === "adj-real") adjUpdate(); if (ev.target.id === "sq") $("#sq-res").innerHTML = searchHtml(ev.target.value); });
 document.addEventListener("input", ev => { if (ev.target.id === "cl-amt") ev_amt_auto = false; else if (ev.target.closest && ev.target.closest("#clsheet")) clUpdate(); });
 document.addEventListener("change", ev => { if (ev.target.closest && ev.target.closest("#clsheet")) clUpdate(); });
 document.addEventListener("input", ev => { if (V.tab === "add" && /^f-(mont|date)$/.test(ev.target.id)) updateInfo(); });
@@ -1936,7 +1955,7 @@ function viewBank(){
 }
 
 /* ============ Démarrage ============ */
-const migrate = () => { if (!S.epargne) S.epargne = emptyEpargne(); if (!Array.isArray(S.accts)) S.accts = []; if (!Array.isArray(S.acctMv)) S.acctMv = []; if (!Array.isArray(S.web)) S.web = []; if (!S.bank) S.bank = {seen:[]}; if (!S.rules) S.rules = {}; if (!V.pinit){ const cp = curPeriod(); V.m = cp.m; V.y = cp.y; V.pinit = true; } };
+const migrate = () => { if (!S.epargne) S.epargne = emptyEpargne(); if (Array.isArray(S.epargne.futur)){ const t0 = todayIso(); for (const f of S.epargne.futur) if (f.fait === "x" && !f.doneAt) f.doneAt = (f.date && f.date < t0) ? f.date : t0; } if (!Array.isArray(S.accts)) S.accts = []; if (!Array.isArray(S.acctMv)) S.acctMv = []; if (!Array.isArray(S.web)) S.web = []; if (!S.bank) S.bank = {seen:[]}; if (!S.rules) S.rules = {}; if (!V.pinit){ const cp = curPeriod(); V.m = cp.m; V.y = cp.y; V.pinit = true; } };
 const PALS = {emeraude:{n:"Émeraude"}, ocean:{n:"Océan", l:["#1769C2","#FFFFFF","#DCE9F8"], d:["#5AA9FF","#04162B","#172B45"]},
   violet:{n:"Violet", l:["#6D3FD1","#FFFFFF","#E9E0F8"], d:["#A98BFF","#1A0B3D","#2B2147"]},
   sunset:{n:"Coucher de soleil", l:["#C2410C","#FFFFFF","#FBE5DA"], d:["#FF9A62","#3A1300","#3F2418"]},
@@ -1956,13 +1975,22 @@ document.addEventListener("change", ev => { if (ev.target.id === "sch-a" || ev.t
 applyTheme();
 /* ===== Historique des mises à jour ===== */
 const CHANGELOG = [
+ {v:"2.2", d:"Octobre 2026", t:"Recherche, export, copie et démarrage", i:[
+  "Recherche dans tout le journal (mot, montant, catégorie, date).",
+  "Export du bilan du mois en Excel ou en PDF.",
+  "Bouton « Dupliquer » pour recopier une opération.",
+  "Choix de l'écran de démarrage : Accueil ou Ajouter."]},
+ {v:"2.1", d:"Octobre 2026", t:"FUTUR du Livret A archivés", i:[
+  "Les lignes FUTUR cochées « faites » disparaissent de la liste après 30 jours (archivées), sans changer le solde du Livret A.",
+  "Boutons « Archiver les lignes faites » et « Voir les archivées ».",
+  "L'export Excel de FUTUR a une nouvelle colonne « Archivé ? »."]},
  {v:"2.0", d:"Octobre 2026", t:"Bilan du mois expliqué", i:[
   "Sous le Bilan du mois, un encart « Comment c'est calculé ? » explique revenus, dépenses, résultat et épargne.",
   "Le mode d'emploi de l'écran Mois explique le bilan."]},
  {v:"1.9", d:"Octobre 2026", t:"Rappel à pointer et historique", i:[
   "Rappel à l'ouverture : la liste des fixes et opérations à pointer, une fois par jour (désactivable dans Réglages).",
   "Bouton « ‹ Accueil » sur l'écran Ajouter pour revenir en arrière.",
-  "Les 10 dernières mises à jour sont listées dans cette fenêtre et dans Réglages.",
+  "Les 20 dernières mises à jour sont listées dans cette fenêtre et dans Réglages.",
   "Mode d'emploi complété : couleurs, horaires, rappel, historique."]},
  {v:"1.8", d:"Octobre 2026", t:"Design moderne, couleurs et horaires", i:[
   "Nouvelle présentation de l'Accueil : reste à vivre, enveloppes, mise de côté, épargne.",
@@ -2003,7 +2031,7 @@ function sheetUpdate(first){ const e = CHANGELOG[0], prev = CHANGELOG.slice(1,10
     <ul class="hbody" style="padding-left:18px;margin:8px 0">${e.i.map(x => `<li>${esc(x)}</li>`).join("")}</ul>
     ${prev.length ? `<div class="small muted" style="margin-top:6px">Mises à jour précédentes</div>${prev.map(x => `<div class="small" style="margin:3px 0">• <b>${esc(x.t)}</b> <span class="muted">v${esc(x.v)}</span></div>`).join("")}` : ""}
     <div class="btns"><button class="btn ghost" data-act="upd-hist">Voir le détail</button><button class="btn" data-act="upd-ok" style="flex:1">Compris</button></div>`); }
-function sheetUpdHist(all){ const L = all ? CHANGELOG : CHANGELOG.slice(0,10); openSheet(`<h2>Historique des mises à jour</h2><div class="small muted">${L.length === CHANGELOG.length ? "Toutes les mises à jour" : "Les 10 dernières mises à jour"}.</div>${L.map(e => `<div style="margin:10px 0"><b>${esc(e.t)}</b> <span class="muted small">· v${esc(e.v)} · ${esc(e.d)}</span><ul style="padding-left:18px;margin:4px 0">${e.i.map(x => `<li class="small">${esc(x)}</li>`).join("")}</ul></div>`).join("")}
+function sheetUpdHist(all){ const L = all ? CHANGELOG : CHANGELOG.slice(0,20); openSheet(`<h2>Historique des mises à jour</h2><div class="small muted">${L.length === CHANGELOG.length ? "Toutes les mises à jour" : "Les 20 dernières mises à jour"}.</div>${L.map(e => `<div style="margin:10px 0"><b>${esc(e.t)}</b> <span class="muted small">· v${esc(e.v)} · ${esc(e.d)}</span><ul style="padding-left:18px;margin:4px 0">${e.i.map(x => `<li class="small">${esc(x)}</li>`).join("")}</ul></div>`).join("")}
     <div class="btns">${CHANGELOG.length > L.length ? `<button class="btn ghost" data-act="upd-all">Afficher tout</button>` : ""}<button class="btn" data-act="sheetclose" style="flex:1">Fermer</button></div>`); }
 function updateNotice(hadData){ const v = CHANGELOG[0].v; if (lastSeenVer() === v) return;
   if (hadData && !V.wiz && $("#sheetbg").hidden) sheetUpdate();
@@ -2027,10 +2055,44 @@ function sheetPoint(){ const L = pointItems();
     <div class="btns"><button class="btn" data-act="sheetclose" style="flex:1">Fermer</button></div>`); }
 function remindOpen(){ if (lsGet("mc-remind") === "off" || V.wiz || !$("#sheetbg").hidden) return false; const t = todayIso(); if (lsGet("mc-remind-day") === t) return false;
   if (!pointItems().length) return false; lsSet("mc-remind-day", t); sheetPoint(); return true; }
+/* ===== Recherche, export du bilan, dupliquer, démarrage ===== */
+const norm = x => String(x ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+function searchRows(q){ const t = norm(q).trim(); if (!t) return [];
+  return live().filter(j => norm([j.lib, j.cat, j.type, j.note, frFull(j.date), String(j.montant).replace(".",","), String(j.montant)].join(" ")).includes(t)).sort((a,b) => b.date.localeCompare(a.date)).slice(0,60); }
+function searchHtml(q){ const R = searchRows(q);
+  if (!q.trim()) return `<div class="empty">Tape un mot, un montant ou une catégorie.</div>`;
+  if (!R.length) return `<div class="empty">Aucun résultat.</div>`;
+  const tot = R.reduce((a,j) => a + ((j.type === "Revenu" || j.type === "Retrait du Livret A") ? N(j.montant) : -N(j.montant)), 0);
+  return `<div class="small muted">${R.length} résultat(s)${R.length === 60 ? " (60 premiers)" : ""} · total ${eur(tot)}</div><div class="rows">${R.map(j => { const sg = (j.type === "Revenu" || j.type === "Retrait du Livret A") ? 1 : -1;
+    return `<div class="row">${dotHtml(j.cat || TYPE_SHORT[j.type])}<button class="rowbtn" data-act="sq-edit" data-id="${j.id}"><div class="t">${esc(j.lib || j.cat || j.type)}</div><div class="s">${frDate(j.date)}/${j.date.slice(0,4)} · ${esc(j.cat || TYPE_SHORT[j.type])}${j.pointe === "x" ? "" : ' · <span class="chip warn">non pointé</span>'}</div></button><div class="amt num ${sg>0?"pos":""}">${sg>0?"+":"−"} ${eur(j.montant)}</div></div>`; }).join("")}</div>`; }
+function sheetSearch(){ openSheet(`<h2>Rechercher dans le journal</h2><label class="f">Mot, montant, catégorie, date<input id="sq" placeholder="Ex. Amazon, 93, Divers" autocomplete="off"></label><div id="sq-res">${searchHtml("")}</div><div class="btns"><button class="btn ghost" data-act="sheetclose" style="flex:1">Fermer</button></div>`); setTimeout(() => { const i = $("#sq"); if (i) i.focus(); }, 60); }
+function bilanData(){ const c = calc(V.xm,V.xy), r = periodRange(V.xm,V.xy), J = live().filter(j => inMonth(j,V.xm,V.xy)).sort((a,b) => a.date.localeCompare(b.date));
+  const fx = []; for (const [k,rows] of [["Revenu fixe",S.fixRev],["Charge fixe",S.fixCh]]) for (const f of rows){ const st = fixState(f,V.xm,V.xy); if (!(N(f.montant) > 0 || isNum(f.m[V.xm]))) continue; fx.push([k, f.n, st.amt, st.k === "ok" ? "pointé" : "à venir / à pointer"]); }
+  return {c, r, J, fx, titre: MOIS[V.xm] + " " + V.xy}; }
+function exportCsv(){ const B = bilanData(), n = v => Math.round(N(v)*100)/100;
+  const wb = XLSX.utils.book_new();
+  const w1 = XLSX.utils.aoa_to_sheet([["Bilan " + B.titre],[frDate(B.r[0]) + " au " + frDate(B.r[1])],[],["Revenus", n(B.c.revenus)],["Dépenses", n(B.c.depenses)],["Épargne", n(B.c.epargne)],["Résultat", n(B.c.resultat)]]); w1["!cols"] = [{wch:22},{wch:14}];
+  const w2 = XLSX.utils.aoa_to_sheet([["Type","Nom","Montant","État"]].concat(B.fx.map(x => [x[0], x[1], n(x[2]), x[3]]))); w2["!cols"] = [{wch:14},{wch:30},{wch:12},{wch:22}];
+  const w3 = XLSX.utils.aoa_to_sheet([["Date","Type","Catégorie","Libellé","Montant","Pointé"]].concat(B.J.map(j => [j.date, j.type, j.cat, j.lib, n(j.montant), j.pointe === "x" ? "oui" : "non"]))); w3["!cols"] = [{wch:12},{wch:16},{wch:16},{wch:30},{wch:12},{wch:8}];
+  XLSX.utils.book_append_sheet(wb, w1, "Bilan"); XLSX.utils.book_append_sheet(wb, w2, "Fixes"); XLSX.utils.book_append_sheet(wb, w3, "Opérations");
+  saveFile("bilan-" + V.xy + "-" + pad(V.xm+1) + ".xlsx", XLSX.write(wb,{type:"array",bookType:"xlsx",compression:true}), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"); }
+function exportPdf(){ const B = bilanData(), f = n => eur(n), row = a => "<tr>" + a.map(x => "<td>" + esc(x) + "</td>").join("") + "</tr>";
+  const html = `<!doctype html><meta charset="utf-8"><title>Bilan ${esc(B.titre)}</title><style>body{font-family:system-ui,sans-serif;padding:24px;color:#111}h1{font-size:20px}h2{font-size:15px;margin:18px 0 6px}table{width:100%;border-collapse:collapse;font-size:12px}td,th{border-bottom:1px solid #ddd;padding:4px 6px;text-align:left}td:last-child,th:last-child{text-align:right}.k{display:flex;gap:18px;margin:8px 0}.k div{border:1px solid #ccc;border-radius:8px;padding:8px 12px}</style>
+  <h1>Les comptes en poches · Bilan ${esc(B.titre)}</h1><div>${frDate(B.r[0])} → ${frDate(B.r[1])}</div>
+  <div class="k"><div>Revenus<br><b>${f(B.c.revenus)}</b></div><div>Dépenses<br><b>${f(B.c.depenses)}</b></div><div>Épargne<br><b>${f(B.c.epargne)}</b></div><div>Résultat<br><b>${f(B.c.resultat)}</b></div></div>
+  <h2>Fixes</h2><table><tr><th>Type</th><th>Nom</th><th>État</th><th>Montant</th></tr>${B.fx.map(x => row([x[0],x[1],x[3],f(x[2])])).join("")}</table>
+  <h2>Opérations</h2><table><tr><th>Date</th><th>Catégorie</th><th>Libellé</th><th>Pointé</th><th>Montant</th></tr>${B.J.map(j => row([frDate(j.date), j.cat || TYPE_SHORT[j.type], j.lib, j.pointe === "x" ? "oui" : "non", f(j.montant)])).join("")}</table>`;
+  const fr = document.createElement("iframe"); fr.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0"; document.body.appendChild(fr);
+  fr.srcdoc = html; fr.onload = () => { try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch(e){ toast("Impression impossible"); } setTimeout(() => fr.remove(), 60000); }; }
+function sheetExport(){ if (V.xm == null) { V.xm = V.m; V.xy = V.y; }
+  const opts = []; let m = V.m, y = V.y; for (let k = 0; k < 24; k++){ opts.push([m,y]); const q = prevMY(m,y); m = q.m; y = q.y; }
+  openSheet(`<h2>Exporter un bilan</h2><label class="f">Mois à exporter<select id="xsel">${opts.map(([m,y]) => `<option value="${m}-${y}" ${m === V.xm && y === V.xy ? "selected" : ""}>${MOIS[m]} ${y}</option>`).join("")}</select></label><div class="small muted">Le bilan, les fixes et les opérations du mois. Excel : fichier .xlsx (3 feuilles : Bilan, Fixes, Opérations). PDF : ouvre l'impression, choisis « Enregistrer au format PDF » ou le partage.</div>
+  <div class="btns"><button class="btn" data-act="ex-csv" style="flex:1">Exporter en Excel</button><button class="btn" data-act="ex-pdf" style="flex:1">Exporter en PDF</button></div><div class="btns"><button class="btn ghost" data-act="sheetclose" style="flex:1">Fermer</button></div>`); }
+function xread(){ const v = ($("#xsel") || {}).value; if (v){ const [m,y] = v.split("-").map(Number); V.xm = m; V.xy = y; } }
 function startApp(){
   S = load(); const hadData = !!(S && S.settings);
   if (!S || !S.settings){ S = emptyData(); V.wiz = wizInit(); }
-  migrate(); render(); yearCheck(); updateNotice(hadData); if ($("#sheetbg").hidden) remindOpen();
+  migrate(); if (hadData && !V.wiz && (lsGet("mc-start") === "add" || /[?&]add=1/.test(location.search))){ V.tab = "add"; } render(); yearCheck(); updateNotice(hadData); if ($("#sheetbg").hidden) remindOpen();
 }
 if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) { try { navigator.serviceWorker.register("sw.js").catch(() => {}); } catch(e){} }
 secCfgLoad();
