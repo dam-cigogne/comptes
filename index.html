@@ -1660,7 +1660,7 @@ document.addEventListener("click", ev => {
     case "jsearch": sheetSearch(); break;
     case "sq-edit": closeSheet(); V.editId = id; V.draft = null; V.tab = "add"; render(); break;
     case "exopen": V.xm = V.m; V.xy = V.y; sheetExport(); break;
-    case "ex-csv": xread(); closeSheet(); exportCsv(); break;
+    case "ex-csv": xread(); try { Promise.resolve(exportCsv()).then(() => closeSheet()).catch(e => toast("Export impossible : " + (e && e.message || e))); } catch(e){ toast("Export impossible : " + (e && e.message || e)); } break;
     case "ex-pdf": xread(); closeSheet(); exportPdf(); break;
     case "jdup": { const j = S.journal.find(x => x.id === V.editId); if (!j) break; collectDraft(); V.editId = null; V.draft = {date:todayIso(), type:j.type, cat:j.cat, lib:j.lib, mont:String(j.montant).replace(".",","), pt:false, note:j.note || "", remb:""}; render(); toast("Copie prête : modifie puis enregistre"); break; }
     case "start": lsSet("mc-start", b.dataset.v); render(); break;
@@ -2099,7 +2099,7 @@ function exportCsv(){ const B = bilanData(), n = v => Math.round(N(v)*100)/100;
   const w2 = XLSX.utils.aoa_to_sheet([["Type","Nom","Montant","État"]].concat(B.fx.map(x => [x[0], x[1], n(x[2]), x[3]]))); w2["!cols"] = [{wch:14},{wch:30},{wch:12},{wch:22}];
   const w3 = XLSX.utils.aoa_to_sheet([["Date","Type","Catégorie","Libellé","Montant","Pointé"]].concat(B.J.map(j => [j.date, j.type, j.cat, j.lib, n(j.montant), j.pointe === "x" ? "oui" : "non"]))); w3["!cols"] = [{wch:12},{wch:16},{wch:16},{wch:30},{wch:12},{wch:8}];
   XLSX.utils.book_append_sheet(wb, w1, "Bilan"); XLSX.utils.book_append_sheet(wb, w2, "Fixes"); XLSX.utils.book_append_sheet(wb, w3, "Opérations");
-  saveFile("bilan-" + V.xy + "-" + pad(V.xm+1) + ".xlsx", XLSX.write(wb,{type:"array",bookType:"xlsx",compression:true}), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"); }
+  return saveFile("bilan-" + V.xy + "-" + pad(V.xm+1) + ".xlsx", XLSX.write(wb,{type:"array",bookType:"xlsx",compression:true}), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"); }
 function exportPdf(){ const B = bilanData(), f = n => eur(n), row = a => "<tr>" + a.map(x => "<td>" + esc(x) + "</td>").join("") + "</tr>";
   const html = `<!doctype html><meta charset="utf-8"><title>Bilan ${esc(B.titre)}</title><style>body{font-family:system-ui,sans-serif;padding:24px;color:#111}h1{font-size:20px}h2{font-size:15px;margin:18px 0 6px}table{width:100%;border-collapse:collapse;font-size:12px}td,th{border-bottom:1px solid #ddd;padding:4px 6px;text-align:left}td:last-child,th:last-child{text-align:right}.k{display:flex;gap:18px;margin:8px 0}.k div{border:1px solid #ccc;border-radius:8px;padding:8px 12px}</style>
   <h1>Les comptes en poches · Bilan ${esc(B.titre)}</h1><div>${frDate(B.r[0])} → ${frDate(B.r[1])}</div>
