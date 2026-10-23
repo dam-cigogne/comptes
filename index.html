@@ -333,7 +333,10 @@ function showLock(msg, bad){
   lockDots();
 }
 function lockDots(){ $("#lockdots").innerHTML = Array.from({length:Math.max(4,SEC.pin.length)}, (_,i) => `<i class="${i < SEC.pin.length ? "on" : ""}"></i>`).join(""); }
-function hideLock(){ $("#lock").hidden = true; document.body.classList.remove("priv"); render(); }
+let booted = false;
+function bootStart(hadData){ if (booted) return; booted = true; if (hadData && !V.wiz && (lsGet("mc-start") === "add" || /[?&]add=1/.test(location.search))) V.tab = "add"; }
+function bootAfter(hadData){ yearCheck(); updateNotice(hadData); if ($("#sheetbg").hidden) remindOpen(); }
+function hideLock(){ $("#lock").hidden = true; document.body.classList.remove("priv"); const first = !booted; bootStart(true); render(); if (first) bootAfter(true); }
 async function lockSubmit(){
   if (Date.now() < SEC.cfg.until) return showLock("", true);
   if (SEC.pin.length < 4) return;
@@ -636,6 +639,10 @@ function buildEchange(){
 async function saveFile(name, data, mime){
   let dl = null; try { dl = window.claude && window.claude.use ? await window.claude.use("downloads") : null; } catch(e){}
   if (dl){ try { await dl.save({filename:name, data}); toast("Fichier prêt : " + name); return true; } catch(e){ if (e && e.code !== "declined") toast("Enregistrement impossible"); } return false; }
+  if (window.showSaveFilePicker && !/iPhone|iPad|iPod/.test(navigator.userAgent)){
+    try { const ext = "." + name.split(".").pop(); const h = await window.showSaveFilePicker({suggestedName:name, types:[{description:"Fichier " + ext, accept:{[mime.split(";")[0]]:[ext]}}]});
+      const w = await h.createWritable(); await w.write(new Blob([data],{type:mime})); await w.close(); toast("Fichier enregistré : " + h.name); return true; }
+    catch(e){ if (e && e.name === "AbortError") return false; } }
   try { const file = new File([data], name, {type:mime});
     if (navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:name}); toast("Fichier partagé : " + name); return true; } }
   catch(e){ if (e && e.name === "AbortError") return false; }
@@ -825,7 +832,12 @@ function viewAdd(){
   const livret = d.type.indexOf("Livret") >= 0;
   const yd = new Date(); yd.setDate(yd.getDate() - 1); const yIso = yd.getFullYear() + "-" + pad(yd.getMonth()+1) + "-" + pad(yd.getDate());
   const rc = livret ? [] : recentCats();
+  const mods = S.modeles || [];
+  const modHtml = ed ? "" : `<div class="card"><div class="top"><h2>⚡ Ajout rapide</h2>${mods.length ? `<button class="btn ghost sm" data-act="modedit">${V.modEdit ? "Terminé" : "Gérer"}</button>` : ""}</div>
+    ${mods.length ? `<div class="pills">${mods.map(m => `<button data-act="${V.modEdit ? "moddel" : "modpick"}" data-id="${m.id}">${V.modEdit ? "✕ " : ""}${esc(m.lib)} · ${eur(m.mont)}</button>`).join("")}</div><div class="small muted" style="margin-top:6px">${V.modEdit ? "Touche un modèle pour le supprimer." : "Touche un modèle : le formulaire se remplit, tu n'as plus qu'à enregistrer."}</div>`
+      : `<div class="small muted">Pour tes opérations qui reviennent souvent (abonnement, courses, cantine…) : remplis le formulaire puis touche « ☆ Garder comme modèle ». Il apparaîtra ici.</div>`}</div>`;
   return `<div class="top"><button class="btn ghost sm" data-act="tab" data-v="${ed ? "month" : "home"}">‹ ${ed ? "Mois" : "Accueil"}</button><div class="app">${ed ? "Modifier l'opération" : "Nouvelle opération"}</div></div>
+  ${modHtml}
   <div class="card">
     <div class="seg" id="types">${TYPES.map(t => `<button data-act="type" data-v="${esc(t)}" class="${d.type===t?"on":""}">${esc(TYPE_SHORT[t])}</button>`).join("")}</div>
     <div class="amtbig"><div class="l">Montant (€)</div><input id="f-mont" inputmode="none" autocomplete="off" placeholder="0,00" value="${esc(d.mont)}" aria-label="Montant en euros"></div>
@@ -840,6 +852,7 @@ function viewAdd(){
     ${d.type === "Avance (à rembourser)" ? `<div class="info">« Avance » = tu as <b>payé de ta poche</b> pour quelqu'un, et il te rembourse. C'est une sortie d'argent (affichée en −). Si tu <b>attends juste un remboursement</b> (ex. Amazon), choisis plutôt <b>Revenu</b> et laisse « Déjà passé en banque » éteint : ça compte comme un revenu à recevoir et s'ajoute à ton reste à vivre. Coche-le quand l'argent arrive.</div>` : d.type === "Revenu" ? `<div class="small muted">Pour un remboursement attendu : laisse « Déjà passé en banque » éteint, il sera marqué « à recevoir ».</div>` : ""}
     ${d.type === "Avance (à rembourser)" ? `<label class="f">Remboursé le<input id="f-remb" type="date" value="${esc(d.remb)}"></label>` : ""}
     <label class="f">Note<input id="f-note" value="${esc(d.note)}"></label>
+    <div class="btns"><button class="btn ghost" data-act="modsave" style="flex:1">☆ Garder comme modèle</button></div>
     <div class="btns"><button class="btn" data-act="save" style="flex:1;padding:16px;font-size:17px">${ed ? "Enregistrer les modifications" : "Enregistrer"}</button>
       ${ed ? `<button class="btn ghost" data-act="jdup">Dupliquer</button><button class="btn danger" data-act="jdel">Supprimer</button>` : `<button class="btn ghost" data-act="clear">Effacer</button>`}</div>
   </div>`;
@@ -1157,6 +1170,7 @@ const HELP = {
     "<b>Le mois budgétaire</b> : si tu es payé le 25, ton mois va du 25 au 24 (réglable dans Réglages).",
     "<b>Repris du mois précédent</b> : après une clôture anticipée (voir l'Accueil), une carte « Repris de … » liste les fixes et les opérations du mois précédent pas encore pointés, avec le nom du mois entre parenthèses. Leur montant est déjà réservé dans ton reste à vivre ; touche le rond quand ils sont passés. Les opérations gardent leur date et restent dans les enveloppes de leur mois d'origine."]},
   add:{t:"Ajouter une opération", p:[
+    "<b>⚡ Ajout rapide (modèles)</b> : pour les opérations qui reviennent souvent (abonnement, courses, cantine…), remplis le formulaire puis touche « ☆ Garder comme modèle ». Le modèle apparaît en haut de l'écran Ajouter : un appui remplit libellé, montant, catégorie et type, tu vérifies puis tu enregistres. « Gérer » permet de supprimer un modèle. Les modèles restent sur ton appareil (ils ne vont pas dans Excel).",
     "<b>C'est quoi ?</b> L'écran pour noter une dépense ou un revenu en quelques secondes.",
     "Tape le <b>montant</b> avec le pavé, donne un <b>libellé</b> (« Courses »), choisis une <b>catégorie</b> (l'enveloppe qui paie) et la <b>date</b>.",
     "<b>Dépense</b> : retire de l'enveloppe choisie. <b>Revenu</b> : ajoute de l'argent. <b>Livret A</b> : un virement vers ou depuis ton Livret.",
@@ -1655,6 +1669,12 @@ document.addEventListener("click", ev => {
     case "type": collectDraft(); V.draft.type = b.dataset.v; if (b.dataset.v.indexOf("Livret") >= 0) V.draft.cat = ""; render(); break;
     case "save": saveOp(); break;
     case "clear": V.draft = null; render(); break;
+    case "modedit": V.modEdit = !V.modEdit; render(); break;
+    case "modpick": { const m = (S.modeles || []).find(x => x.id === id); if (!m) break; V.editId = null; V.draft = {date:todayIso(), type:m.type, cat:m.cat, lib:m.lib, mont:String(m.mont).replace(".",","), pt:m.pt !== false, note:"", remb:""}; render(); window.scrollTo(0, 0); toast("Modèle chargé : vérifie et enregistre"); break; }
+    case "moddel": S.modeles = (S.modeles || []).filter(x => x.id !== id); persist(); if (!S.modeles.length) V.modEdit = false; render(); break;
+    case "modsave": { collectDraft(); const d = V.draft, mt = parseNum(d.mont); if (!d.lib.trim() || !(mt > 0)){ toast("Il faut un libellé et un montant"); break; }
+      S.modeles = S.modeles || []; const dup = S.modeles.find(x => x.lib === d.lib.trim() && x.type === d.type && Math.abs(x.mont - mt) < 0.005 && x.cat === d.cat);
+      if (dup){ toast("Ce modèle existe déjà"); break; } S.modeles.push({id:"m" + Date.now().toString(36), lib:d.lib.trim(), mont:mt, type:d.type, cat:d.cat, pt:d.pt}); persist(); render(); toast("Modèle enregistré"); break; }
     case "fixnew": sheetFix(k,""); break;
     case "fixedit": sheetFix(k,id); break;
     case "fx-save": {
@@ -1975,6 +1995,10 @@ document.addEventListener("change", ev => { if (ev.target.id === "sch-a" || ev.t
 applyTheme();
 /* ===== Historique des mises à jour ===== */
 const CHANGELOG = [
+ {v:"2.3", d:"Octobre 2026", t:"Ajout rapide", i:[
+  "Modèles d'opérations récurrentes : un appui pré-remplit le formulaire.",
+  "Correctif : l'écran de démarrage, la fenêtre de mise à jour et le rappel fonctionnent aussi avec le code.",
+  "Export : choix du dossier d'enregistrement sur ordinateur."]},
  {v:"2.2", d:"Octobre 2026", t:"Recherche, export, copie et démarrage", i:[
   "Recherche dans tout le journal (mot, montant, catégorie, date).",
   "Export du bilan du mois en Excel ou en PDF.",
@@ -2092,7 +2116,7 @@ function xread(){ const v = ($("#xsel") || {}).value; if (v){ const [m,y] = v.sp
 function startApp(){
   S = load(); const hadData = !!(S && S.settings);
   if (!S || !S.settings){ S = emptyData(); V.wiz = wizInit(); }
-  migrate(); if (hadData && !V.wiz && (lsGet("mc-start") === "add" || /[?&]add=1/.test(location.search))){ V.tab = "add"; } render(); yearCheck(); updateNotice(hadData); if ($("#sheetbg").hidden) remindOpen();
+  migrate(); bootStart(hadData); render(); bootAfter(hadData);
 }
 if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) { try { navigator.serviceWorker.register("sw.js").catch(() => {}); } catch(e){} }
 secCfgLoad();
