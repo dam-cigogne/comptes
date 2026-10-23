@@ -709,7 +709,7 @@ function viewHome(){
     <div class="kv"><span>Encore possible si vous dépensez tous vos budgets</span><span class="num ${c.d18<0?"neg":"pos"}">${eur(c.d18)}</span></div>
     <div class="kv"><span>Encore possible si vous ne dépensez plus rien</span><span class="num ${c.d16<0?"neg":"pos"}">${eur(c.d16)}</span></div>
     <div class="small muted">Calculé avec le solde de votre compte, ce qui reste à recevoir et à payer. Les enveloppes déjà entamées comptent pour ce qui reste dedans.</div>
-    ${(() => { const cp = curPeriod(), np = nextMY(cp.m,cp.y); return (V.m === cp.m && V.y === cp.y && !cutsOf()[ckey(np.m,np.y)]) ? `<div class="btns" style="margin-top:10px"><button class="btn ghost sm" data-act="cl-open">Clôturer le mois (payé plus tôt ?)</button></div>` : ""; })()}</div>` : ""}
+    ${(() => { const cp = curPeriod(), np = nextMY(cp.m,cp.y); return (V.m === cp.m && V.y === cp.y && closeCtx().avail) ? `<div class="btns" style="margin-top:10px"><button class="btn ghost sm" data-act="cl-open">Clôture fin de mois</button></div>` : ""; })()}</div>` : ""}
   <div class="card"><details><summary><span>Détail du calcul</span><span class="muted small">voir</span></summary>
     <div style="margin-top:8px">
       <div class="kv"><span>Solde actuel du compte</span><span class="num">${eur(N(soldeVal))}</span></div>
@@ -1080,7 +1080,7 @@ const HELP = {
     "<b>Reste à vivre</b> : l'argent que tu peux encore dépenser jusqu'à ta prochaine paie, une fois payées les charges fixes qui restent à passer. C'est LE chiffre à regarder.",
     "<b>Prochains mouvements</b> : les prochains revenus et charges fixes prévus (salaire, loyer, abonnements…).",
     "<b>Enveloppes</b> : un budget par catégorie (Nourriture, Essence…). Barre verte = tout va bien, orange = presque atteint, rouge = dépassé. Touche une enveloppe pour changer son budget <b>de ce mois seulement</b>.",
-    "<b>À mettre de côté en fin de mois</b> : ce que tu pourrais épargner si tu dépensais tous tes budgets.","<b>Clôturer le mois (payé plus tôt que d'habitude)</b> : exemple, tu es payé le 23 au lieu du 25. Le bouton est en bas de cette carte. Tu indiques : 1) le solde réel de ton compte (paie comprise) ; 2) la paie déjà reçue (case à cocher avec le montant réel, ou le champ « paie / revenu déjà reçu »). L'appli calcule alors : solde − paie − ce qui doit encore partir du compte (charges fixes et dépenses non pointées) = ce que tu peux vraiment mettre de côté. Elle le compare à l'épargne prévue (ton enveloppe d'épargne) et te propose le total, que tu peux modifier.","<b>Quand tu valides</b> : 1) le nouveau mois démarre aujourd'hui, cette fois seulement ; 2) les opérations non pointées du journal passent dans le nouveau mois ; 3) les fixes non pointés sont repris dans une carte « Repris de … » du nouveau mois ; 4) le Livret A reçoit tout de suite deux lignes : l'épargne prévue, puis le surplus ; 5) le solde du compte baisse du montant mis de côté, donc l'argent des prélèvements à venir reste sur le compte et tu ne passes pas à découvert. Pense à faire le virement réel vers ton Livret A. Si le montant reçu diffère du prévu, le montant du mois suivant est mis à jour.","<b>Se tromper ?</b> Réglages → Données → « Annuler la dernière clôture de mois » remet tout comme avant (opérations, solde, Livret A)."]},
+    "<b>À mettre de côté en fin de mois</b> : ce que tu pourrais épargner si tu dépensais tous tes budgets.","<b>Clôture fin de mois</b> : à faire à chaque fin de mois, que tu sois payé à la date habituelle ou plus tôt (exemple : payé le 23 au lieu du 25). Le bouton est en bas de cette carte. Tu indiques : 1) le solde réel de ton compte (paie comprise) ; 2) la paie déjà reçue (case à cocher avec le montant réel, ou le champ « paie / revenu déjà reçu »). L'appli calcule alors : solde − paie − ce qui doit encore partir du compte (charges fixes et dépenses non pointées) = ce que tu peux vraiment mettre de côté. Elle le compare à l'épargne prévue (ton enveloppe d'épargne) et te propose le total, que tu peux modifier.","<b>Quand tu valides</b> : 1) le nouveau mois démarre (aujourd'hui si tu es payé plus tôt, cette fois seulement) ; 2) les opérations non pointées du journal passent dans le nouveau mois ; 3) les fixes non pointés sont repris dans une carte « Repris de … » du nouveau mois ; 4) le Livret A reçoit tout de suite deux lignes : l'épargne prévue, puis le surplus ; 5) le solde du compte baisse du montant mis de côté, donc l'argent des prélèvements à venir reste sur le compte et tu ne passes pas à découvert. Pense à faire le virement réel vers ton Livret A. Si le montant reçu diffère du prévu, le montant du mois suivant est mis à jour.","<b>Se tromper ?</b> Réglages → Données → « Annuler la dernière clôture de mois » remet tout comme avant (opérations, solde, Livret A)."]},
   month:{t:"Le mois", p:[
     "<b>C'est quoi ?</b> Tout ce qui se passe dans le mois choisi (flèches ‹ › en haut pour changer de mois).",
     "<b>Fixes et revenus</b> : touche le <b>rond</b> pour dire « c'est passé » (payé ou reçu). Touche la <b>ligne</b> pour saisir un montant <b>différent pour ce mois seulement</b> : par exemple un salaire plus élevé en décembre, ou une facture qui change. Les autres mois gardent le montant habituel.",
@@ -1352,19 +1352,24 @@ function sheetEnvNew(){
     <div class="btns"><button class="btn" data-act="en-save" style="flex:1">Ajouter</button><button class="btn ghost" data-act="sheetclose">Fermer</button></div>`);
 }
 /* ===== Clôture anticipée du mois (payé avant la date habituelle) ===== */
-function closeCtx(){ const cp = curPeriod(), np = nextMY(cp.m,cp.y), td0 = new Date(); td0.setHours(0,0,0,0);
+function closeCtx(){ const t = todayIso(), cur = curPeriod(), cc = cutsOf(), d0 = defRange(cur.m,cur.y)[0];
+  const early = !cc[ckey(cur.m,cur.y)] && t >= d0 && t <= isoAdd(d0,5);
+  const cp = early ? prevMY(cur.m,cur.y) : cur, np = early ? cur : nextMY(cur.m,cur.y), cut = early ? d0 : t;
+  const recent = cc[ckey(cur.m,cur.y)] && cc[ckey(cur.m,cur.y)] >= isoAdd(t,-5);
+  const avail = early || (!cc[ckey(np.m,np.y)] && !recent);
+  const td0 = new Date(cut + "T00:00:00");
   const lines = S.fixRev.map((r,i) => ({r,i})).filter(o => N(o.r.montant) > 0 && o.r.jour && fixDate(o.r.jour,np.m,np.y) >= td0 && o.r.m[np.m] !== "x" && !isNum(o.r.m[np.m]));
-  return {cp, np, lines}; }
+  return {cp, np, lines, cut, avail}; }
 function closeSim(solde, checked, man){ const x = closeCtx(), cp = x.cp;
   const c0 = calc(cp.m,cp.y); const rec = checked.reduce((a,o) => a + o.a, 0) + (man || 0);
   const reste = N(solde) - rec + c0.d11 + c0.d12 - c0.d13 - c0.d14 - c0.d15;
   const eA = c0.envs.find(e => e.n === S.epargne.envA); const plan = eA ? Math.max(0, eA.bud - eA.dep) : 0;
-  return {c0, rec, reste, plan, surplus: reste - plan, np:x.np, cp}; }
+  return {c0, rec, reste, plan, surplus: reste - plan, np:x.np, cp, cut:x.cut}; }
 function sheetClose(){ const x = closeCtx(), cp = x.cp, np = x.np;
-  if (cutsOf()[ckey(np.m,np.y)]) return toast("Ce mois est déjà clôturé");
+  if (!x.avail) return toast("Ce mois est déjà clôturé");
   const sd = isNum(S.settings.solde) ? S.settings.solde : "";
-  openSheet(`<div id="clsheet"><h2>Clôturer ${MOIS[cp.m].toLowerCase()}</h2>
-    <div class="small muted">Utile quand tu es payé avant la date habituelle. Le mois de <b>${MOIS[np.m].toLowerCase()}</b> démarre aujourd'hui (cette fois seulement). Tout ce qui n'est pas pointé de ${MOIS[cp.m].toLowerCase()} est déplacé dans ${MOIS[np.m].toLowerCase()} (les opérations du journal changent de mois, les charges fixes sont reprises) : l'argent reste sur ton compte pour couvrir ce qui va encore être débité.</div>
+  openSheet(`<div id="clsheet"><h2>Clôture de fin de ${MOIS[cp.m].toLowerCase()}</h2>
+    <div class="small muted">Fait le point pour savoir combien tu peux mettre de côté. Le mois de <b>${MOIS[np.m].toLowerCase()}</b> démarre le ${frDate(x.cut)} (si tu es payé avant la date habituelle, il démarre plus tôt, cette fois seulement). Tout ce qui n'est pas pointé de ${MOIS[cp.m].toLowerCase()} est déplacé dans ${MOIS[np.m].toLowerCase()} (les opérations du journal changent de mois, les charges fixes sont reprises) : l'argent reste sur ton compte pour couvrir ce qui va encore être débité.</div>
     <label class="f">Solde actuel de ton compte, paie comprise : regarde ta banque (€)<input id="cl-solde" inputmode="decimal" value="${sd === "" ? "" : String(sd).replace(".",",")}"></label>
     <label class="f">Paie / revenu déjà reçu non listé ci-dessous (€)<input id="cl-man" inputmode="decimal" placeholder="Ex. 2300 : ta paie, déjà dans le solde"></label>
     ${x.lines.length ? `<div class="small" style="margin-top:6px"><b>Revenus de ${MOIS[np.m].toLowerCase()} déjà reçus</b> : coche et mets le montant réellement reçu (déjà dans le solde ci-dessus). S'il diffère du prévu, le montant de ${MOIS[np.m].toLowerCase()} est mis à jour :</div>${x.lines.map(o => `<div class="chkl2" style="margin:4px 0"><input type="checkbox" class="cl-rev" data-i="${o.i}" ${(fixDate(o.r.jour,np.m,np.y) - new Date()) < 7*864e5 ? "checked" : ""}><span style="flex:1">${esc(o.r.n)} <span class="muted small">(prévu ${eur(o.r.montant)})</span></span><input class="cl-ra" data-i="${o.i}" inputmode="decimal" value="${String(o.r.montant).replace(".",",")}" style="width:96px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:8px;font-size:16px;text-align:right"></div>`).join("")}` : ""}
@@ -1388,7 +1393,7 @@ function clUpdate(init){ const r = clRead(), o = closeSim(r.solde, r.ch, r.man),
     ${o.reste < 0 ? `<div class="small neg">Attention : le compte ne couvrira pas tout ce qui reste à passer (${f(-o.reste)} manquants). Rien n'est mis de côté.</div>` : ""}`;
   if (init || ev_amt_auto){ $("#cl-amt").value = String(Math.max(0, Math.round(o.reste*100)/100)).replace(".",","); } }
 let ev_amt_auto = true;
-function closeMonth(){ const r = clRead(), o = closeSim(r.solde, r.ch, r.man), cp = o.cp, np = o.np, today = todayIso();
+function closeMonth(){ const r = clRead(), o = closeSim(r.solde, r.ch, r.man), cp = o.cp, np = o.np, today = closeCtx().cut;
   let amt = parseNum($("#cl-amt").value); if (amt === null || amt < 0) amt = 0;
   S.lastClose = {at:Date.now(), key:ckey(np.m,np.y), journal:JSON.stringify(S.journal), fixRev:JSON.stringify(S.fixRev), solde:S.settings.solde, m:V.m, y:V.y};
   S.cuts = S.cuts || {}; S.cuts[ckey(np.m,np.y)] = today;
