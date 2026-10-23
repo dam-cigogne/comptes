@@ -573,6 +573,11 @@ function buildEchange(){
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["Poche","Mis de côté (saisi à la main)"]].concat(S.epargne.poches.map(p => [p.n, N(p.f)]))), "Poches_appli");
   XLSX.utils.book_append_sheet(wb, dsh(["ID","Nom","Type","SoldeDepart","DateDepart","Modifié","Supprimé"], (S.accts || []).map(a => [a.id, a.n, a.type, N(a.depart), a.date ? isoToSerial(a.date) : "", a.upd || 0, a.del ? 1 : ""]), ["E"]), "Comptes_epargne_appli");
   XLSX.utils.book_append_sheet(wb, dsh(["ID","IDCompte","Compte","Date","Libellé","Montant","Modifié","Supprimé"], (S.acctMv || []).map(m => { const a = (S.accts || []).find(x => x.id === m.a); return [m.id, m.a, a ? a.n : "", m.date ? isoToSerial(m.date) : "", m.lib, N(m.mt), m.upd || 0, m.del ? 1 : ""]; }), ["D"]), "Mouvements_epargne_appli");
+  if ((S.archives || []).length){ const rows = [];
+    for (const A of S.archives) for (const x of A.months){ const add = (r,n,v) => rows.push([A.year, x.m + 1, r, n, Math.round(N(v) * 100) / 100]);
+      add("Revenus","",x.revenus); add("Dépenses","",x.depenses); add("Fixes revenus","",x.fixRev); add("Fixes charges","",x.fixCh); add("Revenus exceptionnels","",x.revExc); add("Dépenses courantes","",x.depJournal); add("Épargne","",x.epargne); add("Résultat","",x.resultat);
+      Object.entries(x.cats || {}).forEach(([k,v]) => add("Dépense par catégorie", k, v)); (x.envs || []).forEach(e => add("Budget enveloppe", e.n, e.bud)); }
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["Année","Mois","Rubrique","Nom","Montant"]].concat(rows)), "Archives_appli"); }
   XLSX.utils.book_append_sheet(wb, dsh(["Date prévue","Libellé","Sortie (-)","Entrée (+)","Fait ?"], S.epargne.futur.map(f => [f.date ? isoToSerial(f.date) : "", f.lib, f.sortie || "", f.entree || "", f.fait]), ["A"]), "Futur_appli");
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["Enveloppe","Budget"].concat(MC)].concat(S.settings.envelopes.map(e => [e.n, N(e.b)].concat(e.m.map(v => isNum(v) ? v : ""))))), "Enveloppes_appli");
   const fx = [["Sens","Libellé","Type / Famille","Montant","Jour"].concat(MC)];
@@ -1029,6 +1034,8 @@ function viewSet(){
     <div class="btns"><button class="btn" data-act="bk-open">Importer un relevé</button>${S.undo ? `<button class="btn ghost" data-act="bk-undo">Annuler le dernier rapprochement</button>` : ""}</div></div>
   ${secCard()}
   <div class="card"><h2>Données</h2>
+    <div class="btns"><button class="btn ghost" data-act="tab" data-v="hist">Historique des années (${(S.archives || []).length})</button></div>
+    ${S.yearRecap ? `<div class="small muted">Dernière remise à zéro annuelle : ${S.yearRecap.year}.</div><div class="btns"><button class="btn ghost sm" data-act="recap">Revoir le récapitulatif</button></div>` : ""}
     ${V.wipe ? `<div class="small">Cette action efface tout ce qui est stocké sur cet appareil.</div><div class="btns"><button class="btn danger" data-act="wipe-yes">Oui, tout effacer</button><button class="btn ghost" data-act="wipe-no">Annuler</button></div>`
              : `<div class="btns"><button class="btn ghost" data-act="wipe">Tout effacer</button></div>`}</div>`;
 }
@@ -1080,6 +1087,11 @@ const HELP = {
     "<b>Comment faire :</b> 1) télécharge le relevé de compte du mois dans l'appli ou sur le site de ta banque (PDF, ou fichier CSV / Excel) ; 2) touche « Importer un relevé » et choisis le fichier ; 3) l'appli te propose de pointer les opérations déjà notées, de pointer tes fixes retrouvés (salaire, loyer…) et de créer celles qui manquent dans le journal (tu choisis l'enveloppe, « Ignorer », ou tu décides plus tard) ; 4) rien ne change avant « Appliquer », et tu peux annuler le dernier rapprochement dans Réglages.",
     "<b>Vie privée :</b> le fichier est lu sur ton téléphone : il n'est ni envoyé, ni conservé. L'appli ne retient ni ton nom, ni ton adresse, ni ton IBAN, ni ton numéro de compte : elle ne lit que les lignes d'opérations (date, libellé, montant) et le solde. Les opérations que tu choisis de créer deviennent des lignes de ton journal avec le libellé de la banque, qui peut contenir un nom de personne (un virement reçu, par exemple). Elle garde aussi un repère de chaque opération (date, montant, début du libellé) pour ne pas la compter deux fois. Tout reste sur ton téléphone, mais se retrouve dans ta sauvegarde .json et ton export Excel : ne les partage pas.",
     "<b>Conseil :</b> fais-le une fois par mois, ou une fois par semaine si tu veux un suivi précis."]},
+  hist:{t:"L'historique des années", p:[
+    "<b>C'est quoi ?</b> Une trace figée des années passées, créée automatiquement à chaque remise à zéro de fin d'année.",
+    "Pour chaque année tu retrouves : les revenus, les dépenses, l'épargne et le résultat de l'année, la dépense moyenne par mois, le meilleur mois et le mois le plus serré.",
+    "<b>Où est parti l'argent</b> : la part de chaque catégorie dans tes dépenses (en pourcentage), avec le budget annuel et le pourcentage utilisé quand la catégorie est une enveloppe.",
+    "C'est en lecture seule. Ces chiffres sont aussi dans l'export Excel (feuille Archives_appli) et dans la sauvegarde .json."]},
   about:{t:"Fonctionnement, données et risques", p:[
     "<b>Comment elle est faite.</b> « Les comptes en poches » est une appli web : un fichier de code qui s'exécute dans le navigateur de ton téléphone. Elle a été conçue avec l'aide de Claude (une intelligence artificielle d'Anthropic), à partir d'un classeur Excel de suivi de budget.",
     "<b>C'est quoi GitHub ?</b> Un site où l'on range et publie du code. Ici il ne sert que de <b>vitrine</b> : il met les fichiers de l'appli à une adresse web. Quand tu ouvres le lien (ou que tu l'ajoutes à l'écran d'accueil), ton téléphone télécharge ces fichiers, puis l'appli tourne chez toi. Ces fichiers sont publics et ne contiennent aucune donnée personnelle.",
@@ -1093,7 +1105,7 @@ const HELP = {
     "<b>Mises à jour et confiance.</b> L'appli se met à jour toute seule quand son auteur publie une nouvelle version : ferme-la et rouvre-la pour la recevoir. Le code est public, donc n'importe qui peut le lire pour vérifier ce qu'il fait. Utilise uniquement le lien que t'a donné une personne de confiance.",
     "<b>Plusieurs appareils.</b> Les données ne se synchronisent pas toutes seules entre deux téléphones : passe par l'export / import ou par Excel."]}
 };
-const HELP_ORDER = ["home","month","add","fix","sav","web","set","bank","about"];
+const HELP_ORDER = ["home","month","add","fix","sav","web","set","bank","hist","about"];
 const helpBtn = k => `<button class="help" data-act="help" data-v="${k}" aria-label="Aide">?</button>`;
 function sheetHelp(k){ const h = HELP[k]; if (!h) return;
   openSheet(`<h2>${esc(h.t)}</h2><div class="hbody">${h.p.map(x => `<p>${x}</p>`).join("")}</div>
@@ -1193,18 +1205,75 @@ function sheetYear(cy){
   openSheet(`<h2>Bonne année ${cy} !</h2>
     <div class="small">Pour repartir propre, l'appli remet à zéro ce qui est propre à chaque mois de l'année écoulée :</div>
     <div class="hbody"><p>• les <b>pointés</b> des revenus et charges fixes ;</p><p>• les <b>montants saisis pour un mois précis</b> (primes, factures différentes…) ;</p><p>• les <b>budgets d'enveloppe propres à un mois</b>.</p>
+    <p>Avant de les effacer, l'appli <b>archive les chiffres de l'année</b> (revenus, dépenses, épargne, par mois et par catégorie) : tu les retrouveras dans Réglages > Historique.</p>
     <p>Ne changent pas : tes montants habituels, tes budgets habituels, ton journal, ton épargne.</p></div>
-    <div class="info">Les mois de l'année passée n'afficheront plus leur état pointé. Fais d'abord une sauvegarde complète si tu veux garder une copie.</div>
+    <div class="info"><b>Si tu utilises Excel :</b> 1) exporte ton journal et importe-le dans Excel pour qu'il ait toute l'année ; 2) fais la remise à zéro ICI ; 3) fais ensuite la clôture dans Excel ; 4) ne réimporte rien entre les deux.</div>
     <div class="btns"><button class="btn" data-act="yr-save" style="flex:1">Sauvegarder puis remettre à zéro</button></div>
     <div class="btns"><button class="btn ghost" data-act="yr-reset" data-v="${cy}">Remettre à zéro sans sauvegarde</button><button class="btn ghost" data-act="sheetclose">Plus tard</button></div>`);
 }
+function archiveYear(yr){
+  const months = [];
+  for (let m = 0; m < 12; m++){
+    const c = calc(m, yr), cats = {};
+    live().filter(j => j.type === "Dépense" && inMonth(j, m, yr)).forEach(j => { const k = j.cat || "Sans catégorie"; cats[k] = (cats[k] || 0) + N(j.montant); });
+    months.push({m, revenus:c.revenus, depenses:c.depenses, fixRev:c.rev.prevu, fixCh:c.ch.prevu, revExc:c.revExc, depJournal:c.depJournal, epargne:c.epargne, resultat:c.resultat,
+      envs:c.envs.map(e => ({n:e.n, bud:e.bud, dep:e.dep})), cats});
+  }
+  if (!Array.isArray(S.archives)) S.archives = [];
+  S.archives = S.archives.filter(a => a.year !== yr); S.archives.push({year:yr, at:Date.now(), months});
+  S.archives.sort((a,b) => b.year - a.year);
+}
 function yearReset(cy){
-  S.fixRev = S.fixRev.filter(r => !(r.t === "Ce mois seulement" && !N(r.montant)));
-  S.fixCh = S.fixCh.filter(r => !(r.t === "Ce mois seulement" && !N(r.montant)));
+  if (S.fixYear !== undefined && S.fixYear < cy) archiveYear(S.fixYear);
+  const filled = r => (r.m || []).some(v => v !== "" && v !== null && v !== undefined);
+  const isPonct = r => r.t === "Ce mois seulement" && !N(r.montant);
+  const rev0 = S.fixRev.length, ch0 = S.fixCh.length, env0 = S.settings.envelopes.length;
+  const ponctRev = S.fixRev.filter(isPonct).length, ponctCh = S.fixCh.filter(isPonct).length;
+  S.fixRev = S.fixRev.filter(r => !isPonct(r)); S.fixCh = S.fixCh.filter(r => !isPonct(r));
+  const nRev = S.fixRev.filter(filled).length, nCh = S.fixCh.filter(filled).length;
   for (const r of S.fixRev.concat(S.fixCh)) r.m = Array(12).fill("");
   S.settings.envelopes = S.settings.envelopes.filter(e => !(!N(e.b) && e.m.some(isNum)));
+  const envDel = env0 - S.settings.envelopes.length, nEnv = S.settings.envelopes.filter(e => e.m.some(isNum)).length;
   for (const e of S.settings.envelopes) e.m = Array(12).fill(null);
-  S.fixYear = cy; persist(); closeSheet(); render(); toast("Nouvelle année : compteurs remis à zéro");
+  S.fixYear = cy;
+  S.yearRecap = {year:cy, archived:true, at:Date.now(), rev:nRev, ch:nCh, env:nEnv, ponct:ponctRev + ponctCh, envDel, revTot:S.fixRev.length, chTot:S.fixCh.length, envTot:S.settings.envelopes.length, revAvant:rev0, chAvant:ch0, envAvant:env0};
+  persist(); render(); sheetRecap();
+}
+function sheetRecap(){
+  const R = S.yearRecap; if (!R) return;
+  const kv = (l,v) => `<div class="kv"><span>${l}</span><span class="num">${v}</span></div>`;
+  openSheet(`<h2>Récapitulatif ${R.year}</h2><div class="small muted">Remise à zéro faite le ${frDate(new Date(R.at).toISOString().slice(0,10))}. Compare ces chiffres avec ceux d'Excel.</div>
+    <div class="card" style="margin:0">${kv("Revenus fixes remis à zéro", R.rev)}${kv("Charges fixes remises à zéro", R.ch)}${kv("Enveloppes remises à zéro (budgets de mois)", R.env)}${kv("Lignes ponctuelles supprimées", R.ponct)}${kv("Enveloppes supprimées (budget 0)", R.envDel)}</div>
+    <div class="card" style="margin:0"><div class="small muted">Il reste maintenant :</div>${kv("Revenus fixes", R.revTot + " (avant : " + R.revAvant + ")")}${kv("Charges fixes", R.chTot + " (avant : " + R.chAvant + ")")}${kv("Enveloppes", R.envTot + " (avant : " + R.envAvant + ")")}</div>
+    <div class="small muted">« Remis à zéro » = lignes qui avaient au moins un mois rempli (pointé ou montant saisi). Les montants habituels, le journal et l'épargne n'ont pas changé.</div>
+    <div class="btns"><button class="btn" data-act="sheetclose" style="flex:1">Fermer</button></div>`);
+}
+
+/* ============ Historique des années (archives) ============ */
+const sum12 = (A, f) => A.months.reduce((t, x) => t + N(f(x)), 0);
+function viewHist(){
+  const back = `<div class="top"><button class="btn ghost sm" data-act="tab" data-v="set">‹ Réglages</button><div class="app">Historique</div></div>`;
+  const AR = S.archives || [];
+  if (!AR.length) return back + `<div class="card"><h2>Pas encore d'archive</h2><div class="small muted">À chaque remise à zéro de fin d'année, l'appli fige ici les chiffres des 12 mois de l'année écoulée : revenus, dépenses, épargne, résultat et dépenses par catégorie. La première archive apparaîtra à la fin de la période de décembre.</div></div>`;
+  const A = AR.find(a => a.year === V.hy) || AR[0];
+  const rev = sum12(A, x => x.revenus), dep = sum12(A, x => x.depenses), epa = sum12(A, x => x.epargne), res = sum12(A, x => x.resultat), fxc = sum12(A, x => x.fixCh);
+  const act = A.months.filter(x => N(x.revenus) || N(x.depenses));
+  const best = act.slice().sort((a,b) => b.resultat - a.resultat)[0], worst = act.slice().sort((a,b) => a.resultat - b.resultat)[0];
+  const cats = {}; A.months.forEach(x => Object.entries(x.cats || {}).forEach(([k,v]) => { cats[k] = (cats[k] || 0) + v; }));
+  const parts = Object.entries(cats).concat([["Charges fixes", fxc]]).filter(([,v]) => v > 0).sort((a,b) => b[1] - a[1]);
+  const tot = parts.reduce((t,[,v]) => t + v, 0) || 1;
+  const bud = {}; A.months.forEach(x => (x.envs || []).forEach(e => { bud[e.n] = (bud[e.n] || 0) + N(e.bud); }));
+  const kv = (l,v,cl) => `<div class="kv"><span>${l}</span><span class="num ${cl||""}">${v}</span></div>`;
+  const pct = v => (Math.round(v / tot * 1000) / 10).toLocaleString("fr-FR") + " %";
+  return back + `<div class="seg" style="margin:0 0 4px">${AR.map(a => `<button class="${a.year === A.year ? "on" : ""}" data-act="hy" data-v="${a.year}">${a.year}</button>`).join("")}</div>
+  <div class="card"><h2>Année ${A.year}</h2>
+    ${kv("Revenus", eur(rev), "pos")}${kv("Dépenses (fixes + courantes)", eur(dep))}${kv("Épargne", eur(epa))}${kv("Résultat de l'année", eur(res), res < 0 ? "neg" : "pos")}
+    ${kv("Dépenses moyennes par mois", eur(dep / (act.length || 1)))}
+    ${best ? kv("Meilleur mois", MOIS[best.m] + " (" + eur(best.resultat) + ")") : ""}${worst ? kv("Mois le plus serré", MOIS[worst.m] + " (" + eur(worst.resultat) + ")") : ""}</div>
+  <div class="card"><h2>Où est parti l'argent</h2><div class="small muted">Part de chaque catégorie dans les dépenses de l'année (charges fixes comprises).</div>
+    <div class="rows">${parts.map(([k,v]) => `<div class="row" style="flex-wrap:wrap"><div class="main"><div class="t">${dotHtml(k,true)}${esc(k)}</div><div class="s">${pct(v)}${bud[k] ? " · budget annuel " + eur(bud[k]) + " (" + Math.round(v / bud[k] * 100) + " % utilisé)" : ""}</div></div><div class="amt num">${eur(v)}</div><div class="bar" style="flex-basis:100%"><i style="width:${Math.min(100, v / tot * 100)}%"></i></div></div>`).join("")}</div></div>
+  <div class="card"><h2>Mois par mois</h2><div class="rows">${A.months.map(x => `<div class="row"><div class="main"><div class="t">${MOIS[x.m]}</div><div class="s">Revenus ${eur(x.revenus)} · Dépenses ${eur(x.depenses)}</div></div><div class="amt num ${x.resultat < 0 ? "neg" : "pos"}">${eur(x.resultat)}</div></div>`).join("")}</div></div>
+  <div class="small muted">Archive figée le ${frDate(new Date(A.at).toISOString().slice(0,10))}/${new Date(A.at).getFullYear()}. Lecture seule. Ces chiffres sont aussi dans l'export Excel (feuille Archives_appli) et dans la sauvegarde .json.</div>`;
 }
 
 function render(){
@@ -1214,8 +1283,8 @@ function render(){
   renderTabs();
   const main = $("#main");
   const keepY = (V.lt === V.tab && V.lm === V.m && V.ly === V.y) ? window.scrollY : 0;
-  main.innerHTML = V.tab === "home" ? viewHome() : V.tab === "month" ? viewMonth() : V.tab === "add" ? viewAdd() : V.tab === "fix" ? viewFix() : V.tab === "sav" ? viewSav() : V.tab === "web" ? viewWeb() : V.tab === "bank" ? viewBank() : viewSet();
-  { const hk = {home:"home",month:"month",add:"add",fix:"fix",sav:"sav",web:"web",set:"set",bank:"bank"}[V.tab]; const tp = hk && main.querySelector(".top"); if (tp){ const r = tp.querySelector(".app"); (r || tp).insertAdjacentHTML("beforeend", helpBtn(hk)); } }
+  main.innerHTML = V.tab === "home" ? viewHome() : V.tab === "month" ? viewMonth() : V.tab === "add" ? viewAdd() : V.tab === "fix" ? viewFix() : V.tab === "sav" ? viewSav() : V.tab === "web" ? viewWeb() : V.tab === "bank" ? viewBank() : V.tab === "hist" ? viewHist() : viewSet();
+  { const hk = {home:"home",month:"month",add:"add",fix:"fix",sav:"sav",web:"web",set:"set",bank:"bank",hist:"hist"}[V.tab]; const tp = hk && main.querySelector(".top"); if (tp){ const r = tp.querySelector(".app"); (r || tp).insertAdjacentHTML("beforeend", helpBtn(hk)); } }
   if (V.tab === "add") updateInfo();
   V.lt = V.tab; V.lm = V.m; V.ly = V.y;
   window.scrollTo(0, keepY);
@@ -1334,7 +1403,7 @@ function sheetDiff(){
 }
 function commitImport(replace){
   const p = V.pending; if (!p) return;
- const keepWeb = S.web || [], keepSeen = S.webSeen, keepCats = S.webCatList, keepBank = S.bank, keepRules = S.rules, keepLB = S.lastBackup, keepAc = S.accts, keepMvv = S.acctMv;
+ const keepWeb = S.web || [], keepSeen = S.webSeen, keepCats = S.webCatList, keepBank = S.bank, keepRules = S.rules, keepLB = S.lastBackup, keepAc = S.accts, keepMvv = S.acctMv, keepArch = S.archives, keepYR = S.yearRecap, keepFY = S.fixYear;
   const prevPay = S.settings.payday; if (replace && p.kind === "classeur"){ const prevCats = S.settings.cats; S = p.data; S.demo = false; if (!S.settings.cats.length) S.settings.cats = prevCats; V.msg = "Données remplacées par le classeur."; }
   else if (replace && p.kind === "echange"){ const f = p.full; const base = emptyData();
     S = Object.assign(base,{journal:p.rows}); if (f.settings) S.settings = f.settings; if (f.fixRev) S.fixRev = f.fixRev; if (f.fixCh) S.fixCh = f.fixCh; if (f.epargne) S.epargne = f.epargne; if (f.accts){ S.accts = f.accts; S.acctMv = f.acctMv; }
@@ -1361,7 +1430,7 @@ function commitImport(replace){
       S.seen = seenOf(p); }
   }
   if (replace && S.settings && S.settings.payday === undefined && prevPay !== undefined) S.settings.payday = prevPay;
-  if (replace && p.kind !== "json"){ S.web = keepWeb; S.webSeen = keepSeen; S.webCatList = keepCats; S.bank = keepBank; S.rules = keepRules; S.lastBackup = keepLB; if (!(p.kind === "echange" && p.full.accts)){ S.accts = keepAc || []; S.acctMv = keepMvv || []; } }
+  if (replace && p.kind !== "json"){ S.web = keepWeb; S.webSeen = keepSeen; S.webCatList = keepCats; S.bank = keepBank; S.rules = keepRules; S.lastBackup = keepLB; S.archives = keepArch; S.yearRecap = keepYR; if (keepFY !== undefined) S.fixYear = keepFY; if (!(p.kind === "echange" && p.full.accts)){ S.accts = keepAc || []; S.acctMv = keepMvv || []; } }
   V.diff = (!replace && p.kind === "echange") ? diffRef(p) : null;
   V.pending = null; migrate(); persist(); render();
   if (V.diff && V.diff.length) sheetDiff();
@@ -1374,6 +1443,8 @@ document.addEventListener("click", ev => {
     case "tab": V.webMsg = ""; if (V.tab === "add") collectDraft(); if (b.dataset.v === "add" && V.tab !== "add"){ V.editId = null; V.draft = null; } V.tab = b.dataset.v; render(); break;
     case "help": sheetHelp(b.dataset.v); break;
     case "yr-reset": yearReset(+b.dataset.v); break;
+    case "recap": sheetRecap(); break;
+    case "hy": V.hy = +b.dataset.v; render(); break;
     case "yr-save": { const cy = curPeriod().y; saveFile("mes-comptes-sauvegarde.json", JSON.stringify(S,null,1), "application/json").then(ok => { if (ok){ S.lastBackup = Date.now(); yearReset(cy); } }); break; }
     case "guide": sheetGuide(); break;
     case "w-next": collectWiz(); if (V.wiz.step < WIZ_STEPS.length - 1) V.wiz.step++; V.wizTop = true; render(); break;
