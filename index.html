@@ -780,7 +780,8 @@ function viewMonth(){
   const c = calc(V.m,V.y);
   const show = (kind,rows) => rows.filter(r => !V.hidePast || fixState(r,V.m,V.y).k !== "ok");
   const revRows = show("rev",S.fixRev), chRows = show("ch",S.fixCh);
-  const J = live().filter(j => inMonth(j,V.m,V.y)).sort((a,b) => b.date.localeCompare(a.date) || b.upd - a.upd);
+  const J0 = live().filter(j => inMonth(j,V.m,V.y)).sort((a,b) => b.date.localeCompare(a.date) || b.upd - a.upd);
+  const J = V.hidePast ? J0.filter(j => j.pointe !== "x") : J0;
   const jHtml = J.length ? J.map(j => {
     const sign = j.type === "Revenu" || j.type === "Retrait du Livret A" ? 1 : -1;
     const wait = j.type === "Avance (à rembourser)" && !j.remb, recv = j.type === "Revenu" && j.pointe !== "x";
@@ -788,7 +789,7 @@ function viewMonth(){
       <button class="rowbtn" data-act="jedit" data-id="${j.id}"><div class="t">${esc(j.lib || j.cat || j.type)}</div>
       <div class="s">${frDate(j.date)} · ${esc(j.cat || TYPE_SHORT[j.type])}${wait ? ' · <span class="chip warn">à rembourser</span>' : ""}${recv ? ' · <span class="chip warn">à recevoir</span>' : ""}</div></button>
       <div class="amt num ${sign>0?"pos":""}">${sign>0?"+":"−"} ${eur(j.montant)}</div></div>`;
-  }).join("") : `<div class="empty">Aucune opération ce mois-ci.</div>`;
+  }).join("") : `<div class="empty">${J0.length ? "Tout est pointé. Touche « Masquer les pointés » pour tout revoir." : "Aucune opération ce mois-ci."}</div>`;
   const kv = (l,v,cl) => `<div class="kv"><span>${l}</span><span class="num ${cl||""}">${eur(v)}</span></div>`;
   const pv = prevMY(V.m,V.y);
   const carried = cutsOf()[ckey(V.m,V.y)] ? [["rev",S.fixRev],["ch",S.fixCh]].flatMap(([k,rows]) => rows.filter(r => N(r.montant) > 0 || isNum(r.m[pv.m])).filter(r => fixState(r,pv.m,pv.y).k !== "ok").map(r => fixRowHtml(k,r,pv))) : [];
@@ -798,21 +799,26 @@ function viewMonth(){
       <button class="rowbtn" data-act="jedit" data-id="${j.id}"><div class="t">${esc(j.lib || j.cat || j.type)} <span class="muted small">(${MOIS[pv.m].toLowerCase()})</span></div><div class="s">${frDate(j.date)} · ${esc(j.cat || TYPE_SHORT[j.type])}</div></button>
       <div class="amt num ${sg>0?"pos":""}">${sg>0?"+":"−"} ${eur(j.montant)}</div></div>`); }
   const carryHtml = carried.length ? `<div class="card"><h2>Repris de ${MOIS[pv.m].toLowerCase()}</h2><div class="small muted">Éléments de ${MOIS[pv.m].toLowerCase()} pas encore pointés (fixes et opérations) : leur montant est déjà réservé dans votre reste à vivre. Touchez le rond quand ils sont passés.</div><div class="rows">${carried.join("")}</div></div>` : "";
+  const fixCard = `  <div class="card"><div class="top"><h2>Fixes et revenus</h2>
+    <div class="seg"><button class="${V.hidePast?"on":""}" data-act="hidepast">Masquer les pointés</button></div></div>
+    <div class="small muted">Touchez le rond pour pointer. Touchez la ligne pour saisir un montant différent ce mois-ci.</div>
+    <div class="btns"><button class="btn ghost sm" data-act="fixmonthnew" data-k="rev">+ Revenu pour ce mois</button><button class="btn ghost sm" data-act="fixmonthnew" data-k="ch">+ Charge pour ce mois</button></div>
+    <div><div class="small muted" style="margin-top:4px">Revenus</div><div class="rows">${revRows.length ? revRows.map(r => fixRowHtml("rev",r)).join("") : '<div class="empty">Rien à pointer.</div>'}</div></div>
+    <div><div class="small muted">Charges fixes</div><div class="rows">${chRows.length ? chRows.map(r => fixRowHtml("ch",r)).join("") : '<div class="empty">Rien à pointer.</div>'}</div></div></div>`;
+  const opsCard = `  <div class="card"><div class="top"><h2>Opérations du mois</h2><button class="btn ghost sm" data-act="jsearch">🔍 Rechercher</button></div><div class="rows">${jHtml}</div></div>`;
+  const mvv = V.mv || lsGet("mc-mview") || "all";
+  const mvBar = `<div class="seg" style="margin:2px 0 10px">${[["all","Tout"],["fix","Fixes"],["ops","Opérations"]].map(([k,l]) => `<button class="${mvv === k ? "on" : ""}" data-act="mview" data-v="${k}">${l}</button>`).join("")}</div>`;
   return topbar() + `
   <div class="card"><div class="top"><h2>Bilan du mois</h2><button class="btn ghost sm" data-act="exopen">Exporter</button></div>
     <div class="tiles"><div class="tile"><span>Revenus</span><b class="num pos">${eur(c.revenus)}</b></div><div class="tile"><span>Dépenses</span><b class="num">${eur(c.depenses)}</b></div><div class="tile"><span>Résultat</span><b class="num ${c.resultat<0?"neg":"pos"}">${eur(c.resultat)}</b></div></div>
     ${kv("Épargne du mois",c.epargne)}
     <details><summary><span class="small">Comment c'est calculé ?</span><span class="muted small">voir</span></summary>
       <div class="small muted" style="margin-top:6px"><b>Revenus</b> = tes revenus fixes prévus ce mois-ci (même pas encore reçus) + les revenus ajoutés au journal.<br><b>Dépenses</b> = tes charges fixes prévues (même pas encore passées) + les dépenses du journal, hors épargne.<br><b>Résultat</b> = revenus − dépenses − épargne. Il dit si le mois est équilibré, quel que soit le solde de ton compte.<br><b>Épargne du mois</b> = ce que tu as versé vers le Livret A ce mois-ci.</div></details></div>
-  ${splitCard(c)}
-  <div class="card"><div class="top"><h2>Fixes et revenus</h2>
-    <div class="seg"><button class="${V.hidePast?"on":""}" data-act="hidepast">Masquer les pointés</button></div></div>
-    <div class="small muted">Touchez le rond pour pointer. Touchez la ligne pour saisir un montant différent ce mois-ci.</div>
-    <div class="btns"><button class="btn ghost sm" data-act="fixmonthnew" data-k="rev">+ Revenu pour ce mois</button><button class="btn ghost sm" data-act="fixmonthnew" data-k="ch">+ Charge pour ce mois</button></div>
-    <div><div class="small muted" style="margin-top:4px">Revenus</div><div class="rows">${revRows.length ? revRows.map(r => fixRowHtml("rev",r)).join("") : '<div class="empty">Rien à pointer.</div>'}</div></div>
-    <div><div class="small muted">Charges fixes</div><div class="rows">${chRows.length ? chRows.map(r => fixRowHtml("ch",r)).join("") : '<div class="empty">Rien à pointer.</div>'}</div></div></div>
+  ${mvBar}
+  ${mvv === "all" ? splitCard(c) : ""}
+  ${mvv !== "ops" ? fixCard : ""}
   ${carryHtml}
-  <div class="card"><div class="top"><h2>Opérations du mois</h2><button class="btn ghost sm" data-act="jsearch">🔍 Rechercher</button></div><div class="rows">${jHtml}</div></div>`;
+  ${mvv !== "fix" ? opsCard : ""}`;
 }
 
 function catOptions(sel){
@@ -1158,6 +1164,8 @@ const HELP = {
     "<b>Enveloppes</b> : un budget par catégorie (Nourriture, Essence…). Barre verte = tout va bien, orange = presque atteint, rouge = dépassé. Touche une enveloppe pour changer son budget <b>de ce mois seulement</b>.",
     "<b>À mettre de côté en fin de mois</b> : ce que tu pourrais épargner si tu dépensais tous tes budgets.","<b>Clôture fin de mois</b> : à faire à chaque fin de mois, que tu sois payé à la date habituelle ou plus tôt (exemple : payé le 23 au lieu du 25). Le bouton est en bas de cette carte. Tu indiques : 1) le solde réel de ton compte (paie comprise) ; 2) la paie déjà reçue (case à cocher avec le montant réel, ou le champ « paie / revenu déjà reçu »). L'appli calcule alors : solde − paie − ce qui doit encore partir du compte (charges fixes et dépenses non pointées) = ce que tu peux vraiment mettre de côté. Elle le compare à l'épargne prévue (ton enveloppe d'épargne) et te propose le total, que tu peux modifier.","<b>Quand tu valides</b> : 1) le nouveau mois démarre (aujourd'hui si tu es payé plus tôt, cette fois seulement) ; 2) les opérations non pointées du journal restent datées dans leur mois d'origine (elles comptent dans les enveloppes de ce mois-là) ; 3) leur montant et celui des fixes non pointés sont repris dans le reste à vivre du nouveau mois, dans une carte « Repris de … » : ils ne consomment pas les enveloppes du nouveau mois, et disparaissent de la carte dès que tu les pointes ; 4) le Livret A reçoit tout de suite deux lignes : l'épargne prévue, puis le surplus ; 5) le solde du compte baisse du montant mis de côté, donc l'argent des prélèvements à venir reste sur le compte et tu ne passes pas à découvert. Pense à faire le virement réel vers ton Livret A. Si le montant reçu diffère du prévu, le montant du mois suivant est mis à jour.","<b>Se tromper ?</b> Réglages → Données → « Annuler la dernière clôture de mois » remet tout comme avant (opérations, solde, Livret A)."]},
   month:{t:"Le mois", p:[
+    "<b>Tout / Fixes / Opérations</b> : sous le bilan, trois boutons choisissent ce qui s'affiche. « Fixes » montre seulement les fixes et revenus, « Opérations » seulement les opérations du mois (plus besoin de faire défiler les fixes), « Tout » affiche tout. Ton choix est retenu.",
+    "<b>Masquer les pointés</b> : ce bouton cache les lignes déjà pointées, à la fois dans les fixes et dans les opérations du mois : il ne reste que ce qu'il reste à pointer. Touche-le de nouveau pour tout voir.",
     "<b>Rechercher</b> : le bouton « 🔍 Rechercher » (dans Opérations du mois) cherche dans tout le journal, tous mois confondus : un mot (Amazon), un montant (93), une catégorie ou une date. Touche un résultat pour le modifier.",
     "<b>Exporter le bilan</b> : le bouton « Exporter » du Bilan du mois crée un fichier Excel (.xlsx) ou un PDF avec le bilan, les fixes et les opérations du mois.",
     "<b>Dupliquer une opération</b> : ouvre une opération, touche « Dupliquer » : une copie datée d'aujourd'hui est prête, tu modifies ce qui change puis tu enregistres.",
@@ -1648,6 +1656,7 @@ document.addEventListener("click", ev => {
     case "w-import": S = emptyData(); V.wiz = null; V.tab = "set"; V.msg = "Choisis ton fichier dans « Synchroniser avec Excel » (bouton Importer un fichier)."; persist(); render(); break;
     case "w-demo": S = demoData(); V.wiz = null; persist(); render(); break;
     case "mprev": setMonth(-1); break; case "mnext": setMonth(1); break;
+    case "mview": V.mv = b.dataset.v; lsSet("mc-mview", V.mv); render(); break;
     case "hidepast": V.hidePast = !V.hidePast; render(); break;
     case "fixtoggle": { const r = findFix(k,id), mi = b.dataset.pm !== undefined ? +b.dataset.pm : V.m; r.m[mi] = r.m[mi] === "x" ? "" : "x"; persist(); render(); break; }
     case "fixmonth": V.fmdel = null; sheetMonth(k,id); break;
@@ -1995,6 +2004,9 @@ document.addEventListener("change", ev => { if (ev.target.id === "sch-a" || ev.t
 applyTheme();
 /* ===== Historique des mises à jour ===== */
 const CHANGELOG = [
+ {v:"2.4", d:"Octobre 2026", t:"Onglets du mois et pointés masqués", i:[
+  "Nouveaux onglets Tout / Fixes / Opérations dans l'écran Mois : tu affiches seulement la partie qui t'intéresse, sans faire défiler tous les fixes. Ton choix est retenu.",
+  "« Masquer les pointés » cache aussi les opérations déjà pointées dans « Opérations du mois » (pas seulement les fixes). Touche-le de nouveau pour tout revoir."]},
  {v:"2.3", d:"Octobre 2026", t:"Ajout rapide", i:[
   "Modèles d'opérations récurrentes : un appui pré-remplit le formulaire.",
   "Correctif : l'écran de démarrage, la fenêtre de mise à jour et le rappel fonctionnent aussi avec le code.",
