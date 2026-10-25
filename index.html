@@ -800,14 +800,14 @@ function viewMonth(){
       <div class="amt num ${sg>0?"pos":""}">${sg>0?"+":"−"} ${eur(j.montant)}</div></div>`); }
   const carryHtml = carried.length ? `<div class="card"><h2>Repris de ${MOIS[pv.m].toLowerCase()}</h2><div class="small muted">Éléments de ${MOIS[pv.m].toLowerCase()} pas encore pointés (fixes et opérations) : leur montant est déjà réservé dans votre reste à vivre. Touchez le rond quand ils sont passés.</div><div class="rows">${carried.join("")}</div></div>` : "";
   const fixCard = `  <div class="card"><div class="top"><h2>Fixes et revenus</h2>
-    <div class="seg"><button class="${V.hidePast?"on":""}" data-act="hidepast">Masquer les pointés</button></div></div>
+</div>
     <div class="small muted">Touchez le rond pour pointer. Touchez la ligne pour saisir un montant différent ce mois-ci.</div>
     <div class="btns"><button class="btn ghost sm" data-act="fixmonthnew" data-k="rev">+ Revenu pour ce mois</button><button class="btn ghost sm" data-act="fixmonthnew" data-k="ch">+ Charge pour ce mois</button></div>
     <div><div class="small muted" style="margin-top:4px">Revenus</div><div class="rows">${revRows.length ? revRows.map(r => fixRowHtml("rev",r)).join("") : '<div class="empty">Rien à pointer.</div>'}</div></div>
     <div><div class="small muted">Charges fixes</div><div class="rows">${chRows.length ? chRows.map(r => fixRowHtml("ch",r)).join("") : '<div class="empty">Rien à pointer.</div>'}</div></div></div>`;
   const opsCard = `  <div class="card"><div class="top"><h2>Opérations du mois</h2><button class="btn ghost sm" data-act="jsearch">🔍 Rechercher</button></div><div class="rows">${jHtml}</div></div>`;
   const mvv = V.mv || lsGet("mc-mview") || "all";
-  const mvBar = `<div class="seg" style="margin:2px 0 10px">${[["all","Tout"],["fix","Fixes"],["ops","Opérations"]].map(([k,l]) => `<button class="${mvv === k ? "on" : ""}" data-act="mview" data-v="${k}">${l}</button>`).join("")}</div>`;
+  const mvBar = `<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin:2px 0 10px"><div class="seg">${[["all","Tout"],["fix","Fixes"],["ops","Opérations"]].map(([k,l]) => `<button class="${mvv === k ? "on" : ""}" data-act="mview" data-v="${k}">${l}</button>`).join("")}</div><div class="seg"><button class="${V.hidePast ? "on" : ""}" data-act="hidepast">Masquer les pointés</button></div></div>`;
   return topbar() + `
   <div class="card"><div class="top"><h2>Bilan du mois</h2><button class="btn ghost sm" data-act="exopen">Exporter</button></div>
     <div class="tiles"><div class="tile"><span>Revenus</span><b class="num pos">${eur(c.revenus)}</b></div><div class="tile"><span>Dépenses</span><b class="num">${eur(c.depenses)}</b></div><div class="tile"><span>Résultat</span><b class="num ${c.resultat<0?"neg":"pos"}">${eur(c.resultat)}</b></div></div>
@@ -1110,10 +1110,11 @@ function viewSet(){
     <div class="btns"><button class="btn ${lsGet("mc-remind") === "off" ? "ghost" : ""}" data-act="remind-toggle">${lsGet("mc-remind") === "off" ? "Rappel désactivé · activer" : "Rappel activé · désactiver"}</button><button class="btn ghost" data-act="pt-open">Voir maintenant</button></div></div>
   <div class="card"><h2>Synchroniser avec Excel</h2>
     <div class="small muted">Le fichier d'échange contient toutes les opérations avec un identifiant. Importez-le à nouveau pour fusionner : les lignes déjà connues sont mises à jour, les nouvelles sont ajoutées.</div>
-    <div class="btns"><button class="btn" data-act="exp-journal">Exporter le journal (.xlsx)</button>
-    <button class="btn ghost" data-act="exp-json">Sauvegarde complète (.json)</button></div>
+    <div class="btns"><button class="btn" data-act="exp-journal">Exporter le journal (.xlsx)</button></div>
+    <div class="info">📁 Enregistre ce fichier dans le dossier <b>IMPORT</b> d'Excel : c'est là qu'Excel va le chercher.</div>
+    <div class="btns"><button class="btn ghost" data-act="exp-json">Sauvegarde complète (.json)</button></div>
     <div class="small muted">${bkpAge() === null ? "Aucune sauvegarde complète faite pour l'instant." : "Dernière sauvegarde complète : " + (bkpAge() === 0 ? "aujourd'hui" : "il y a " + bkpAge() + " jour(s)") + "."} Un rappel s'affiche en haut après 14 jours.</div>
-    <label class="f">Importer un fichier (classeur .xlsm / .xlsx, journal d'échange, sauvegarde .json)<input id="file" type="file" accept=".xlsm,.xlsx,.json,.xls"></label></div>
+    <label class="f"><b>Importer le journal</b> (fichier venant d'Excel : classeur .xlsm / .xlsx, journal d'échange, ou sauvegarde .json)<input id="file" type="file" accept=".xlsm,.xlsx,.json,.xls"></label></div>
   <div class="card"><h2>Apparence</h2><div class="small muted">Couleur de l'appli</div><div class="pal">${Object.keys(PALS).map(k => `<button class="${(lsGet("mc-pal") || "emeraude") === k ? "on" : ""}" data-act="pal" data-v="${k}" aria-label="${PALS[k].n}" title="${PALS[k].n}" style="background-color:${k === "emeraude" ? "#0E6B5C" : PALS[k].l[0]}"></button>`).join("")}</div><div class="small muted" style="margin-top:8px">Mode</div><div class="seg">${[["auto","Automatique"],["light","Clair"],["dark","Sombre"],["sched","Horaires"]].map(([k,l]) => `<button class="${(lsGet("mc-theme") || "auto") === k ? "on" : ""}" data-act="theme" data-v="${k}">${l}</button>`).join("")}</div>
     <div class="small muted">Automatique suit le réglage de ton téléphone (Réglages → Affichage et luminosité). Horaires : tu choisis toi-même quand l'appli passe en sombre.</div>
     ${lsGet("mc-theme") === "sched" ? `<div class="grid2" style="margin-top:8px"><label class="f">Sombre à partir de<input id="sch-a" type="time" value="${schedGet()[0]}"></label><label class="f">Clair à partir de<input id="sch-b" type="time" value="${schedGet()[1]}"></label></div>` : ""}</div>
@@ -1165,7 +1166,7 @@ const HELP = {
     "<b>À mettre de côté en fin de mois</b> : ce que tu pourrais épargner si tu dépensais tous tes budgets.","<b>Clôture fin de mois</b> : à faire à chaque fin de mois, que tu sois payé à la date habituelle ou plus tôt (exemple : payé le 23 au lieu du 25). Le bouton est en bas de cette carte. Tu indiques : 1) le solde réel de ton compte (paie comprise) ; 2) la paie déjà reçue (case à cocher avec le montant réel, ou le champ « paie / revenu déjà reçu »). L'appli calcule alors : solde − paie − ce qui doit encore partir du compte (charges fixes et dépenses non pointées) = ce que tu peux vraiment mettre de côté. Elle le compare à l'épargne prévue (ton enveloppe d'épargne) et te propose le total, que tu peux modifier.","<b>Quand tu valides</b> : 1) le nouveau mois démarre (aujourd'hui si tu es payé plus tôt, cette fois seulement) ; 2) les opérations non pointées du journal restent datées dans leur mois d'origine (elles comptent dans les enveloppes de ce mois-là) ; 3) leur montant et celui des fixes non pointés sont repris dans le reste à vivre du nouveau mois, dans une carte « Repris de … » : ils ne consomment pas les enveloppes du nouveau mois, et disparaissent de la carte dès que tu les pointes ; 4) le Livret A reçoit tout de suite deux lignes : l'épargne prévue, puis le surplus ; 5) le solde du compte baisse du montant mis de côté, donc l'argent des prélèvements à venir reste sur le compte et tu ne passes pas à découvert. Pense à faire le virement réel vers ton Livret A. Si le montant reçu diffère du prévu, le montant du mois suivant est mis à jour.","<b>Se tromper ?</b> Réglages → Données → « Annuler la dernière clôture de mois » remet tout comme avant (opérations, solde, Livret A)."]},
   month:{t:"Le mois", p:[
     "<b>Tout / Fixes / Opérations</b> : sous le bilan, trois boutons choisissent ce qui s'affiche. « Fixes » montre seulement les fixes et revenus, « Opérations » seulement les opérations du mois (plus besoin de faire défiler les fixes), « Tout » affiche tout. Ton choix est retenu.",
-    "<b>Masquer les pointés</b> : ce bouton cache les lignes déjà pointées, à la fois dans les fixes et dans les opérations du mois : il ne reste que ce qu'il reste à pointer. Touche-le de nouveau pour tout voir.",
+    "<b>Masquer les pointés</b> : ce bouton (à droite des onglets Tout/Fixes/Opérations) cache les lignes déjà pointées, à la fois dans les fixes et dans les opérations du mois : il ne reste que ce qu'il reste à pointer. Touche-le de nouveau pour tout voir.",
     "<b>Rechercher</b> : le bouton « 🔍 Rechercher » (dans Opérations du mois) cherche dans tout le journal, tous mois confondus : un mot (Amazon), un montant (93), une catégorie ou une date. Touche un résultat pour le modifier.",
     "<b>Exporter le bilan</b> : le bouton « Exporter » du Bilan du mois crée un fichier Excel (.xlsx) ou un PDF avec le bilan, les fixes et les opérations du mois.",
     "<b>Dupliquer une opération</b> : ouvre une opération, touche « Dupliquer » : une copie datée d'aujourd'hui est prête, tu modifies ce qui change puis tu enregistres.",
@@ -1200,6 +1201,7 @@ const HELP = {
     "<b>C'est quoi ?</b> Un carnet pour retrouver tes sites et comptes en ligne (banque, achats, administratif…).",
     "Note le site, l'identifiant, la catégorie et l'état (« À changer », « Changé », « OK »). <b>Ne mets jamais tes mots de passe</b> : ils sont à garder dans un gestionnaire de mots de passe."]},
   set:{t:"Les réglages", p:[
+    "<b>Dossier IMPORT</b> : « Exporter le journal » crée le fichier à donner à Excel. Enregistre-le toujours dans le dossier <b>IMPORT</b> d'Excel (il est déjà créé) pour ne pas te tromper. Pour l'autre sens, « Importer le journal » prend le fichier préparé par Excel.",
     "<b>Écran au démarrage</b> : choisis si l'appli s'ouvre sur l'Accueil ou directement sur Ajouter. Sur ordinateur et Android, un appui long sur l'icône propose aussi « Ajouter une opération » (non disponible sur iPhone).",
     "<b>Synchroniser avec Excel</b> : exporte ton journal vers Excel ou importe un classeur. C'est facultatif.",
     "<b>Sauvegarde complète (.json)</b> : une copie de toutes tes données à garder (dans ton cloud, par mail…). À refaire de temps en temps : un rappel s'affiche après 14 jours.",
@@ -2006,6 +2008,7 @@ applyTheme();
 const CHANGELOG = [
  {v:"2.4", d:"Octobre 2026", t:"Onglets du mois et pointés masqués", i:[
   "Nouveaux onglets Tout / Fixes / Opérations dans l'écran Mois : tu affiches seulement la partie qui t'intéresse, sans faire défiler tous les fixes. Ton choix est retenu.",
+  "Réglages : « Exporter le journal » rappelle d'enregistrer le fichier dans le dossier IMPORT d'Excel, et le champ d'import s'appelle « Importer le journal ».",
   "« Masquer les pointés » cache aussi les opérations déjà pointées dans « Opérations du mois » (pas seulement les fixes). Touche-le de nouveau pour tout revoir."]},
  {v:"2.3", d:"Octobre 2026", t:"Ajout rapide", i:[
   "Modèles d'opérations récurrentes : un appui pré-remplit le formulaire.",
