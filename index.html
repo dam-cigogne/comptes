@@ -61,6 +61,10 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-siz
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
   padding-block:0 110px;-webkit-tap-highlight-color:transparent}
 body{zoom:var(--z,1)}
+html.cols .wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(370px,1fr));gap:14px;align-items:start;max-width:none}
+html.cols .wrap > .top, html.cols .wrap > .banner, html.cols .wrap > .hero, html.cols .wrap > .spanall, html.cols .wrap > .info{grid-column:1/-1}
+html.cols nav.tabs .in{max-width:760px}
+html.cols #sheet{max-width:680px}
 .wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:14px;padding-top:14px}
 h1,h2,h3{font-family:var(--font-display);margin:0;text-wrap:balance}
 h2{font-size:17px;letter-spacing:.01em}
@@ -808,7 +812,7 @@ function viewMonth(){
     <div><div class="small muted">Charges fixes</div><div class="rows">${chRows.length ? chRows.map(r => fixRowHtml("ch",r)).join("") : '<div class="empty">Rien à pointer.</div>'}</div></div></div>`;
   const opsCard = `  <div class="card"><div class="top"><h2>Opérations du mois</h2><button class="btn ghost sm" data-act="jsearch">🔍 Rechercher</button></div><div class="rows">${jHtml}</div></div>`;
   const mvv = V.mv || lsGet("mc-mview") || "all";
-  const mvBar = `<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin:2px 0 10px"><div class="seg">${[["all","Tout"],["fix","Fixes"],["ops","Opérations"]].map(([k,l]) => `<button class="${mvv === k ? "on" : ""}" data-act="mview" data-v="${k}">${l}</button>`).join("")}</div><div class="seg"><button class="${V.hidePast ? "on" : ""}" data-act="hidepast">Masquer les pointés</button></div></div>`;
+  const mvBar = `<div class="spanall" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin:2px 0 10px"><div class="seg">${[["all","Tout"],["fix","Fixes"],["ops","Opérations"]].map(([k,l]) => `<button class="${mvv === k ? "on" : ""}" data-act="mview" data-v="${k}">${l}</button>`).join("")}</div><div class="seg"><button class="${V.hidePast ? "on" : ""}" data-act="hidepast">Masquer les pointés</button></div></div>`;
   return topbar() + `
   <div class="card"><div class="top"><h2>Bilan du mois</h2><button class="btn ghost sm" data-act="exopen">Exporter</button></div>
     <div class="tiles"><div class="tile"><span>Revenus</span><b class="num pos">${eur(c.revenus)}</b></div><div class="tile"><span>Dépenses</span><b class="num">${eur(c.depenses)}</b></div><div class="tile"><span>Résultat</span><b class="num ${c.resultat<0?"neg":"pos"}">${eur(c.resultat)}</b></div></div>
@@ -1120,7 +1124,8 @@ function viewSet(){
     <div class="small muted">Automatique suit le réglage de ton téléphone (Réglages → Affichage et luminosité). Horaires : tu choisis toi-même quand l'appli passe en sombre.</div>
     ${lsGet("mc-theme") === "sched" ? `<div class="grid2" style="margin-top:8px"><label class="f">Sombre à partir de<input id="sch-a" type="time" value="${schedGet()[0]}"></label><label class="f">Clair à partir de<input id="sch-b" type="time" value="${schedGet()[1]}"></label></div>` : ""}</div>
   <div class="card"><h2>Taille de l'affichage</h2><div class="small muted">Automatique agrandit l'appli sur tablette et grand écran. Tu peux aussi choisir toi-même (jusqu'à « Maximum »).</div>
-    <div class="seg" style="margin-top:6px">${[["auto","Automatique"],["1","Normal"],["1.25","Grand"],["1.5","Très grand"],["1.75","Maximum"]].map(([k,l]) => `<button class="${(lsGet("mc-zoom") || "auto") === k ? "on" : ""}" data-act="zoom" data-v="${k}">${l}</button>`).join("")}</div></div>
+    <div class="seg" style="margin-top:6px">${[["auto","Automatique"],["1","Normal"],["1.25","Grand"],["1.5","Très grand"],["1.75","Maximum"]].map(([k,l]) => `<button class="${(lsGet("mc-zoom") || "auto") === k ? "on" : ""}" data-act="zoom" data-v="${k}">${l}</button>`).join("")}</div>
+    <div class="small muted" style="margin-top:10px">Disposition sur grand écran</div><div class="seg" style="margin-top:6px">${[["auto","Colonnes (voir tout)"],["off","Une colonne"]].map(([k,l]) => `<button class="${(lsGet("mc-cols") || "auto") === k ? "on" : ""}" data-act="cols" data-v="${k}">${l}</button>`).join("")}</div></div>
   <div class="card"><h2>Compte et épargne</h2>
     <div class="hbody small"><p><b>Solde du compte</b> : ce qu'il y a sur ton compte courant maintenant (regarde dans l'appli de ta banque). C'est le point de départ du reste à vivre.</p>
     <p><b>Jour de paie</b> : 1 = mois normal (du 1er à la fin du mois). Si tu es payé le 25, mets 25 : ton mois va alors du 25 au 24. De 1 à 28.</p>
@@ -1778,6 +1783,7 @@ document.addEventListener("click", ev => {
     case "exp-journal": saveFile("journal_appli.xlsx", buildEchange(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"); break;
     case "exp-json": saveFile("mes-comptes-sauvegarde.json", JSON.stringify(S,null,1), "application/json").then(ok => { if (ok){ S.lastBackup = Date.now(); persist(); render(); } }); break;
     case "df-apply": { const ch = [...document.querySelectorAll("[data-df]")].filter(c => c.checked).map(c => +c.dataset.df); for (const i of ch) V.diff[i].ap(); V.diff = null; persist(); closeSheet(); render(); toast(ch.length + " différence(s) reprise(s)"); break; }
+    case "cols": { const v = b.dataset.v; if (v === "auto") { try { localStorage.removeItem("mc-cols"); } catch(e){} } else lsSet("mc-cols", v); applyZoom(); render(); break; }
     case "zoom": { const v = b.dataset.v; if (v === "auto") { try { localStorage.removeItem("mc-zoom"); } catch(e){} } else lsSet("mc-zoom", v); applyZoom(); render(); break; }
     case "pal": { const v = b.dataset.v; if (v === "emeraude") { try { localStorage.removeItem("mc-pal"); } catch(e){} } else lsSet("mc-pal", v); applyTheme(); render(); break; }
     case "theme": { const v = b.dataset.v; if (v === "auto") { try { localStorage.removeItem("mc-theme"); } catch(e){} } else lsSet("mc-theme", v); applyTheme(); render(); break; }
@@ -1999,10 +2005,11 @@ const PALS = {emeraude:{n:"Émeraude"}, ocean:{n:"Océan", l:["#1769C2","#FFFFFF
 function schedGet(){ const v = String(lsGet("mc-sched") || "20:00|07:00").split("|"); return [v[0] || "20:00", v[1] || "07:00"]; }
 function schedDark(){ const [a,b] = schedGet(), d = new Date(), n = d.getHours()*60 + d.getMinutes(), f = x => { const q = String(x).split(":"); return (+q[0] || 0)*60 + (+q[1] || 0); };
   const A = f(a), B = f(b); return A === B ? false : (A < B ? (n >= A && n < B) : (n >= A || n < B)); }
-function zoomFactor(){ const m = lsGet("mc-zoom") || "auto", w = Math.min(screen.width || 9999, window.innerWidth || 9999), W = window.innerWidth || 400;
+function zoomFactor(){ const m = lsGet("mc-zoom") || "auto", W = window.innerWidth || 400;
   if (m === "1" || m === "1.25" || m === "1.5" || m === "1.75") return +m;
-  return W >= 1300 ? 1.7 : W >= 900 ? 1.5 : W >= 700 ? 1.3 : 1; }
-function applyZoom(){ document.documentElement.style.setProperty("--z", String(zoomFactor())); }
+  return W >= 1300 ? 1.4 : W >= 900 ? 1.25 : W >= 700 ? 1.3 : 1; }
+function applyZoom(){ const z = zoomFactor(), W = window.innerWidth || 400, R = document.documentElement;
+  R.style.setProperty("--z", String(z)); R.classList.toggle("cols", lsGet("mc-cols") !== "off" && W / z >= 760); }
 applyZoom(); window.addEventListener("resize", () => { clearTimeout(applyZoom.t); applyZoom.t = setTimeout(applyZoom, 150); });
 function applyTheme(){ let t = lsGet("mc-theme"); if (t === "sched") t = schedDark() ? "dark" : "light"; const R = document.documentElement; if (t === "light" || t === "dark") R.setAttribute("data-theme", t); else R.removeAttribute("data-theme");
   const pk = lsGet("mc-pal"), P = PALS[pk]; const dark = t === "dark" || (t !== "light" && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
@@ -2017,6 +2024,7 @@ applyTheme();
 /* ===== Historique des mises à jour ===== */
 const CHANGELOG = [
  {v:"2.5", d:"Octobre 2026", t:"Affichage adapté aux tablettes", i:[
+  "Sur tablette en paysage et grand écran, les cartes s'affichent en 2 colonnes (ou plus) pour voir un maximum d'infos sans faire défiler. Réglable : « Une colonne » dans Réglages.",
   "L'appli s'agrandit automatiquement sur tablette et grand écran (textes, boutons et cartes plus grands).",
   "Nouveau réglage « Taille de l'affichage » (Réglages) : Automatique, Normal, Grand, Très grand ou Maximum. L'automatique est plus grand sur iPad en paysage."]},
  {v:"2.4", d:"Octobre 2026", t:"Onglets du mois et pointés masqués", i:[
