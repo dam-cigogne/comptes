@@ -61,7 +61,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-siz
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
   padding-block:0 110px;-webkit-tap-highlight-color:transparent}
 body{zoom:var(--z,1)}
-html.cols .wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(370px,1fr));gap:14px;align-items:start;max-width:none}
+html.cols .wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;align-items:start;max-width:none}
 html.cols .wrap > .top, html.cols .wrap > .banner, html.cols .wrap > .hero, html.cols .wrap > .spanall, html.cols .wrap > .info{grid-column:1/-1}
 html.cols nav.tabs .in{max-width:760px}
 html.cols #sheet{max-width:680px}
@@ -2005,11 +2005,13 @@ const PALS = {emeraude:{n:"Émeraude"}, ocean:{n:"Océan", l:["#1769C2","#FFFFFF
 function schedGet(){ const v = String(lsGet("mc-sched") || "20:00|07:00").split("|"); return [v[0] || "20:00", v[1] || "07:00"]; }
 function schedDark(){ const [a,b] = schedGet(), d = new Date(), n = d.getHours()*60 + d.getMinutes(), f = x => { const q = String(x).split(":"); return (+q[0] || 0)*60 + (+q[1] || 0); };
   const A = f(a), B = f(b); return A === B ? false : (A < B ? (n >= A && n < B) : (n >= A || n < B)); }
-function zoomFactor(){ const m = lsGet("mc-zoom") || "auto", W = window.innerWidth || 400;
+function zoomFactor(){ const m = lsGet("mc-zoom") || "auto", W = window.innerWidth || 400, H = window.innerHeight || 800;
   if (m === "1" || m === "1.25" || m === "1.5" || m === "1.75") return +m;
-  return W >= 1300 ? 1.4 : W >= 900 ? 1.25 : W >= 700 ? 1.3 : 1; }
+  if (W < 700) return 1;
+  const z = W >= H ? Math.min(1.5, Math.max(1.15, W / 800)) : Math.min(1.4, Math.max(1.2, W / 600));
+  return Math.round(z * 20) / 20; }
 function applyZoom(){ const z = zoomFactor(), W = window.innerWidth || 400, R = document.documentElement;
-  R.style.setProperty("--z", String(z)); R.classList.toggle("cols", lsGet("mc-cols") !== "off" && W / z >= 760); }
+  R.style.setProperty("--z", String(z)); R.classList.toggle("cols", lsGet("mc-cols") !== "off" && W / z >= 690); }
 applyZoom(); window.addEventListener("resize", () => { clearTimeout(applyZoom.t); applyZoom.t = setTimeout(applyZoom, 150); });
 function applyTheme(){ let t = lsGet("mc-theme"); if (t === "sched") t = schedDark() ? "dark" : "light"; const R = document.documentElement; if (t === "light" || t === "dark") R.setAttribute("data-theme", t); else R.removeAttribute("data-theme");
   const pk = lsGet("mc-pal"), P = PALS[pk]; const dark = t === "dark" || (t !== "light" && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
