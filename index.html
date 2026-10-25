@@ -60,6 +60,7 @@ nav.tabs button.add span.pl{background-image:linear-gradient(160deg,rgba(255,255
 body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.4;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
   padding-block:0 110px;-webkit-tap-highlight-color:transparent}
+body{zoom:var(--z,1)}
 .wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:14px;padding-top:14px}
 h1,h2,h3{font-family:var(--font-display);margin:0;text-wrap:balance}
 h2{font-size:17px;letter-spacing:.01em}
@@ -1118,6 +1119,8 @@ function viewSet(){
   <div class="card"><h2>Apparence</h2><div class="small muted">Couleur de l'appli</div><div class="pal">${Object.keys(PALS).map(k => `<button class="${(lsGet("mc-pal") || "emeraude") === k ? "on" : ""}" data-act="pal" data-v="${k}" aria-label="${PALS[k].n}" title="${PALS[k].n}" style="background-color:${k === "emeraude" ? "#0E6B5C" : PALS[k].l[0]}"></button>`).join("")}</div><div class="small muted" style="margin-top:8px">Mode</div><div class="seg">${[["auto","Automatique"],["light","Clair"],["dark","Sombre"],["sched","Horaires"]].map(([k,l]) => `<button class="${(lsGet("mc-theme") || "auto") === k ? "on" : ""}" data-act="theme" data-v="${k}">${l}</button>`).join("")}</div>
     <div class="small muted">Automatique suit le réglage de ton téléphone (Réglages → Affichage et luminosité). Horaires : tu choisis toi-même quand l'appli passe en sombre.</div>
     ${lsGet("mc-theme") === "sched" ? `<div class="grid2" style="margin-top:8px"><label class="f">Sombre à partir de<input id="sch-a" type="time" value="${schedGet()[0]}"></label><label class="f">Clair à partir de<input id="sch-b" type="time" value="${schedGet()[1]}"></label></div>` : ""}</div>
+  <div class="card"><h2>Taille de l'affichage</h2><div class="small muted">Automatique agrandit l'appli sur tablette et grand écran. Tu peux aussi choisir toi-même.</div>
+    <div class="seg" style="margin-top:6px">${[["auto","Automatique"],["1","Normal"],["1.25","Grand"],["1.5","Très grand"]].map(([k,l]) => `<button class="${(lsGet("mc-zoom") || "auto") === k ? "on" : ""}" data-act="zoom" data-v="${k}">${l}</button>`).join("")}</div></div>
   <div class="card"><h2>Compte et épargne</h2>
     <div class="hbody small"><p><b>Solde du compte</b> : ce qu'il y a sur ton compte courant maintenant (regarde dans l'appli de ta banque). C'est le point de départ du reste à vivre.</p>
     <p><b>Jour de paie</b> : 1 = mois normal (du 1er à la fin du mois). Si tu es payé le 25, mets 25 : ton mois va alors du 25 au 24. De 1 à 28.</p>
@@ -1201,6 +1204,7 @@ const HELP = {
     "<b>C'est quoi ?</b> Un carnet pour retrouver tes sites et comptes en ligne (banque, achats, administratif…).",
     "Note le site, l'identifiant, la catégorie et l'état (« À changer », « Changé », « OK »). <b>Ne mets jamais tes mots de passe</b> : ils sont à garder dans un gestionnaire de mots de passe."]},
   set:{t:"Les réglages", p:[
+    "<b>Taille de l'affichage</b> : en Automatique, l'appli s'agrandit toute seule sur tablette et grand écran. Si c'est encore trop petit ou trop grand, choisis Normal, Grand ou Très grand.",
     "<b>Dossier IMPORT</b> : « Exporter le journal » crée le fichier à donner à Excel. Enregistre-le toujours dans le dossier <b>IMPORT</b> d'Excel (il est déjà créé) pour ne pas te tromper. Pour l'autre sens, « Importer le journal » prend le fichier préparé par Excel.",
     "<b>Écran au démarrage</b> : choisis si l'appli s'ouvre sur l'Accueil ou directement sur Ajouter. Sur ordinateur et Android, un appui long sur l'icône propose aussi « Ajouter une opération » (non disponible sur iPhone).",
     "<b>Synchroniser avec Excel</b> : exporte ton journal vers Excel ou importe un classeur. C'est facultatif.",
@@ -1774,6 +1778,7 @@ document.addEventListener("click", ev => {
     case "exp-journal": saveFile("journal_appli.xlsx", buildEchange(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"); break;
     case "exp-json": saveFile("mes-comptes-sauvegarde.json", JSON.stringify(S,null,1), "application/json").then(ok => { if (ok){ S.lastBackup = Date.now(); persist(); render(); } }); break;
     case "df-apply": { const ch = [...document.querySelectorAll("[data-df]")].filter(c => c.checked).map(c => +c.dataset.df); for (const i of ch) V.diff[i].ap(); V.diff = null; persist(); closeSheet(); render(); toast(ch.length + " différence(s) reprise(s)"); break; }
+    case "zoom": { const v = b.dataset.v; if (v === "auto") { try { localStorage.removeItem("mc-zoom"); } catch(e){} } else lsSet("mc-zoom", v); applyZoom(); render(); break; }
     case "pal": { const v = b.dataset.v; if (v === "emeraude") { try { localStorage.removeItem("mc-pal"); } catch(e){} } else lsSet("mc-pal", v); applyTheme(); render(); break; }
     case "theme": { const v = b.dataset.v; if (v === "auto") { try { localStorage.removeItem("mc-theme"); } catch(e){} } else lsSet("mc-theme", v); applyTheme(); render(); break; }
     case "key": { const i = $("#f-mont"); if (!i) break; let v = i.value; const k = b.dataset.v;
@@ -1994,6 +1999,11 @@ const PALS = {emeraude:{n:"Émeraude"}, ocean:{n:"Océan", l:["#1769C2","#FFFFFF
 function schedGet(){ const v = String(lsGet("mc-sched") || "20:00|07:00").split("|"); return [v[0] || "20:00", v[1] || "07:00"]; }
 function schedDark(){ const [a,b] = schedGet(), d = new Date(), n = d.getHours()*60 + d.getMinutes(), f = x => { const q = String(x).split(":"); return (+q[0] || 0)*60 + (+q[1] || 0); };
   const A = f(a), B = f(b); return A === B ? false : (A < B ? (n >= A && n < B) : (n >= A || n < B)); }
+function zoomFactor(){ const m = lsGet("mc-zoom") || "auto", w = Math.min(screen.width || 9999, window.innerWidth || 9999), W = window.innerWidth || 400;
+  if (m === "1") return 1; if (m === "1.25") return 1.25; if (m === "1.5") return 1.5;
+  return W >= 1100 ? 1.4 : W >= 700 ? 1.25 : 1; }
+function applyZoom(){ document.documentElement.style.setProperty("--z", String(zoomFactor())); }
+applyZoom(); window.addEventListener("resize", () => { clearTimeout(applyZoom.t); applyZoom.t = setTimeout(applyZoom, 150); });
 function applyTheme(){ let t = lsGet("mc-theme"); if (t === "sched") t = schedDark() ? "dark" : "light"; const R = document.documentElement; if (t === "light" || t === "dark") R.setAttribute("data-theme", t); else R.removeAttribute("data-theme");
   const pk = lsGet("mc-pal"), P = PALS[pk]; const dark = t === "dark" || (t !== "light" && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
   const v = P && (dark ? P.d : P.l); for (const k of ["--accent","--accent-ink","--accent-soft"]) R.style.removeProperty(k);
@@ -2006,6 +2016,9 @@ document.addEventListener("change", ev => { if (ev.target.id === "sch-a" || ev.t
 applyTheme();
 /* ===== Historique des mises à jour ===== */
 const CHANGELOG = [
+ {v:"2.5", d:"Octobre 2026", t:"Affichage adapté aux tablettes", i:[
+  "L'appli s'agrandit automatiquement sur tablette et grand écran (textes, boutons et cartes plus grands).",
+  "Nouveau réglage « Taille de l'affichage » (Réglages) : Automatique, Normal, Grand ou Très grand."]},
  {v:"2.4", d:"Octobre 2026", t:"Onglets du mois et pointés masqués", i:[
   "Nouveaux onglets Tout / Fixes / Opérations dans l'écran Mois : tu affiches seulement la partie qui t'intéresse, sans faire défiler tous les fixes. Ton choix est retenu.",
   "Réglages : « Exporter le journal » rappelle d'enregistrer le fichier dans le dossier IMPORT d'Excel, et le champ d'import s'appelle « Importer le journal ».",
