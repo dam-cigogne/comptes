@@ -5,6 +5,17 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
 <style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}</style>
 <title>Les comptes en poches</title>
+<meta name="description" content="Les comptes en poches : reste à vivre, enveloppes, fixes, Livret A et synchro Excel. Privée, sans compte, hors connexion.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Les comptes en poches">
+<meta property="og:title" content="Les comptes en poches · ton budget en poche">
+<meta property="og:description" content="Reste à vivre, enveloppes, fixes, Livret A, synchro Excel. Privée, sans compte, hors connexion.">
+<meta property="og:image" content="https://dam-cigogne.github.io/comptes/apercu.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://dam-cigogne.github.io/comptes/">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="icon-192.png">
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="theme-color" content="#0E6B5C">
 <link rel="manifest" href="manifest.json">
@@ -54,6 +65,8 @@
 nav.tabs .in{box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 12px 30px -12px rgba(0,0,0,.35)}
 nav.tabs button.add span.pl{background-image:linear-gradient(160deg,rgba(255,255,255,.4),rgba(255,255,255,0) 55%);box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 8px 18px -6px color-mix(in srgb,var(--accent) 75%,#000)}
 .bar i{background-image:linear-gradient(180deg,rgba(255,255,255,.35),rgba(255,255,255,0) 60%)}
+.thumbs{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:8px}.thumbs button{border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:6px;display:flex;flex-direction:column;gap:6px;align-items:stretch;cursor:pointer}.thumbs img{width:100%;height:120px;object-fit:cover;object-position:top;border-radius:9px;background:var(--bg)}.thumbs span{font-size:12.5px;color:var(--muted);text-align:center}
+.bigimg{width:100%;max-height:60vh;object-fit:contain;border-radius:10px;background:var(--bg)}
 .pal{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}.pal button{width:44px;height:44px;border-radius:50%;border:3px solid transparent;box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 0 0 1px var(--line);background-image:linear-gradient(160deg,rgba(255,255,255,.4),transparent 55%)}.pal button.on{border-color:var(--ink)}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
@@ -246,6 +259,7 @@ body.priv #main,body.priv #tabs{visibility:hidden}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
+/* RÈGLE : à chaque grosse nouveauté, mettre à jour CHANGELOG, HELP, src/fiche.html et, si c'est important, les affiches (src/affiches/make.py). */
 "use strict";
 /* ============ Constantes ============ */
 const KEY = "mes-comptes-perso-v1";
@@ -264,6 +278,7 @@ const N = v => isNum(v) ? v : 0;
 const uid = () => "a" + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 const pad = n => String(n).padStart(2,"0");
 const todayIso = () => { const d = new Date(); return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); };
+async function copyText(t){ try { await navigator.clipboard.writeText(t); } catch(e){ const a = document.createElement("textarea"); a.value = t; document.body.appendChild(a); a.select(); try { document.execCommand("copy"); } catch(e2){} a.remove(); } }
 const parseNum = s => { const t = String(s).replace(/\s/g,"").replace(",","."); const v = parseFloat(t); return isFinite(v) ? v : null; };
 function serialToIso(s){ const d = new Date(Math.floor(s + 1e-6 - 25569) * 86400000); return d.toISOString().slice(0,10); }
 function isoToSerial(iso){ const [y,m,d] = iso.split("-").map(Number); return Math.round(Date.UTC(y,m-1,d)/86400000) + 25569; }
@@ -641,7 +656,13 @@ function buildEchange(){
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(fx), "Fixes_appli");
   return XLSX.write(wb,{type:"array",bookType:"xlsx",compression:true});
 }
+const DIRDB = () => new Promise((res, rej) => { const q = indexedDB.open("mc-dir", 1); q.onupgradeneeded = () => q.result.createObjectStore("h"); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); });
+async function dirGet(){ try { const db = await DIRDB(); return await new Promise(res => { const q = db.transaction("h").objectStore("h").get("dir"); q.onsuccess = () => res(q.result || null); q.onerror = () => res(null); }); } catch(e){ return null; } }
+async function dirSet(h){ try { const db = await DIRDB(); await new Promise(res => { const t = db.transaction("h","readwrite"); if (h) t.objectStore("h").put(h,"dir"); else t.objectStore("h").delete("dir"); t.oncomplete = () => res(); t.onerror = () => res(); }); } catch(e){} }
 async function saveFile(name, data, mime){
+  if (window.showDirectoryPicker && lsGet("mc-dirname")){
+    try { const h = await dirGet(); if (h){ let perm = await h.queryPermission({mode:"readwrite"}); if (perm !== "granted") perm = await h.requestPermission({mode:"readwrite"});
+      if (perm === "granted"){ const fh = await h.getFileHandle(name, {create:true}); const w = await fh.createWritable(); await w.write(new Blob([data],{type:mime})); await w.close(); toast("Enregistré dans « " + h.name + " » : " + name); return true; } } } catch(e){} }
   let dl = null; try { dl = window.claude && window.claude.use ? await window.claude.use("downloads") : null; } catch(e){}
   if (dl){ try { await dl.save({filename:name, data}); toast("Fichier prêt : " + name); return true; } catch(e){ if (e && e.code !== "declined") toast("Enregistrement impossible"); } return false; }
   if (window.showSaveFilePicker && !/iPhone|iPad|iPod/.test(navigator.userAgent)){
@@ -1109,6 +1130,15 @@ function viewSet(){
   return `<div class="top"><div class="app">Réglages</div></div>${V.msg ? `<div class="info">${esc(V.msg)}</div>` : ""}${pend}
   <div class="card"><h2>Guide d'utilisation</h2><div class="small muted">Comment marche chaque partie de l'appli, expliqué simplement. Le bouton ? en haut de chaque écran donne aussi l'aide de l'écran.</div>
     <div class="btns"><button class="btn" data-act="guide">Ouvrir le guide</button><button class="btn ghost" data-act="upd-hist">Historique des mises à jour</button></div></div>
+  <div class="card"><h2>Fiche de l'appli (à partager)</h2><div class="small muted">Une fiche de présentation et des affiches pour faire connaître l'appli à tes proches. Aucune donnée personnelle dedans.</div>
+    <div class="thumbs">${[["affiche-claire.jpg","Affiche claire"],["affiche-sombre.jpg","Affiche sombre"],["affiche-appli.jpg","Affiche avec l'appli"],["apercu.png","Carte d'aperçu"]].map(([f,l]) => `<button data-act="imgopen" data-v="${f}" data-t="${l}"><img src="${f}" alt="${l}" loading="lazy"><span>${l}</span></button>`).join("")}</div>
+    <div class="btns"><button class="btn" data-act="fshare">Partager avec le descriptif</button><button class="btn ghost" data-act="fview">Voir la fiche</button><button class="btn ghost" data-act="fcopy">Copier le lien</button></div></div>
+  <div class="card"><h2>Où enregistrer les exports ?</h2>
+    ${window.showDirectoryPicker ? `<div class="small muted">Choisis un dossier une seule fois : les exports (journal Excel, sauvegarde, bilan) y seront écrits directement, en remplaçant l'ancien fichier du même nom.</div>
+    <div class="small" style="margin-top:6px">Dossier actuel : <b>${esc(lsGet("mc-dirname") || "aucun (le navigateur te demande à chaque fois)")}</b></div>
+    <div class="btns"><button class="btn" data-act="dirpick">Choisir un dossier</button>${lsGet("mc-dirname") ? `<button class="btn ghost" data-act="dirclear">Retirer</button>` : ""}</div>`
+    : `<div class="small muted">Sur iPhone et iPad, Apple ne permet pas de fixer un dossier d'avance. Quand la feuille de partage s'ouvre, touche « Enregistrer dans Fichiers » : iOS rouvre en général le dernier dossier utilisé. Les fichiers gardent toujours le même nom (journal_appli.xlsx, mes-comptes-sauvegarde.json) : choisis « Remplacer » pour ne pas en multiplier.</div>`}
+  </div>
   <div class="card"><h2>Écran au démarrage</h2><div class="small muted">Choisis l'écran qui s'ouvre quand tu lances l'appli. « Ajouter » est pratique pour noter une dépense tout de suite.</div>
     <div class="seg" style="margin-top:6px">${[["home","Accueil"],["add","Ajouter"]].map(([k,l]) => `<button class="${(lsGet("mc-start") || "home") === k ? "on" : ""}" data-act="start" data-v="${k}">${l}</button>`).join("")}</div></div>
   <div class="card"><h2>Rappel à l'ouverture</h2><div class="small muted">Au premier lancement de la journée, l'appli affiche ce qui reste à pointer (fixes passés et opérations pas encore pointées).</div>
@@ -1209,6 +1239,8 @@ const HELP = {
     "<b>C'est quoi ?</b> Un carnet pour retrouver tes sites et comptes en ligne (banque, achats, administratif…).",
     "Note le site, l'identifiant, la catégorie et l'état (« À changer », « Changé », « OK »). <b>Ne mets jamais tes mots de passe</b> : ils sont à garder dans un gestionnaire de mots de passe."]},
   set:{t:"Les réglages", p:[
+    "<b>Fiche de l'appli (à partager)</b> : trois affiches et une carte d'aperçu. Touche une vignette pour la voir en grand et la partager ou l'enregistrer. « Partager avec le descriptif » envoie un court texte et le lien de la fiche de présentation ; « Voir la fiche » l'ouvre ; « Copier le lien » le copie. Aucune donnée personnelle dans ces images.",
+    "<b>Où enregistrer les exports ?</b> Sur PC et Android, choisis un dossier une fois : les exports y sont écrits directement en remplaçant l'ancien fichier. Sur iPhone et iPad, Apple ne le permet pas : dans la feuille de partage, touche « Enregistrer dans Fichiers » (iOS rouvre en général le dernier dossier) et choisis « Remplacer ».",
     "<b>Taille de l'affichage</b> : en Automatique, l'appli s'agrandit toute seule sur tablette et grand écran. Si c'est encore trop petit ou trop grand, choisis Normal, Grand, Très grand ou Maximum.",
     "<b>Dossier IMPORT</b> : « Exporter le journal » crée le fichier à donner à Excel. Enregistre-le toujours dans le dossier <b>IMPORT</b> d'Excel (il est déjà créé) pour ne pas te tromper. Pour l'autre sens, « Importer le journal » prend le fichier préparé par Excel.",
     "<b>Écran au démarrage</b> : choisis si l'appli s'ouvre sur l'Accueil ou directement sur Ajouter. Sur ordinateur et Android, un appui long sur l'icône propose aussi « Ajouter une opération » (non disponible sur iPhone).",
@@ -1784,6 +1816,16 @@ document.addEventListener("click", ev => {
     case "exp-json": saveFile("mes-comptes-sauvegarde.json", JSON.stringify(S,null,1), "application/json").then(ok => { if (ok){ S.lastBackup = Date.now(); persist(); render(); } }); break;
     case "df-apply": { const ch = [...document.querySelectorAll("[data-df]")].filter(c => c.checked).map(c => +c.dataset.df); for (const i of ch) V.diff[i].ap(); V.diff = null; persist(); closeSheet(); render(); toast(ch.length + " différence(s) reprise(s)"); break; }
     case "cols": { const v = b.dataset.v; if (v === "auto") { try { localStorage.removeItem("mc-cols"); } catch(e){} } else lsSet("mc-cols", v); applyZoom(); render(); break; }
+    case "imgopen": { const f = b.dataset.v; openSheet(`<h2>${esc(b.dataset.t || "Image")}</h2><img class="bigimg" src="${esc(f)}" alt="${esc(b.dataset.t || "")}"><div class="btns"><button class="btn" data-act="imgshare" data-v="${esc(f)}" style="flex:1">Partager / enregistrer</button><button class="btn ghost" data-act="sheetclose">Fermer</button></div>`); break; }
+    case "imgshare": { const f = b.dataset.v; (async () => { try { const r = await fetch(f); const bl = await r.blob(); const file = new File([bl], f, {type:bl.type});
+        if (navigator.canShare && navigator.canShare({files:[file]})){ try { await navigator.share({files:[file]}); } catch(e){ if (!e || e.name !== "AbortError") throw e; } }
+        else await saveFile(f, await bl.arrayBuffer(), bl.type); } catch(e){ toast("Partage impossible"); } })(); break; }
+    case "fshare": { const url = "https://dam-cigogne.github.io/comptes/fiche.html", text = "Les comptes en poches : l'appli de budget simple et privée. Reste à vivre, enveloppes, fixes, Livret A, synchro Excel. Sans compte, ça marche hors connexion.";
+      if (navigator.share){ navigator.share({title:"Les comptes en poches", text, url}).catch(() => {}); } else { copyText(text + "\n" + url).then(() => toast("Texte et lien copiés")); } break; }
+    case "fview": window.open("https://dam-cigogne.github.io/comptes/fiche.html", "_blank", "noopener"); break;
+    case "fcopy": copyText("https://dam-cigogne.github.io/comptes/fiche.html").then(() => toast("Lien copié")); break;
+    case "dirpick": (async () => { try { const h = await window.showDirectoryPicker({mode:"readwrite"}); await dirSet(h); lsSet("mc-dirname", h.name); toast("Dossier choisi : " + h.name); render(); } catch(e){} })(); break;
+    case "dirclear": dirSet(null); try { localStorage.removeItem("mc-dirname"); } catch(e){} render(); break;
     case "zoom": { const v = b.dataset.v; if (v === "auto") { try { localStorage.removeItem("mc-zoom"); } catch(e){} } else lsSet("mc-zoom", v); applyZoom(); render(); break; }
     case "pal": { const v = b.dataset.v; if (v === "emeraude") { try { localStorage.removeItem("mc-pal"); } catch(e){} } else lsSet("mc-pal", v); applyTheme(); render(); break; }
     case "theme": { const v = b.dataset.v; if (v === "auto") { try { localStorage.removeItem("mc-theme"); } catch(e){} } else lsSet("mc-theme", v); applyTheme(); render(); break; }
@@ -2025,6 +2067,11 @@ document.addEventListener("change", ev => { if (ev.target.id === "sch-a" || ev.t
 applyTheme();
 /* ===== Historique des mises à jour ===== */
 const CHANGELOG = [
+ {v:"2.6", d:"Octobre 2026", t:"Fiche, affiches et dossier d'export", i:[
+  "Réglages : une carte « Fiche de l'appli (à partager) » avec 3 affiches et la carte d'aperçu, pour faire connaître l'appli.",
+  "« Partager avec le descriptif », « Voir la fiche » et « Copier le lien » : une fiche de présentation à partager, sans donnée personnelle.",
+  "Quand tu envoies le lien de l'appli, l'aperçu affiche maintenant le logo et les points importants.",
+  "Sur PC et Android : « Où enregistrer les exports ? » pour choisir un dossier une fois. Sur iPhone, explication des étapes."]},
  {v:"2.5", d:"Octobre 2026", t:"Affichage adapté aux tablettes", i:[
   "Sur tablette en paysage et grand écran, les cartes s'affichent en 2 colonnes (ou plus) pour voir un maximum d'infos sans faire défiler. Réglable : « Une colonne » dans Réglages.",
   "L'appli s'agrandit automatiquement sur tablette et grand écran (textes, boutons et cartes plus grands).",

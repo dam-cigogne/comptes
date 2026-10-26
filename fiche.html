@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Les comptes en poches · Fiche de présentation</title>
+<meta name="description" content="Les comptes en poches : l'appli simple pour savoir ce qu'il te reste à vivre, suivre tes enveloppes, tes fixes et ton Livret A. Privée, sans compte, qui marche hors connexion.">
+<meta name="theme-color" content="#0E6B5C">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Les comptes en poches">
+<meta property="og:title" content="Les comptes en poches · ton budget en poche">
+<meta property="og:description" content="Reste à vivre, enveloppes, fixes, Livret A, synchro Excel. Privée, sans compte, hors connexion.">
+<meta property="og:image" content="https://dam-cigogne.github.io/comptes/apercu.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://dam-cigogne.github.io/comptes/fiche.html">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<style>
+:root{--bg:#F2F5F3;--card:#fff;--ink:#15231F;--muted:#5C6C66;--line:#DCE3DF;--acc:#0E6B5C;--soft:#DDEFEA}
+@media (prefers-color-scheme:dark){:root{--bg:#0E1715;--card:#16221F;--ink:#E6EFEB;--muted:#93A59E;--line:#26362F;--acc:#3CC2A6;--soft:#1B3A33}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:16px;line-height:1.5;padding:0 16px 40px}
+main{max-width:640px;margin:0 auto}
+header{padding:28px 0 8px;display:flex;gap:14px;align-items:center}
+header img{width:64px;height:64px;border-radius:16px;flex:none}
+h1{font-family:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;font-size:26px;line-height:1.15;margin:0}
+.lead{color:var(--muted);margin:6px 0 0}
+h2{font-family:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;font-size:20px;margin:28px 0 10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin:10px 0}
+.card h3{margin:0 0 4px;font-size:16px}
+.card p{margin:0;color:var(--muted);font-size:15px}
+ol.points{padding-left:0;list-style:none;counter-reset:p;margin:0}
+ol.points li{counter-increment:p;display:flex;gap:12px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:8px 0}
+ol.points li::before{content:counter(p);flex:none;width:28px;height:28px;border-radius:50%;background:var(--acc);color:var(--bg);display:grid;place-items:center;font-weight:700;font-size:14px}
+ol.points b{display:block}
+ol.points span{color:var(--muted);font-size:15px}
+.note{background:var(--soft);border-radius:14px;padding:12px 14px;margin:10px 0;font-size:15px}
+footer{margin-top:28px;color:var(--muted);font-size:13px;text-align:center}
+a{color:var(--acc)}
+</style>
+</head>
+<body>
+<main>
+<header><img src="icon-192.png" alt="Logo Les comptes en poches"><div><h1>Les comptes en poches</h1><p class="lead">Ton budget dans la poche : simple, privé, sans compte.</p></div></header>
+
+<h2>L'essentiel en 6 points</h2>
+<ol class="points">
+<li><div><b>Un seul chiffre : ton reste à vivre</b><span>Solde du compte − fixes à payer − dépenses non pointées − enveloppes restantes. Tu sais ce que tu peux dépenser jusqu'à la prochaine paie.</span></div></li>
+<li><div><b>Des enveloppes avec barres de progression</b><span>Nourriture, essence, restaurant… Chaque dépense remplit son enveloppe, tu vois tout de suite où tu en es.</span></div></li>
+<li><div><b>Ajouter une dépense en 3 secondes</b><span>Pavé numérique, catégories récentes, modèles pour les opérations qui reviennent souvent, duplication en un geste.</span></div></li>
+<li><div><b>Fixes, pointage et clôture de fin de mois</b><span>Tu pointes ce qui est passé sur ton compte. À la clôture, l'appli calcule ce que tu peux mettre de côté sur ton Livret A.</span></div></li>
+<li><div><b>Synchronisée avec Excel</b><span>Export et import d'un classeur, exports du bilan d'un mois en Excel ou en PDF, rapprochement avec ton relevé bancaire.</span></div></li>
+<li><div><b>Privée et hors connexion</b><span>Tes données restent sur ton appareil, chiffrées par un code (Face ID en option). Aucune inscription, aucun serveur.</span></div></li>
+</ol>
+
+<h2>Ce que fait chaque écran</h2>
+<div class="card"><h3>Accueil</h3><p>Le reste à vivre, le solde de ton compte à recopier depuis ta banque, les enveloppes du mois, ce que tu peux mettre de côté en fin de mois, l'épargne et le détail du calcul.</p></div>
+<div class="card"><h3>Mois</h3><p>Le bilan du mois (revenus, dépenses, résultat, épargne) expliqué, où part l'argent, les fixes et revenus à pointer, les opérations du mois, la recherche et l'export. Des onglets Tout / Fixes / Opérations pour n'afficher que ce qui t'intéresse.</p></div>
+<div class="card"><h3>Ajouter</h3><p>Dépense, revenu, versement ou retrait du Livret A, avance. Montant au pavé numérique, catégorie, date, case « déjà passé en banque », modèles d'ajout rapide.</p></div>
+<div class="card"><h3>Épargne</h3><p>Ton Livret A (mouvements, ajustement au centime près, mouvements futurs prévus qui s'archivent tout seuls) et tes poches d'épargne.</p></div>
+<div class="card"><h3>Fixes</h3><p>Tes revenus et charges qui reviennent chaque mois, avec le jour du mois, le montant prévu et la possibilité de saisir le montant réel d'un mois.</p></div>
+<div class="card"><h3>Comptes</h3><p>Un coffre pour tes accès (sites, identifiants), chiffré avec le reste. Les mots de passe bancaires n'ont rien à faire dans une appli : la fiche te le rappelle.</p></div>
+<div class="card"><h3>Réglages</h3><p>Couleurs, mode clair / sombre / horaires, taille de l'affichage pour tablettes, rappel à l'ouverture, code et Face ID, sauvegardes, synchro Excel, nouvelle année, historique des mises à jour et mode d'emploi.</p></div>
+
+<h2>Sauvegarde et sécurité</h2>
+<div class="card"><h3>Tes données restent chez toi</h3><p>Elles sont enregistrées dans le navigateur de ton appareil, chiffrées (AES-GCM) avec ton code. Le code est redemandé à chaque ouverture ; Face ID est possible en option.</p></div>
+<div class="card"><h3>Sauvegardes</h3><p>Une sauvegarde complète (.json) et un export Excel en un bouton. Un rappel s'affiche si tu n'as pas sauvegardé depuis 14 jours.</p></div>
+<div class="card"><h3>Hors connexion</h3><p>Une fois installée, l'appli marche sans internet. Elle se met à jour toute seule quand tu es en ligne, avec la liste des nouveautés.</p></div>
+
+<h2>À savoir</h2>
+<div class="note">Ce n'est pas un conseil financier. L'appli n'est pas ma banque et ne se connecte pas à ton compte : tu recopies ton solde et tu compares avec ton relevé.</div>
+<div class="note">Ne mets jamais de mots de passe ni de codes bancaires dans l'appli.</div>
+
+<h2>Installer sur iPhone</h2>
+<div class="card"><p>Ouvre le lien dans <b>Safari</b>, touche <b>Partager</b>, puis <b>Sur l'écran d'accueil</b>. L'appli s'installe comme une vraie appli. Sur Android : menu du navigateur › Installer l'application.</p><p style="margin-top:8px"><a href="index.html">Ouvrir l'appli</a></p></div>
+
+<footer>Fiche mise à jour le 26 octobre 2026 · version de l'appli 2.6</footer>
+</main>
+</body>
+</html>
