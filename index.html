@@ -1130,6 +1130,7 @@ function viewSet(){
   return `<div class="top"><div class="app">Réglages</div></div>${V.msg ? `<div class="info">${esc(V.msg)}</div>` : ""}${pend}
   <div class="card"><h2>Guide d'utilisation</h2><div class="small muted">Comment marche chaque partie de l'appli, expliqué simplement. Le bouton ? en haut de chaque écran donne aussi l'aide de l'écran.</div>
     <div class="btns"><button class="btn" data-act="guide">Ouvrir le guide</button><button class="btn ghost" data-act="upd-hist">Historique des mises à jour</button></div></div>
+  <div class="card"><h2>Utiliser plusieurs appareils</h2><div class="small muted">${MULTI_WARN}</div><div class="btns"><button class="btn ghost" data-act="multi-open">Voir comment faire</button><button class="btn ghost" data-act="exp-json">Sauvegarder maintenant</button></div></div>
   <div class="card"><h2>Fiche de l'appli (à partager)</h2><div class="small muted">Une fiche de présentation et des affiches pour faire connaître l'appli à tes proches. Aucune donnée personnelle dedans.</div>
     <div class="thumbs">${[["affiche-claire.jpg","Affiche claire"],["affiche-sombre.jpg","Affiche sombre"],["affiche-appli.jpg","Affiche avec l'appli"],["apercu.png","Carte d'aperçu"]].map(([f,l]) => `<button data-act="imgopen" data-v="${f}" data-t="${l}"><img src="${f}" alt="${l}" loading="lazy"><span>${l}</span></button>`).join("")}</div>
     <div class="btns"><button class="btn" data-act="fshare">Partager avec le descriptif</button><button class="btn ghost" data-act="fview">Voir la fiche</button><button class="btn ghost" data-act="fcopy">Copier le lien</button></div></div>
@@ -1266,6 +1267,7 @@ const HELP = {
     "<b>Où est parti l'argent</b> : la part de chaque catégorie dans tes dépenses (en pourcentage), avec le budget annuel et le pourcentage utilisé quand la catégorie est une enveloppe.",
     "C'est en lecture seule. Ces chiffres sont aussi dans l'export Excel (feuille Archives_appli) et dans la sauvegarde .json."]},
   about:{t:"Fonctionnement, données et risques", p:[
+    "<b>Plusieurs appareils :</b> l'appli marche sur autant de téléphones et tablettes que tu veux, mais chacun garde ses propres données et ils ne se synchronisent pas tout seuls. Sur l'appareil de départ : Réglages › Sauvegarde complète (.json). Sur l'autre : Réglages › Importer un fichier › Restaurer cette sauvegarde. À refaire quand tu veux les remettre au même niveau.",
     "<b>Comment elle est faite.</b> « Les comptes en poches » est une appli web : un fichier de code qui s'exécute dans le navigateur de ton téléphone. Elle a été conçue avec l'aide de Claude (une intelligence artificielle d'Anthropic), à partir d'un classeur Excel de suivi de budget.",
     "<b>C'est quoi GitHub ?</b> Un site où l'on range et publie du code. Ici il ne sert que de <b>vitrine</b> : il met les fichiers de l'appli à une adresse web. Quand tu ouvres le lien (ou que tu l'ajoutes à l'écran d'accueil), ton téléphone télécharge ces fichiers, puis l'appli tourne chez toi. Ces fichiers sont publics et ne contiennent aucune donnée personnelle.",
     "<b>Où vont tes données ?</b> Nulle part ailleurs que dans la mémoire de ton téléphone (stockage local du navigateur). Il n'y a ni compte, ni serveur, ni base de données en ligne : ni GitHub, ni l'auteur de l'appli, ni Anthropic ne voient tes chiffres. Les relevés bancaires (PDF ou CSV) sont lus sur ton téléphone et ne sont pas envoyés.",
@@ -1303,6 +1305,9 @@ function wizFixRows(key, rows){
   return `<div class="wrow head"><span>Nom</span><span>Montant (€)</span><span>Jour</span><span></span></div>` + rows.map((r,i) => `<div class="wrow">${wizIn(key+"."+i+".n", r.n, "Nom")}${wizIn(key+"."+i+".m", r.m, "0", 'inputmode="decimal"')}${wizIn(key+"."+i+".j", r.j, "1-31", 'inputmode="numeric"')}<button class="btn danger sm" data-act="w-del" data-k="${key}" data-i="${i}" aria-label="Supprimer">✕</button></div>`).join("")
     + `<div class="btns"><button class="btn ghost sm" data-act="w-add" data-k="${key}">+ Ajouter une ligne</button></div>`;
 }
+const MULTI_STEPS = `<ol class="hbody" style="padding-left:18px;margin:6px 0"><li>Sur l'appareil qui a les données : <b>Réglages › Sauvegarde complète (.json)</b>.</li><li>Envoie le fichier à l'autre appareil (OneDrive, mail, AirDrop…).</li><li>Sur l'autre appareil : <b>Réglages › Importer un fichier</b>, puis <b>Restaurer cette sauvegarde</b>.</li><li>Refais-le à chaque fois que tu veux remettre les deux appareils au même niveau.</li></ol>`;
+const MULTI_WARN = `<b>Les appareils ne se parlent pas tout seuls.</b> Chaque téléphone ou tablette garde ses propres données : sur un nouvel appareil, l'appli est vide tant que tu n'y as pas restauré une sauvegarde.`;
+function sheetMulti(){ openSheet(`<h2>Plusieurs appareils ? À retenir</h2><p>${MULTI_WARN}</p>${MULTI_STEPS}<p class="small muted">Pense aussi à sauvegarder régulièrement : si tu perds ou changes d'appareil, la sauvegarde est ta seule copie.</p><div class="btns"><button class="btn ghost" data-act="exp-json">Sauvegarder maintenant</button><button class="btn" data-act="multi-ok" style="flex:1">Compris</button></div>`); }
 function viewWiz(){
   const W = V.wiz, d = W.d, s = W.step, last = WIZ_STEPS.length - 1;
   const dots = `<div class="dots">${WIZ_STEPS.map((_,i) => `<i class="${i <= s ? "on" : ""}"></i>`).join("")}</div><div class="small muted">Étape ${s+1} sur ${WIZ_STEPS.length} · ${WIZ_STEPS[s]}</div>`;
@@ -1313,6 +1318,7 @@ function viewWiz(){
       <p class="small muted">Tes données restent sur ton téléphone : pas de compte, pas de serveur qui les reçoit.</p>
       <div class="btns"><button class="btn" data-act="w-next" style="flex:1">Commencer</button></div>
       <div class="btns"><button class="btn ghost sm" data-act="help" data-v="about">Comment ça marche, où vont mes données, quels risques ?</button></div></div>
+    <div class="card" style="border-color:var(--accent,#2e7d32)"><h2>Important : plusieurs appareils</h2><p>${MULTI_WARN}</p>${MULTI_STEPS}</div>
     <div class="card"><h2>Tu as déjà des données ?</h2><div class="small muted">Si tu utilises déjà un classeur Excel ou une sauvegarde de cette appli, tu pourras l'importer dans les réglages.</div>
       <div class="btns"><button class="btn ghost" data-act="w-import">Importer un fichier</button><button class="btn ghost" data-act="w-demo">Voir avec des exemples</button></div></div>`;
   else if (s === 1) body = `<div class="card"><h2>Comprendre en 1 minute</h2>
@@ -1365,7 +1371,7 @@ function wizFinish(){
     n.epargne.envA = n.settings.envelopes.some(e => e.n === "Épargne") ? "Épargne" : "";
     n.epargne.poches = d.poches.filter(p => p.n.trim()).map(p => ({id:uid(), n:p.n.trim(), f:num(p.f)})); }
   n.accts = d.accts.filter(a => a.n.trim()).map(a => ({id:uid(), n:a.n.trim(), type:a.type, depart:num(a.depart), date:todayIso(), upd:Date.now()}));
-  S = n; V.wiz = null; document.body.classList.remove("wiz"); const cp = curPeriod(); V.m = cp.m; V.y = cp.y; V.tab = "home"; persist(); render(); toast("Appli prête !"); }
+  S = n; V.wiz = null; document.body.classList.remove("wiz"); const cp = curPeriod(); V.m = cp.m; V.y = cp.y; V.tab = "home"; persist(); render(); toast("Appli prête !"); if (!lsGet("mc-multi")) setTimeout(sheetMulti, 600); }
 
 /* ============ Nouvelle année : remise à zéro des montants propres à chaque mois ============ */
 function yearCheck(){
@@ -1690,6 +1696,8 @@ document.addEventListener("click", ev => {
     case "remind-toggle": lsSet("mc-remind", lsGet("mc-remind") === "off" ? "on" : "off"); render(); break;
     case "pt-tog": { if (b.dataset.kk === "fix"){ const r = findFix(b.dataset.k, b.dataset.id), mi = +b.dataset.pm; r.m[mi] = "x"; } else { const j = S.journal.find(x => x.id === b.dataset.id); if (j){ j.pointe = "x"; j.upd = Date.now(); } }
       persist(); render(); sheetPoint(); break; }
+    case "multi-ok": lsSet("mc-multi","1"); closeSheet(); break;
+    case "multi-open": sheetMulti(); break;
     case "upd-ok": lsSet("mc-seen-ver", CHANGELOG[0].v); closeSheet(); break;
     case "w-next": collectWiz(); if (V.wiz.step < WIZ_STEPS.length - 1) V.wiz.step++; V.wizTop = true; render(); break;
     case "w-back": collectWiz(); if (V.wiz.step > 0) V.wiz.step--; V.wizTop = true; render(); break;
@@ -2067,6 +2075,9 @@ document.addEventListener("change", ev => { if (ev.target.id === "sch-a" || ev.t
 applyTheme();
 /* ===== Historique des mises à jour ===== */
 const CHANGELOG = [
+ {v:"2.7", d:"Octobre 2026", t:"Rappel plusieurs appareils", i:[
+  "Un rappel clair à l'accueil et juste après la préparation de l'appli : plusieurs appareils sont possibles, mais il faut sauvegarder puis restaurer la sauvegarde sur l'autre appareil.",
+  "Une carte « Utiliser plusieurs appareils » dans Réglages, avec les étapes et un bouton pour sauvegarder tout de suite."]},
  {v:"2.6", d:"Octobre 2026", t:"Fiche, affiches et dossier d'export", i:[
   "Réglages : une carte « Fiche de l'appli (à partager) » avec 3 affiches et la carte d'aperçu, pour faire connaître l'appli.",
   "« Partager avec le descriptif », « Voir la fiche » et « Copier le lien » : une fiche de présentation à partager, sans donnée personnelle.",
@@ -2142,7 +2153,9 @@ function sheetUpdate(first){ const e = CHANGELOG[0], prev = CHANGELOG.slice(1,10
     <div class="btns"><button class="btn ghost" data-act="upd-hist">Voir le détail</button><button class="btn" data-act="upd-ok" style="flex:1">Compris</button></div>`); }
 function sheetUpdHist(all){ const L = all ? CHANGELOG : CHANGELOG.slice(0,20); openSheet(`<h2>Historique des mises à jour</h2><div class="small muted">${L.length === CHANGELOG.length ? "Toutes les mises à jour" : "Les 20 dernières mises à jour"}.</div>${L.map(e => `<div style="margin:10px 0"><b>${esc(e.t)}</b> <span class="muted small">· v${esc(e.v)} · ${esc(e.d)}</span><ul style="padding-left:18px;margin:4px 0">${e.i.map(x => `<li class="small">${esc(x)}</li>`).join("")}</ul></div>`).join("")}
     <div class="btns">${CHANGELOG.length > L.length ? `<button class="btn ghost" data-act="upd-all">Afficher tout</button>` : ""}<button class="btn" data-act="sheetclose" style="flex:1">Fermer</button></div>`); }
-function updateNotice(hadData){ const v = CHANGELOG[0].v; if (lastSeenVer() === v) return;
+function updateNotice(hadData){ const v = CHANGELOG[0].v;
+  if (hadData && !V.wiz && !lsGet("mc-multi") && $("#sheetbg").hidden){ sheetMulti(); lsSet("mc-seen-ver", v); return; }
+  if (lastSeenVer() === v) return;
   if (hadData && !V.wiz && $("#sheetbg").hidden) sheetUpdate();
   lsSet("mc-seen-ver", v); }
 /* ===== Rappel « à pointer » à l'ouverture ===== */
