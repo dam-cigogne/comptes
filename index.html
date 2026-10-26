@@ -1174,6 +1174,7 @@ function viewSet(){
   return `<div class="top"><div class="app">Réglages</div></div>${V.msg ? `<div class="info">${esc(V.msg)}</div>` : ""}${pend}
   <div class="card"><h2>Guide d'utilisation</h2><div class="small muted">Comment marche chaque partie de l'appli, expliqué simplement. Le bouton ? en haut de chaque écran donne aussi l'aide de l'écran.</div>
     <div class="btns"><button class="btn" data-act="guide">Ouvrir le guide</button><button class="btn ghost" data-act="upd-hist">Historique des mises à jour</button></div></div>
+  <div class="card"><h2>Installer l'appli</h2>${installHtml()}</div>
   <div class="card"><h2>Utiliser plusieurs appareils</h2><div class="small muted">${MULTI_WARN}</div><div class="btns"><button class="btn ghost" data-act="multi-open">Voir comment faire</button><button class="btn ghost" data-act="exp-json">Sauvegarder maintenant</button></div></div>
   <div class="card"><h2>Fiche de l'appli (à partager)</h2><div class="small muted">Une fiche de présentation et des affiches pour faire connaître l'appli à tes proches. Aucune donnée personnelle dedans.</div>
     <div class="thumbs">${[["affiche-claire.jpg","Affiche claire"],["affiche-sombre.jpg","Affiche sombre"],["affiche-appli.jpg","Affiche avec l'appli"],["apercu.png","Carte d'aperçu"]].map(([f,l]) => `<button data-act="imgopen" data-v="${f}" data-t="${l}"><img src="${f}" alt="${l}" loading="lazy"><span>${l}</span></button>`).join("")}</div>
@@ -1313,6 +1314,8 @@ const HELP = {
     "<b>Où est parti l'argent</b> : la part de chaque catégorie dans tes dépenses (en pourcentage), avec le budget annuel et le pourcentage utilisé quand la catégorie est une enveloppe.",
     "C'est en lecture seule. Ces chiffres sont aussi dans l'export Excel (feuille Archives_appli) et dans la sauvegarde .json."]},
   about:{t:"Fonctionnement, données et risques", p:[
+    "<b>Installer l'appli :</b> sur iPhone, ouvre le lien dans Safari, touche Partager puis « Sur l'écran d'accueil » puis Ajouter. Sur Android, ouvre le lien dans Chrome, touche le menu ⋮ puis « Installer l'application ». Ouvre ensuite l'appli avec son icône. Les étapes sont aussi dans Réglages › Installer l'appli.",
+    "<b>Où sont mes données ?</b> Sur l'appareil où l'appli est installée, nulle part ailleurs : pas de compte, pas de serveur. Si tu désinstalles l'appli ou perds l'appareil sans sauvegarde, tout est perdu. Pour passer sur un autre appareil : sauvegarde (.json) puis restauration.",
     "<b>Plusieurs appareils :</b> l'appli marche sur autant de téléphones et tablettes que tu veux, mais chacun garde ses propres données et ils ne se synchronisent pas tout seuls. Sur l'appareil de départ : Réglages › Sauvegarde complète (.json). Sur l'autre : Réglages › Importer un fichier › Restaurer cette sauvegarde. À refaire quand tu veux les remettre au même niveau.",
     "<b>Comment elle est faite.</b> « Les comptes en poches » est une appli web : un fichier de code qui s'exécute dans le navigateur de ton téléphone. Elle a été conçue avec l'aide de Claude (une intelligence artificielle d'Anthropic), à partir d'un classeur Excel de suivi de budget.",
     "<b>C'est quoi GitHub ?</b> Un site où l'on range et publie du code. Ici il ne sert que de <b>vitrine</b> : il met les fichiers de l'appli à une adresse web. Quand tu ouvres le lien (ou que tu l'ajoutes à l'écran d'accueil), ton téléphone télécharge ces fichiers, puis l'appli tourne chez toi. Ces fichiers sont publics et ne contiennent aucune donnée personnelle.",
@@ -1351,6 +1354,11 @@ function wizFixRows(key, rows){
   return `<div class="wrow head"><span>Nom</span><span>Montant (€)</span><span>Jour</span><span></span></div>` + rows.map((r,i) => `<div class="wrow">${wizIn(key+"."+i+".n", r.n, "Nom")}${wizIn(key+"."+i+".m", r.m, "0", 'inputmode="decimal"')}${wizIn(key+"."+i+".j", r.j, "1-31", 'inputmode="numeric"')}<button class="btn danger sm" data-act="w-del" data-k="${key}" data-i="${i}" aria-label="Supprimer">✕</button></div>`).join("")
     + `<div class="btns"><button class="btn ghost sm" data-act="w-add" data-k="${key}">+ Ajouter une ligne</button></div>`;
 }
+const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const isStandalone = () => (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
+function installHtml(){ const ios = isIOS(), a = `<details ${ios ? "open" : ""}><summary><b>Sur iPhone ou iPad</b></summary><ol class="hbody" style="padding-left:18px;margin:6px 0"><li>Ouvre le lien dans <b>Safari</b> (pas dans WhatsApp, Messenger ou une autre appli).</li><li>Touche le bouton <b>Partager</b> (le carré avec une flèche vers le haut).</li><li>Touche <b>Sur l'écran d'accueil</b>, puis <b>Ajouter</b>.</li><li>Ouvre ensuite l'appli avec <b>son icône</b>, pas avec Safari.</li></ol></details>`,
+  b = `<details ${ios ? "" : "open"}><summary><b>Sur Android</b></summary><ol class="hbody" style="padding-left:18px;margin:6px 0"><li>Ouvre le lien dans <b>Chrome</b>.</li><li>Touche le menu <b>⋮</b> (trois points en haut à droite).</li><li>Touche <b>Installer l'application</b> (ou <b>Ajouter à l'écran d'accueil</b>).</li><li>Ouvre ensuite l'appli avec <b>son icône</b>, pas avec Chrome.</li></ol></details>`;
+  return (ios ? a + b : b + a) + `<p><b>Où sont tes données ?</b> Elles restent <b>sur cet appareil</b>, là où l'appli est installée. Il n'y a ni compte ni serveur : personne d'autre ne les voit. Si tu désinstalles l'appli ou perds l'appareil sans sauvegarde, elles sont perdues. Pour les <b>passer sur un autre appareil</b>, il faut passer par la <b>sauvegarde</b> (voir ci-dessous).</p>`; }
 const MULTI_STEPS = `<ol class="hbody" style="padding-left:18px;margin:6px 0"><li>Sur l'appareil qui a les données : <b>Réglages › Sauvegarde complète (.json)</b>.</li><li>Envoie le fichier à l'autre appareil (OneDrive, mail, AirDrop…).</li><li>Sur l'autre appareil : <b>Réglages › Importer un fichier</b>, puis <b>Restaurer cette sauvegarde</b>.</li><li>Refais-le à chaque fois que tu veux remettre les deux appareils au même niveau.</li></ol>`;
 const MULTI_WARN = `<b>Les appareils ne se parlent pas tout seuls.</b> Chaque téléphone ou tablette garde ses propres données : sur un nouvel appareil, l'appli est vide tant que tu n'y as pas restauré une sauvegarde.`;
 function sheetMulti(){ openSheet(`<h2>Plusieurs appareils ? À retenir</h2><p>${MULTI_WARN}</p>${MULTI_STEPS}<p class="small muted">Pense aussi à sauvegarder régulièrement : si tu perds ou changes d'appareil, la sauvegarde est ta seule copie.</p><div class="btns"><button class="btn ghost" data-act="exp-json">Sauvegarder maintenant</button><button class="btn" data-act="multi-ok" style="flex:1">Compris</button></div>`); }
@@ -1364,7 +1372,8 @@ function viewWiz(){
       <p class="small muted">Tes données restent sur ton téléphone : pas de compte, pas de serveur qui les reçoit.</p>
       <div class="btns"><button class="btn" data-act="w-next" style="flex:1">Commencer</button></div>
       <div class="btns"><button class="btn ghost sm" data-act="help" data-v="about">Comment ça marche, où vont mes données, quels risques ?</button></div></div>
-    <div class="card" style="border-color:var(--accent,#2e7d32)"><h2>Important : plusieurs appareils</h2><p>${MULTI_WARN}</p>${MULTI_STEPS}</div>
+    ${isStandalone() ? "" : `<div class="card"><h2>1. Installer l'appli sur ton écran d'accueil</h2>${installHtml()}</div>`}
+    <div class="card" style="border-color:var(--accent,#2e7d32)"><h2>2. Important : tes données et plusieurs appareils</h2><p>${MULTI_WARN}</p>${MULTI_STEPS}</div>
     <div class="card"><h2>Tu as déjà des données ?</h2><div class="small muted">Si tu utilises déjà un classeur Excel ou une sauvegarde de cette appli, tu pourras l'importer dans les réglages.</div>
       <div class="btns"><button class="btn ghost" data-act="w-import">Importer un fichier</button><button class="btn ghost" data-act="w-demo">Voir avec des exemples</button></div></div>`;
   else if (s === 1) body = `<div class="card"><h2>Comprendre en 1 minute</h2>
@@ -2126,6 +2135,10 @@ document.addEventListener("change", ev => { if (ev.target.id === "sch-a" || ev.t
 applyTheme();
 /* ===== Historique des mises à jour ===== */
 const CHANGELOG = [
+ {v:"2.9", d:"Octobre 2026", t:"Installation et données expliquées", i:[
+  "Écran de bienvenue : les étapes pour installer l'appli sur iPhone (Safari) ou Android (Chrome), adaptées à ton appareil.",
+  "Explication claire : tes données restent sur l'appareil où l'appli est installée ; pour les passer sur un autre, il faut sauvegarder puis restaurer.",
+  "Réglages : une carte « Installer l'appli » avec les mêmes étapes."]},
  {v:"2.8", d:"Octobre 2026", t:"Prévision du solde et objectifs", i:[
   "Accueil : une « Prévision du solde » en courbe jusqu'à la paie, avec le point bas et une alerte si ton solde risque de passer sous 0 €.",
   "Épargne : des « Objectifs d'épargne » (vacances, voiture…) avec jauge et calcul de ce qu'il faut mettre de côté par mois, éventuellement liés à une poche."
