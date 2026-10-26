@@ -450,6 +450,7 @@ function fixState(r,m,y){
   if (!dp) return {k:"wait", t:"à venir", amt:N(r.montant)};
   return dp < today ? {k:"late", t:"à pointer", amt:N(r.montant)} : {k:"wait", t:"à venir", amt:N(r.montant)};
 }
+function keepX(oldEnv, oldObj){ try { S.objectifs = Array.isArray(oldObj) ? oldObj : []; } catch(x){} }
 function calc(m,y){
   const J = live().filter(j => inMonth(j,m,y));
   const sum = (f) => J.filter(f).reduce((a,j) => a + N(j.montant), 0);
@@ -742,6 +743,29 @@ function nextMoves(){
     out.push({dt, name:r.n, amt:st.amt, sign:kd === "rev" ? 1 : -1}); }
   return out.sort((a,b) => a.dt - b.dt).slice(0,4);
 }
+function forecastHtml(c){
+  const P = periodInfo(), sold = S.settings.solde; if (!P.active || !isNum(sold)) return "";
+  const cp = curPeriod(); if (V.m !== cp.m || V.y !== cp.y) return "";
+  const t0 = new Date(todayIso() + "T00:00:00"), days = []; for (let d = new Date(t0); d <= new Date(P.r[1] + "T00:00:00"); d = new Date(d.getTime() + 864e5)) days.push(new Date(d));
+  if (days.length < 2) return "";
+  const ev = days.map(() => 0), at = dt => Math.max(0, Math.min(days.length - 1, Math.round((dt - t0) / 864e5)));
+  let sumEv = 0;
+  for (const [kd, rows] of [["rev", S.fixRev], ["ch", S.fixCh]]) for (const r of rows){ if (!(N(r.montant) > 0 || isNum(r.m[V.m]))) continue; const st = fixState(r, V.m, V.y); if (st.k === "ok") continue;
+    const v = (kd === "rev" ? 1 : -1) * N(st.amt), i = r.jour ? at(fixDate(r.jour, V.m, V.y)) : 0; ev[i] += v; sumEv += v; }
+  const env = c.d17 / days.length; let bal = N(sold), min = Infinity, minI = 0; const pts = [];
+  const rest = c.d18 - (N(sold) + sumEv - c.d17); ev[0] += rest;
+  days.forEach((d,i) => { bal += ev[i] - env; pts.push(bal); if (bal < min){ min = bal; minI = i; } });
+  const end = pts[pts.length - 1], lo = Math.min(0, min), hi = Math.max(...pts, N(sold)), W = 320, H = 110, px = 8, py = 10, rg = (hi - lo) || 1;
+  const X = i => px + i * (W - 2*px) / (pts.length - 1), Y = v => py + (hi - v) * (H - 2*py) / rg;
+  const line = pts.map((v,i) => (i ? "L" : "M") + X(i).toFixed(1) + " " + Y(v).toFixed(1)).join("");
+  const dm = d => pad(d.getDate()) + "/" + pad(d.getMonth()+1);
+  const msg = min < 0 ? `<b class="neg">Attention : ton solde pourrait passer sous 0 € vers le ${dm(days[minI])} (point bas ${eur(min)}).</b>` : `Point bas prévu : <b class="num">${eur(min)}</b> le ${dm(days[minI])}.`;
+  return `<div class="card"><h2>Prévision du solde</h2>
+    <svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Courbe du solde prévu jusqu'à la paie" style="display:block"><line x1="${px}" x2="${W-px}" y1="${Y(0).toFixed(1)}" y2="${Y(0).toFixed(1)}" stroke="currentColor" stroke-opacity=".25" stroke-dasharray="3 3"/><path d="${line}" fill="none" stroke="${min < 0 ? "#c0392b" : "var(--accent,#0b6b52)"}" stroke-width="2.4" stroke-linejoin="round"/><circle cx="${X(minI).toFixed(1)}" cy="${Y(min).toFixed(1)}" r="4" fill="${min < 0 ? "#c0392b" : "var(--accent,#0b6b52)"}"/></svg>
+    <div class="kv"><span>Aujourd'hui</span><span class="num">${eur(N(sold))}</span></div><div class="kv"><span>Le jour de la paie (${P.pay})</span><span class="num ${end < 0 ? "neg" : ""}">${eur(end)}</span></div>
+    <div class="small" style="margin-top:6px">${msg}</div>
+    <div class="small muted">Prévision à partir de ton solde, des fixes qui restent à passer (à leur date) et des enveloppes restantes dépensées régulièrement jusqu'à la paie. Ce n'est pas ta banque : c'est une estimation.</div></div>`;
+}
 function viewHome(){
   const c = calc(V.m,V.y); const L = livretCalc(); const soldeVal = S.settings.solde;
   const envHtml = c.envs.length ? c.envs.map((e,ei) => {
@@ -770,6 +794,7 @@ function viewHome(){
     ${(() => { const cp = curPeriod(); if (V.m !== cp.m || V.y !== cp.y) return ""; const x = closeCtx(), cu = cutsOf()[ckey(cp.m,cp.y)];
       if (x.avail) return `<div class="btns" style="margin-top:10px"><button class="btn ghost sm" data-act="cl-open">Clôture fin de mois</button></div>`;
       return cu ? `<div class="small muted" style="margin-top:10px">✓ Mois précédent clôturé le ${frDate(cu)}. Le bouton « Clôture fin de mois » revient dans quelques jours, pour clôturer ${MOIS[cp.m].toLowerCase()}.</div>${S.lastClose ? `<div class="btns"><button class="btn ghost sm" data-act="cl-undo">Annuler la clôture</button></div>` : ""}` : ""; })()}</div>` : ""}
+  ${forecastHtml(c)}
   ${(() => { const M = nextMoves(); return M.length ? `<div class="card"><h2>Prochains mouvements</h2><div>${M.map(m => `<div class="mv"><span class="dt num">${pad(m.dt.getDate())}/${pad(m.dt.getMonth()+1)}</span><span class="nm">${esc(m.name)}</span><span class="num ${m.sign > 0 ? "pos" : ""}" style="font-weight:700">${m.sign > 0 ? "+ " : "− "}${eur(m.amt)}</span></div>`).join("")}</div></div>` : ""; })()}
   <div class="card"><div class="top"><h2>Épargne</h2><button class="btn sm" data-act="gosav">Détail</button></div>
     <div class="kv"><span>Livret A</span><span class="num">${eur(L.solde)}</span></div>
@@ -945,6 +970,24 @@ function sheetMv(id, aid){
 }
 const FUT_ARCH_DAYS = 30;
 function futArch(f){ if (f.fait !== "x") return false; if (f.arch) return true; if (!f.doneAt) return false; return (new Date(todayIso() + "T12:00:00") - new Date(f.doneAt + "T12:00:00")) / 864e5 >= FUT_ARCH_DAYS; }
+function objCalc(o, L){ const po = o.poche ? L.poches.find(x => x.id === o.poche) : null, acq = po ? po.reste : N(o.acquis), cible = N(o.cible), rest = Math.max(0, cible - acq);
+  const pct = cible > 0 ? Math.min(100, Math.round(acq / cible * 100)) : 0; let mois = null, par = null, late = false;
+  if (o.date){ const d = Math.ceil((new Date(o.date + "T00:00:00") - new Date(todayIso() + "T00:00:00")) / 864e5); if (d < 0 && rest > 0) late = true; mois = Math.max(1, Math.ceil(d / 30.4)); par = rest > 0 && !late ? Math.ceil(rest / mois * 100) / 100 : 0; }
+  return {acq, cible, rest, pct, mois, par, late, done: cible > 0 && acq >= cible, lien: !!po}; }
+function objHtml(L){ const O = S.objectifs || [];
+  return `<div class="card"><div class="top"><h2>Objectifs d'épargne</h2><button class="btn sm" data-act="objnew">Ajouter</button></div>
+    <div class="rows">${O.length ? O.map(o => { const x = objCalc(o, L);
+      return `<div class="row" style="flex-wrap:wrap"><button class="rowbtn" data-act="objedit" data-id="${o.id}" style="flex:1 1 100%;text-align:left"><div class="h" style="display:flex;justify-content:space-between;gap:8px"><span class="t">${esc(o.n)}${x.done ? ' <span class="chip">atteint</span>' : x.late ? ' <span class="chip bad">date dépassée</span>' : ""}</span><span class="num">${eur(x.acq)} / ${eur(x.cible)}</span></div>
+        <span class="bar" style="margin-top:6px"><i style="display:block;height:100%;width:${x.pct}%;background:var(--accent,#0b6b52);border-radius:999px"></i></span>
+        <div class="s">${x.pct} %${o.date ? " · pour le " + frDate(o.date) : ""}${x.par ? ` · <b>≈ ${eur(x.par)} par mois</b>` : ""}${x.lien ? " · lié à une poche" : ""}</div></button></div>`; }).join("") : '<div class="empty">Aucun objectif. Ajoute un projet (vacances, voiture…) avec un montant et une date : l\'appli calcule combien mettre de côté par mois.</div>'}</div></div>`; }
+function sheetObj(id){ if (!Array.isArray(S.objectifs)) S.objectifs = []; const o = id ? S.objectifs.find(x => x.id === id) : {n:"", cible:"", date:"", poche:"", acquis:""}, L = livretCalc(), sv = v => v === "" || v == null ? "" : String(v).replace(".",",");
+  openSheet(`<h2>${id ? "Modifier" : "Nouvel"} objectif</h2>
+    <label class="f">Nom<input id="ob-n" value="${esc(o.n)}" placeholder="Ex. Vacances d'été"></label>
+    <div class="grid2"><label class="f">Montant visé (€)<input id="ob-c" inputmode="decimal" value="${sv(o.cible)}"></label><label class="f">Date souhaitée<input id="ob-d" type="date" value="${esc(o.date || "")}"></label></div>
+    <label class="f">Où est l'argent ?<select id="ob-p"><option value="">Je saisis ce que j'ai déjà</option>${L.poches.map(p => `<option value="${p.id}" ${p.id === o.poche ? "selected" : ""}>Poche « ${esc(p.n)} »</option>`).join("")}</select></label>
+    <label class="f">Déjà mis de côté (€) si pas de poche<input id="ob-a" inputmode="decimal" value="${sv(o.acquis)}"></label>
+    <div class="small muted">Avec une poche, la jauge suit automatiquement l'argent réservé dedans.</div>
+    <div class="btns"><button class="btn" data-act="ob-save" data-id="${id||""}" style="flex:1">Enregistrer</button>${id ? `<button class="btn danger" data-act="ob-del" data-id="${id}">Supprimer</button>` : ""}<button class="btn ghost" data-act="sheetclose">Fermer</button></div>`); }
 function viewSav(){
   const L = livretCalc(), e = S.epargne;
   const moves = L.moves.slice().sort((a,b) => b.date.localeCompare(a.date)).slice(0,30);
@@ -964,6 +1007,7 @@ function viewSav(){
       <div class="amt num ${m.vers ? "pos" : "neg"}">${m.vers ? "+ " + eur(m.vers) : "− " + eur(m.ret)}</div></div>`).join("") : '<div class="empty">Aucun mouvement.</div>'}</div></div>
   <div class="card"><div class="top"><h2>Poches (argent qui n'est pas à moi)</h2><button class="btn sm" data-act="pochenew">Ajouter</button></div>
     <div class="rows">${L.poches.length ? L.poches.map(p => `<div class="row"><button class="rowbtn" data-act="pocheedit" data-id="${p.id}"><div class="t">${esc(p.n)}</div><div class="s">mis de côté ${eur(p.mis)} · utilisé ${eur(p.util)}</div></button><div class="amt num">${eur(p.reste)}</div></div>`).join("") : '<div class="empty">Aucune poche.</div>'}</div></div>
+  ${objHtml(L)}
   <div class="card"><div class="top"><h2>FUTUR : sorties et entrées à venir</h2><button class="btn sm" data-act="futnew">Ajouter</button></div>
     <div class="rows">${e.futur.filter(f => V.futArch || !futArch(f)).length ? e.futur.filter(f => V.futArch || !futArch(f)).map(f => `<div class="row" ${futArch(f) ? 'style="opacity:.6"' : ""}><button class="chk ${f.fait === "x" ? "on" : ""}" data-act="futtoggle" data-id="${f.id}" aria-label="Fait">${ICON.check}</button>
       <button class="rowbtn" data-act="futedit" data-id="${f.id}"><div class="t">${esc(f.lib)}</div><div class="s">${f.date ? frDate(f.date) : "sans date"} · ${f.fait === "x" ? '<span class="chip">fait</span>' : (f.date && f.date <= todayIso() ? '<span class="chip bad">à pointer</span>' : '<span class="chip warn">à venir</span>')}</div></button>
@@ -1196,6 +1240,7 @@ function viewSet(){
 /* ============ Aide « ? » et guide d'utilisation ============ */
 const HELP = {
   home:{t:"L'accueil", p:[
+    "<b>Prévision du solde</b> : la courbe estime ton solde jour après jour jusqu'à la paie (solde actuel, fixes à passer à leur date, enveloppes restantes dépensées régulièrement). Le point marque le point bas ; si la courbe passe sous 0 €, une alerte te prévient. C'est une estimation, pas ta banque.",
     "<b>C'est quoi ?</b> Le résumé de ton mois d'un coup d'œil.",
     "<b>Reste à vivre</b> : l'argent que tu peux encore dépenser jusqu'à ta prochaine paie, une fois payées les charges fixes qui restent à passer. C'est LE chiffre à regarder.",
     "<b>Le solde de ton compte</b> : recopie dans l'encadré le solde de ton appli bancaire. Tout le calcul part de ce chiffre : reste à vivre = solde − fixes à payer − dépenses non pointées − enveloppes restantes.",
@@ -1224,6 +1269,7 @@ const HELP = {
     "<b>Dépense</b> : retire de l'enveloppe choisie. <b>Revenu</b> : ajoute de l'argent. <b>Livret A</b> : un virement vers ou depuis ton Livret.",
     "<b>Déjà pointé</b> : active-le si tu as déjà vu l'opération passer sur ton relevé de banque."]},
   sav:{t:"L'épargne", p:[
+    "<b>Objectifs d'épargne</b> : ajoute un projet avec un montant visé et une date. La jauge montre où tu en es et « ≈ X € par mois » ce qu'il faut mettre de côté pour y arriver à temps. Lie l'objectif à une poche pour que la jauge suive l'argent réservé, ou saisis toi-même ce que tu as déjà.",
     "<b>FUTUR : lignes faites</b> : quand tu coches une ligne FUTUR « faite », elle compte tout de suite dans le Livret A, puis elle disparaît de la liste après 30 jours (archivée). Le bouton « Archiver les lignes faites » le fait tout de suite ; « Voir les archivées » les réaffiche. Décocher une ligne la remet dans la liste.",
     "<b>Réajuster le Livret A</b> : avec le temps (intérêts, centimes), le total de l'appli peut s'écarter du vrai solde. Bouton « Réajuster avec le solde réel » dans les mouvements : tu saisis le solde de ta banque, l'appli ajoute une ligne « Ajustement » pour la différence (poches et historique intacts).",
     "<b>C'est quoi ?</b> Ton Livret A et tes autres comptes d'épargne.",
@@ -1642,11 +1688,11 @@ function sheetDiff(){
 function commitImport(replace){
   const p = V.pending; if (!p) return;
  const keepWeb = S.web || [], keepSeen = S.webSeen, keepCats = S.webCatList, keepBank = S.bank, keepRules = S.rules, keepLB = S.lastBackup, keepAc = S.accts, keepMvv = S.acctMv, keepArch = S.archives, keepYR = S.yearRecap, keepFY = S.fixYear, keepCuts = S.cuts, keepLC = S.lastClose;
-  const prevPay = S.settings.payday; if (replace && p.kind === "classeur"){ const prevCats = S.settings.cats; S = p.data; S.demo = false; if (!S.settings.cats.length) S.settings.cats = prevCats; V.msg = "Données remplacées par le classeur."; }
+  const prevPay = S.settings.payday, oldEnv = S.settings.envelopes, oldObj = S.objectifs; if (replace && p.kind === "classeur"){ const prevCats = S.settings.cats; S = p.data; S.demo = false; keepX(oldEnv, oldObj); if (!S.settings.cats.length) S.settings.cats = prevCats; V.msg = "Données remplacées par le classeur."; }
   else if (replace && p.kind === "echange"){ const f = p.full; const base = emptyData();
     S = Object.assign(base,{journal:p.rows}); if (f.settings) S.settings = f.settings; if (f.fixRev) S.fixRev = f.fixRev; if (f.fixCh) S.fixCh = f.fixCh; if (f.epargne) S.epargne = f.epargne; if (f.accts){ S.accts = f.accts; S.acctMv = f.acctMv; }
     if (/^export_appli/i.test(p.name)) S.seen = seenOf(p);
-    V.msg = "Données remplacées par le fichier d'échange."; }
+    keepX(oldEnv, oldObj); V.msg = "Données remplacées par le fichier d'échange."; }
   else if (replace && p.kind === "json"){ S = p.data; S.demo = false; V.msg = "Sauvegarde restaurée."; }
   else {
     const rows = p.kind === "classeur" ? p.data.journal : p.rows;
@@ -1705,7 +1751,7 @@ document.addEventListener("click", ev => {
     case "w-del": { collectWiz(); V.wiz.d[k].splice(+b.dataset.i, 1); if (!V.wiz.d[k].length && (k === "poches" || k === "accts")) V.wiz.d[k].push(k === "poches" ? {n:"", f:""} : {n:"", type:"Livret", depart:""}); render(); break; }
     case "w-finish": wizFinish(); break;
     case "w-import": S = emptyData(); V.wiz = null; V.tab = "set"; V.msg = "Choisis ton fichier dans « Synchroniser avec Excel » (bouton Importer un fichier)."; persist(); render(); break;
-    case "w-demo": S = demoData(); V.wiz = null; persist(); render(); break;
+    case "w-demo": S = demoData(); migrate(); V.wiz = null; persist(); render(); break;
     case "mprev": setMonth(-1); break; case "mnext": setMonth(1); break;
     case "mview": V.mv = b.dataset.v; lsSet("mc-mview", V.mv); render(); break;
     case "hidepast": V.hidePast = !V.hidePast; render(); break;
@@ -1766,6 +1812,11 @@ document.addEventListener("click", ev => {
     case "pochenew": sheetPoche(""); break; case "pocheedit": sheetPoche(id); break;
     case "po-save": { const n = $("#p-n").value.trim(); if (!n) return toast("Donnez un nom"); const o = {n, f:parseNum($("#p-f").value) || 0};
       if (id) Object.assign(S.epargne.poches.find(x => x.id === id), o); else S.epargne.poches.push(Object.assign({id:uid()}, o)); persist(); closeSheet(); render(); break; }
+    case "objnew": sheetObj(""); break; case "objedit": sheetObj(id); break;
+    case "ob-save": { if (!Array.isArray(S.objectifs)) S.objectifs = []; const n = $("#ob-n").value.trim(), c = parseNum($("#ob-c").value); if (!n) return toast("Donnez un nom"); if (!(c > 0)) return toast("Indique le montant visé");
+      const o = {n, cible:c, date:$("#ob-d").value || "", poche:$("#ob-p").value || "", acquis:parseNum($("#ob-a").value) || 0};
+      if (id) Object.assign(S.objectifs.find(x => x.id === id), o); else S.objectifs.push(Object.assign({id:uid()}, o)); persist(); closeSheet(); render(); break; }
+    case "ob-del": S.objectifs.splice(S.objectifs.findIndex(x => x.id === id),1); persist(); closeSheet(); render(); break;
     case "po-del": S.epargne.poches.splice(S.epargne.poches.findIndex(x => x.id === id),1); persist(); closeSheet(); render(); break;
     case "web-merge": applyWeb(false); break; case "web-replace": applyWeb(true); break;
     case "lk-d": if (SEC.pin.length < 6){ SEC.pin += id; lockDots(); if (SEC.pin.length === 6) lockSubmit(); } break;
@@ -2047,7 +2098,7 @@ function viewBank(){
 }
 
 /* ============ Démarrage ============ */
-const migrate = () => { if (!S.epargne) S.epargne = emptyEpargne(); if (Array.isArray(S.epargne.futur)){ const t0 = todayIso(); for (const f of S.epargne.futur) if (f.fait === "x" && !f.doneAt) f.doneAt = (f.date && f.date < t0) ? f.date : t0; } if (!Array.isArray(S.accts)) S.accts = []; if (!Array.isArray(S.acctMv)) S.acctMv = []; if (!Array.isArray(S.web)) S.web = []; if (!S.bank) S.bank = {seen:[]}; if (!S.rules) S.rules = {}; if (!V.pinit){ const cp = curPeriod(); V.m = cp.m; V.y = cp.y; V.pinit = true; } };
+const migrate = () => { if (!Array.isArray(S.objectifs)) S.objectifs = []; if (!S.epargne) S.epargne = emptyEpargne(); if (Array.isArray(S.epargne.futur)){ const t0 = todayIso(); for (const f of S.epargne.futur) if (f.fait === "x" && !f.doneAt) f.doneAt = (f.date && f.date < t0) ? f.date : t0; } if (!Array.isArray(S.accts)) S.accts = []; if (!Array.isArray(S.acctMv)) S.acctMv = []; if (!Array.isArray(S.web)) S.web = []; if (!S.bank) S.bank = {seen:[]}; if (!S.rules) S.rules = {}; if (!V.pinit){ const cp = curPeriod(); V.m = cp.m; V.y = cp.y; V.pinit = true; } };
 const PALS = {emeraude:{n:"Émeraude"}, ocean:{n:"Océan", l:["#1769C2","#FFFFFF","#DCE9F8"], d:["#5AA9FF","#04162B","#172B45"]},
   violet:{n:"Violet", l:["#6D3FD1","#FFFFFF","#E9E0F8"], d:["#A98BFF","#1A0B3D","#2B2147"]},
   sunset:{n:"Coucher de soleil", l:["#C2410C","#FFFFFF","#FBE5DA"], d:["#FF9A62","#3A1300","#3F2418"]},
@@ -2075,6 +2126,10 @@ document.addEventListener("change", ev => { if (ev.target.id === "sch-a" || ev.t
 applyTheme();
 /* ===== Historique des mises à jour ===== */
 const CHANGELOG = [
+ {v:"2.8", d:"Octobre 2026", t:"Prévision du solde et objectifs", i:[
+  "Accueil : une « Prévision du solde » en courbe jusqu'à la paie, avec le point bas et une alerte si ton solde risque de passer sous 0 €.",
+  "Épargne : des « Objectifs d'épargne » (vacances, voiture…) avec jauge et calcul de ce qu'il faut mettre de côté par mois, éventuellement liés à une poche."
+  ]},
  {v:"2.7", d:"Octobre 2026", t:"Rappel plusieurs appareils", i:[
   "Un rappel clair à l'accueil et juste après la préparation de l'appli : plusieurs appareils sont possibles, mais il faut sauvegarder puis restaurer la sauvegarde sur l'autre appareil.",
   "Une carte « Utiliser plusieurs appareils » dans Réglages, avec les étapes et un bouton pour sauvegarder tout de suite."]},
