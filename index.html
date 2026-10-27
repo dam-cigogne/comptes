@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
 <style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}</style>
 <title>Les comptes en poches</title>
-<meta name="description" content="Les comptes en poches : reste à vivre, enveloppes, fixes, Livret A et synchro Excel. Privée, sans compte, hors connexion.">
+<meta name="description" content="Les comptes en poches : reste à vivre, enveloppes, fixes, prévision du solde, épargne et objectifs, synchro Excel. Gratuit, sans publicité, sans compte, hors connexion.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Les comptes en poches">
 <meta property="og:title" content="Les comptes en poches · ton budget en poche">
-<meta property="og:description" content="Reste à vivre, enveloppes, fixes, Livret A, synchro Excel. Privée, sans compte, hors connexion.">
+<meta property="og:description" content="Reste à vivre, enveloppes, fixes, prévision du solde, épargne et objectifs, synchro Excel. Gratuit, sans publicité, sans compte, hors connexion.">
 <meta property="og:image" content="https://dam-cigogne.github.io/comptes/apercu.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -1914,7 +1914,7 @@ document.addEventListener("click", ev => {
     case "imgshare": { const f = b.dataset.v; (async () => { try { const r = await fetch(f); const bl = await r.blob(); const file = new File([bl], f, {type:bl.type});
         if (navigator.canShare && navigator.canShare({files:[file]})){ try { await navigator.share({files:[file]}); } catch(e){ if (!e || e.name !== "AbortError") throw e; } }
         else await saveFile(f, await bl.arrayBuffer(), bl.type); } catch(e){ toast("Partage impossible"); } })(); break; }
-    case "fshare": { const url = "https://dam-cigogne.github.io/comptes/fiche.html", text = "Les comptes en poches : l'appli de budget simple et privée. Reste à vivre, enveloppes, fixes, Livret A, synchro Excel. Sans compte, ça marche hors connexion.";
+    case "fshare": { const url = "https://dam-cigogne.github.io/comptes/fiche.html", text = "Les comptes en poches : ton budget dans la poche, simple et lisible. Ton reste à vivre jusqu'à la paie, tes enveloppes, tes fixes à pointer, la prévision du solde, le Livret A, les poches et objectifs d'épargne, la synchro avec Excel et l'export PDF. Gratuit, sans publicité, sans compte : tout reste sur ton téléphone.";
       if (navigator.share){ navigator.share({title:"Les comptes en poches", text, url}).catch(() => {}); } else { copyText(text + "\n" + url).then(() => toast("Texte et lien copiés")); } break; }
     case "fview": window.open("https://dam-cigogne.github.io/comptes/fiche.html", "_blank", "noopener"); break;
     case "fcopy": copyText("https://dam-cigogne.github.io/comptes/fiche.html").then(() => toast("Lien copié")); break;
@@ -2161,6 +2161,9 @@ document.addEventListener("change", ev => { if (ev.target.id === "sch-a" || ev.t
 applyTheme();
 /* ===== Historique des mises à jour ===== */
 const CHANGELOG = [
+ {v:"3.1", d:"Octobre 2026", t:"Partage de l'appli plus complet", i:[
+  "« Partager avec le descriptif » envoie maintenant un texte plus complet (reste à vivre, enveloppes, prévision, épargne et objectifs, Excel, gratuit, sans compte).",
+  "Nouvelle carte d'aperçu du lien avec des captures de l'appli, et affiches mises à jour."]},
  {v:"3.0", d:"Octobre 2026", t:"Retraits et versements du Livret A", i:[
   "Ajouter › Retrait ou Versement Livret A : tu choisis maintenant si tu utilises (ou alimentes) une poche, et où va l'argent : ton compte courant ou un autre compte d'épargne.",
   "Épargne › Mouvements du Livret A › Ajouter : un nouveau choix « Contrepartie ». Sur le compte courant, l'opération est aussi ajoutée au journal ; sur un autre compte, le mouvement est noté des deux côtés.",
