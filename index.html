@@ -259,6 +259,7 @@ body.priv #main,body.priv #tabs{visibility:hidden}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
+const FICHE_URL = "https://dam-cigogne.github.io/comptes/fiche.html", FICHE_TXT = "Les comptes en poches : ton budget dans la poche, simple et lisible. Ton reste à vivre jusqu'à la paie, tes enveloppes, tes fixes à pointer, la prévision du solde, le Livret A, les poches et objectifs d'épargne, la synchro avec Excel et l'export PDF. Gratuit, sans publicité, sans compte : tout reste sur ton téléphone.";
 /* RÈGLE : à chaque grosse nouveauté, mettre à jour CHANGELOG, HELP, src/fiche.html et, si c'est important, les affiches (src/affiches/make.py). */
 "use strict";
 /* ============ Constantes ============ */
@@ -1348,7 +1349,7 @@ const HELP = {
     "Note le site, l'identifiant, la catégorie et l'état (« À changer », « Changé », « OK »). <b>Ne mets jamais tes mots de passe</b> : ils sont à garder dans un gestionnaire de mots de passe."]},
   set:{t:"Les réglages", p:[
     "<b>Suivi des granulés</b> (pour un poêle) : active l'interrupteur, règle le poids d'un sac (15 kg par défaut), ton budget annuel et la période (saison de chauffe septembre → juin, ou année civile). Ensuite, quand tu ajoutes une dépense dont le libellé ou l'enveloppe contient « granulé » (par exemple une enveloppe « Granulés »), l'appli te demande combien de sacs (mets 0 si ce n'est pas un achat de granulés). Le suivi (Accueil › Granulés › Suivi) montre les sacs, les kg, la dépense, le prix moyen, la jauge du budget et la comparaison avec la saison précédente. « Ajouter un achat passé » permet de saisir l'historique des années précédentes : il compte dans le suivi mais pas dans tes enveloppes ni dans Excel.",
-    "<b>Fiche de l'appli (à partager)</b> : trois affiches et une carte d'aperçu. Touche une vignette pour la voir en grand et la partager ou l'enregistrer. « Partager avec le descriptif » envoie un court texte et le lien de la fiche de présentation ; « Voir la fiche » l'ouvre ; « Copier le lien » le copie. Aucune donnée personnelle dans ces images.",
+    "<b>Fiche de l'appli (à partager)</b> : trois affiches et une carte d'aperçu. Touche une vignette pour la voir en grand et la partager ou l'enregistrer. « Partager avec le descriptif » envoie un court texte et le lien de la fiche de présentation ; en ouvrant une affiche, « Partager avec le texte » envoie l'image avec ce texte (« Copier le texte » si ton appli de messagerie le retire) ; « Voir la fiche » l'ouvre ; « Copier le lien » le copie. Aucune donnée personnelle dans ces images.",
     "<b>Où enregistrer les exports ?</b> Sur PC et Android, choisis un dossier une fois : les exports y sont écrits directement en remplaçant l'ancien fichier. Sur iPhone et iPad, Apple ne le permet pas : dans la feuille de partage, touche « Enregistrer dans Fichiers » (iOS rouvre en général le dernier dossier) et choisis « Remplacer ».",
     "<b>Taille de l'affichage</b> : en Automatique, l'appli s'agrandit toute seule sur tablette et grand écran. Si c'est encore trop petit ou trop grand, choisis Normal, Grand, Très grand ou Maximum.",
     "<b>Dossier IMPORT</b> : « Exporter le journal » crée le fichier à donner à Excel. Enregistre-le toujours dans le dossier <b>IMPORT</b> d'Excel (il est déjà créé) pour ne pas te tromper. Pour l'autre sens, « Importer le journal » prend le fichier préparé par Excel.",
@@ -1965,12 +1966,14 @@ document.addEventListener("click", ev => {
     case "exp-json": saveFile("mes-comptes-sauvegarde.json", JSON.stringify(S,null,1), "application/json").then(ok => { if (ok){ S.lastBackup = Date.now(); persist(); render(); } }); break;
     case "df-apply": { const ch = [...document.querySelectorAll("[data-df]")].filter(c => c.checked).map(c => +c.dataset.df); for (const i of ch) V.diff[i].ap(); V.diff = null; persist(); closeSheet(); render(); toast(ch.length + " différence(s) reprise(s)"); break; }
     case "cols": { const v = b.dataset.v; if (v === "auto") { try { localStorage.removeItem("mc-cols"); } catch(e){} } else lsSet("mc-cols", v); applyZoom(); render(); break; }
-    case "imgopen": { const f = b.dataset.v; openSheet(`<h2>${esc(b.dataset.t || "Image")}</h2><img class="bigimg" src="${esc(f)}" alt="${esc(b.dataset.t || "")}"><div class="btns"><button class="btn" data-act="imgshare" data-v="${esc(f)}" style="flex:1">Partager / enregistrer</button><button class="btn ghost" data-act="sheetclose">Fermer</button></div>`); break; }
+    case "imgopen": { const f = b.dataset.v; openSheet(`<h2>${esc(b.dataset.t || "Image")}</h2><img class="bigimg" src="${esc(f)}" alt="${esc(b.dataset.t || "")}"><div class="btns"><button class="btn" data-act="imgshare" data-v="${esc(f)}" data-m="txt" style="flex:1">Partager avec le texte</button><button class="btn ghost" data-act="imgshare" data-v="${esc(f)}">Image seule</button><button class="btn ghost" data-act="ftxtcopy">Copier le texte</button><button class="btn ghost" data-act="sheetclose">Fermer</button></div>`); break; }
     case "imgshare": { const f = b.dataset.v; (async () => { try { const r = await fetch(f); const bl = await r.blob(); const file = new File([bl], f, {type:bl.type});
-        if (navigator.canShare && navigator.canShare({files:[file]})){ try { await navigator.share({files:[file]}); } catch(e){ if (!e || e.name !== "AbortError") throw e; } }
+        const withTxt = b.dataset.m === "txt", pay = withTxt ? {files:[file], title:"Les comptes en poches", text: FICHE_TXT + "\n" + FICHE_URL} : {files:[file]};
+        if (navigator.canShare && navigator.canShare(pay)){ try { await navigator.share(pay); } catch(e){ if (!e || e.name !== "AbortError") throw e; } }
         else await saveFile(f, await bl.arrayBuffer(), bl.type); } catch(e){ toast("Partage impossible"); } })(); break; }
-    case "fshare": { const url = "https://dam-cigogne.github.io/comptes/fiche.html", text = "Les comptes en poches : ton budget dans la poche, simple et lisible. Ton reste à vivre jusqu'à la paie, tes enveloppes, tes fixes à pointer, la prévision du solde, le Livret A, les poches et objectifs d'épargne, la synchro avec Excel et l'export PDF. Gratuit, sans publicité, sans compte : tout reste sur ton téléphone.";
+    case "fshare": { const url = FICHE_URL, text = FICHE_TXT;
       if (navigator.share){ navigator.share({title:"Les comptes en poches", text, url}).catch(() => {}); } else { copyText(text + "\n" + url).then(() => toast("Texte et lien copiés")); } break; }
+    case "ftxtcopy": copyText(FICHE_TXT + "\n" + FICHE_URL).then(() => toast("Texte et lien copiés")); break;
     case "fview": window.open("https://dam-cigogne.github.io/comptes/fiche.html", "_blank", "noopener"); break;
     case "fcopy": copyText("https://dam-cigogne.github.io/comptes/fiche.html").then(() => toast("Lien copié")); break;
     case "dirpick": (async () => { try { const h = await window.showDirectoryPicker({mode:"readwrite"}); await dirSet(h); lsSet("mc-dirname", h.name); toast("Dossier choisi : " + h.name); render(); } catch(e){} })(); break;
@@ -2218,6 +2221,8 @@ document.addEventListener("change", ev => { if (ev.target.id === "sch-a" || ev.t
 applyTheme();
 /* ===== Historique des mises à jour ===== */
 const CHANGELOG = [
+ {v:"3.3", d:"Octobre 2026", t:"Affiches avec le texte", i:[
+  "Quand tu ouvres une affiche (Réglages › Fiche de l'appli), « Partager avec le texte » envoie l'image avec le petit descriptif et le lien. « Image seule » envoie juste l'image, « Copier le texte » copie le descriptif à coller toi-même (utile si ton appli de messagerie ignore le texte)."]},
  {v:"3.2", d:"Octobre 2026", t:"Suivi des granulés", i:[
   "Réglages › Suivi des granulés (désactivé par défaut) : quand tu ajoutes une dépense « granulés », l'appli demande le nombre de sacs et calcule les kg, le prix au sac et au kg.",
   "Un suivi par saison (saison de chauffe septembre → juin, les achats de juillet-août comptant pour la saison qui arrive ; ou année civile) avec budget annuel et jauge, comparaison avec la saison précédente et liste des achats.",
