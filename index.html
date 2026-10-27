@@ -488,22 +488,26 @@ function calc(m,y){
 function livretCalc(){
   const e = S.epargne, dep = e.dateDepart || "0000-00-00", low = x => String(x || "").trim().toLowerCase();
   const moves = [], manuel = e.manuel.filter(m => !m.del);
-  for (const m of manuel){ const pq = String(m.pq || ""); const vers = /^Versement/.test(pq) || pq === "Ajustement (+)";
+  const isV = m => { const pq = String(m.pq || ""); return /^Versement/.test(pq) || pq === "Ajustement (+)" || pq === "Transfert (+)"; };
+  for (const m of manuel){ const pq = String(m.pq || ""); const vers = isV(m); const ac = m.acct ? (S.accts || []).find(a => a.id === m.acct) : null, acn = ac ? ac.n : "";
     moves.push({id:m.id, kind:"S", date:m.date || todayIso(), lib:m.lib, vers:vers ? N(m.montant) : 0, ret:vers ? 0 : N(m.montant),
-      org:/^Ajustement/.test(pq) ? "Ajustement" : vers ? "Versement" : pq === "Grosse dépense" ? "Grosse dépense" : "Poche " + pq}); }
+      org:/^Ajustement/.test(pq) ? "Ajustement" : vers ? (acn ? "Depuis " + acn : "Versement") : pq === "Grosse dépense" ? "Grosse dépense" : /^Transfert/.test(pq) ? "Vers " + (acn || "un autre compte") : "Poche " + pq + (acn ? " → " + acn : "")}); }
   for (const j of live()){
     if (j.pointe !== "x" || !(j.date > dep)) continue;
     const env = j.type === "Dépense" && (j.cat === e.envA || (e.envB && j.cat === e.envB) || j.cat === "Envois LIVRET A");
     const v = env || j.type === "Versement sur Livret A", r = j.type === "Retrait du Livret A";
     if (!v && !r) continue;
-    moves.push({id:j.id, kind:"J", date:j.date, lib:j.lib, vers:v ? N(j.montant) : 0, ret:r ? N(j.montant) : 0,
+    moves.push({id:j.id, kind:"J", note:j.note, date:j.date, lib:j.lib, vers:v ? N(j.montant) : 0, ret:r ? N(j.montant) : 0,
       org:env ? (j.cat === "Envois LIVRET A" ? "Envoi depuis Mois" : "Enveloppe " + j.cat) : r ? "Vers compte courant" : "Depuis compte courant"}); }
   for (const f of e.futur){ if (f.fait === "x" && (N(f.sortie) || N(f.entree)))
     moves.push({id:f.id, kind:"F", date:f.date || todayIso(), lib:f.lib, vers:N(f.entree), ret:N(f.sortie), org:"FUTUR"}); }
   const solde = N(S.settings.livretDepart) + moves.reduce((a,m) => a + m.vers - m.ret, 0);
   const poches = e.poches.filter(p => p.n).map(p => {
-    const mis = N(p.f) + live().filter(j => j.type === "Dépense" && j.cat === "Envois LIVRET A" && low(j.lib) === low(p.n) && j.pointe === "x" && j.date > dep).reduce((a,j) => a + N(j.montant), 0);
-    const util = manuel.filter(m => low(m.pq) === low(p.n)).reduce((a,m) => a + N(m.montant), 0);
+    const mis = N(p.f) + live().filter(j => j.type === "Dépense" && j.cat === "Envois LIVRET A" && low(j.lib) === low(p.n) && j.pointe === "x" && j.date > dep).reduce((a,j) => a + N(j.montant), 0)
+      + live().filter(j => j.type === "Versement sur Livret A" && low(j.poche) === low(p.n) && j.pointe === "x" && j.date > dep).reduce((a,j) => a + N(j.montant), 0)
+      + manuel.filter(m => isV(m) && low(m.poche) === low(p.n)).reduce((a,m) => a + N(m.montant), 0);
+    const util = manuel.filter(m => low(m.pq) === low(p.n)).reduce((a,m) => a + N(m.montant), 0)
+      + live().filter(j => j.type === "Retrait du Livret A" && low(j.poche) === low(p.n) && j.pointe === "x" && j.date > dep).reduce((a,j) => a + N(j.montant), 0);
     return {id:p.id, n:p.n, mis, util, reste:mis - util}; });
   const pochesReste = poches.reduce((a,p) => a + p.reste, 0), aMoi = solde - pochesReste;
   const sorties = e.futur.filter(f => f.fait !== "x").reduce((a,f) => a + N(f.sortie), 0);
@@ -838,7 +842,7 @@ function viewMonth(){
     const wait = j.type === "Avance (à rembourser)" && !j.remb, recv = j.type === "Revenu" && j.pointe !== "x";
     return `<div class="row"><button class="chk ${j.pointe==="x"?"on":""}" data-act="jtoggle" data-id="${j.id}" aria-label="Pointer">${ICON.check}</button>${dotHtml(j.cat || TYPE_SHORT[j.type])}
       <button class="rowbtn" data-act="jedit" data-id="${j.id}"><div class="t">${esc(j.lib || j.cat || j.type)}</div>
-      <div class="s">${frDate(j.date)} · ${esc(j.cat || TYPE_SHORT[j.type])}${wait ? ' · <span class="chip warn">à rembourser</span>' : ""}${recv ? ' · <span class="chip warn">à recevoir</span>' : ""}</div></button>
+      <div class="s">${frDate(j.date)} · ${esc(j.cat || TYPE_SHORT[j.type])}${wait ? ' · <span class="chip warn">à rembourser</span>' : ""}${recv ? ' · <span class="chip warn">à recevoir</span>' : ""}</div>${j.note ? `<div class="s" style="font-style:italic">📝 ${esc(j.note)}</div>` : ""}</button>
       <div class="amt num ${sign>0?"pos":""}">${sign>0?"+":"−"} ${eur(j.montant)}</div></div>`;
   }).join("") : `<div class="empty">${J0.length ? "Tout est pointé. Touche « Masquer les pointés » pour tout revoir." : "Aucune opération ce mois-ci."}</div>`;
   const kv = (l,v,cl) => `<div class="kv"><span>${l}</span><span class="num ${cl||""}">${eur(v)}</span></div>`;
@@ -847,7 +851,7 @@ function viewMonth(){
   if (cutsOf()[ckey(V.m,V.y)]) for (const j of live().filter(j => inMonth(j,pv.m,pv.y) && j.pointe !== "x" && ["Dépense","Revenu","Versement sur Livret A","Retrait du Livret A"].includes(j.type)).sort((a,b) => b.date.localeCompare(a.date))){
     const sg = j.type === "Revenu" || j.type === "Retrait du Livret A" ? 1 : -1;
     carried.push(`<div class="row"><button class="chk" data-act="jtoggle" data-id="${j.id}" aria-label="Pointer">${ICON.check}</button>${dotHtml(j.cat || TYPE_SHORT[j.type])}
-      <button class="rowbtn" data-act="jedit" data-id="${j.id}"><div class="t">${esc(j.lib || j.cat || j.type)} <span class="muted small">(${MOIS[pv.m].toLowerCase()})</span></div><div class="s">${frDate(j.date)} · ${esc(j.cat || TYPE_SHORT[j.type])}</div></button>
+      <button class="rowbtn" data-act="jedit" data-id="${j.id}"><div class="t">${esc(j.lib || j.cat || j.type)} <span class="muted small">(${MOIS[pv.m].toLowerCase()})</span></div><div class="s">${frDate(j.date)} · ${esc(j.cat || TYPE_SHORT[j.type])}</div>${j.note ? `<div class="s" style="font-style:italic">📝 ${esc(j.note)}</div>` : ""}</button>
       <div class="amt num ${sg>0?"pos":""}">${sg>0?"+":"−"} ${eur(j.montant)}</div></div>`); }
   const carryHtml = carried.length ? `<div class="card"><h2>Repris de ${MOIS[pv.m].toLowerCase()}</h2><div class="small muted">Éléments de ${MOIS[pv.m].toLowerCase()} pas encore pointés (fixes et opérations) : leur montant est déjà réservé dans votre reste à vivre. Touchez le rond quand ils sont passés.</div><div class="rows">${carried.join("")}</div></div>` : "";
   const fixCard = `  <div class="card"><div class="top"><h2>Fixes et revenus</h2>
@@ -881,9 +885,15 @@ function recentCats(){
     if (j.type !== "Dépense" || !j.cat || out.indexOf(j.cat) >= 0) continue; out.push(j.cat); if (out.length >= 5) break; }
   return out;
 }
+function livFieldsHtml(d, ed){
+  const vers = d.type === "Versement sur Livret A", po = S.epargne.poches.filter(p => p.n), ac = acctLive();
+  return `<div class="card" style="background:var(--surface2,rgba(0,0,0,.03));box-shadow:none;border:1px dashed var(--line)"><b>${vers ? "Versement sur le Livret A" : "Retrait du Livret A"}</b>
+    <label class="f">${vers ? "Cet argent va dans une poche ?" : "Tu utilises l'argent d'une poche ?"}<select id="f-poche"><option value="">Non, c'est mon argent</option>${po.map(p => `<option value="${esc(p.n)}" ${d.poche === p.n ? "selected" : ""}>Oui : ${esc(p.n)}</option>`).join("")}</select></label>
+    ${ed ? "" : `<label class="f">${vers ? "D'où vient l'argent ?" : "Où va l'argent ?"}<select id="f-acct"><option value="">${vers ? "De mon compte courant" : "Sur mon compte courant"}</option>${ac.map(a => `<option value="${esc(a.id)}" ${d.acct === a.id ? "selected" : ""}>${vers ? "De" : "Sur"} : ${esc(a.n)} (${esc(a.type)})</option>`).join("")}</select></label>
+    <div class="small muted">Si tu choisis un autre compte d'épargne, le mouvement est noté des deux côtés (Livret A et ce compte) et ton compte courant ne bouge pas.</div>`}</div>`; }
 function viewAdd(){
   const ed = V.editId ? S.journal.find(j => j.id === V.editId) : null;
-  const d = V.draft || (ed ? {date:ed.date,type:ed.type,cat:ed.cat,lib:ed.lib,mont:String(ed.montant).replace(".",","),pt:ed.pointe==="x",note:ed.note,remb:ed.remb}
+  const d = V.draft || (ed ? {date:ed.date,type:ed.type,cat:ed.cat,lib:ed.lib,mont:String(ed.montant).replace(".",","),pt:ed.pointe==="x",note:ed.note,remb:ed.remb,poche:ed.poche || ""}
                            : {date:todayIso(),type:"Dépense",cat:"",lib:"",mont:"",pt:true,note:"",remb:""});
   V.draft = d;
   const livret = d.type.indexOf("Livret") >= 0;
@@ -900,6 +910,7 @@ function viewAdd(){
     <div class="amtbig"><div class="l">Montant (€)</div><input id="f-mont" inputmode="none" autocomplete="off" placeholder="0,00" value="${esc(d.mont)}" aria-label="Montant en euros"></div>
     <div class="keys">${["1","2","3","4","5","6","7","8","9",",","0","del"].map(k => `<button data-act="key" data-v="${k}" aria-label="${k === "del" ? "Effacer" : k === "," ? "Virgule" : k}">${k === "del" ? "⌫" : k}</button>`).join("")}</div>
     <label class="f">Libellé<input id="f-lib" placeholder="Courses, Vinted…" value="${esc(d.lib)}"></label>
+    ${livret ? livFieldsHtml(d, ed) : ""}
     ${rc.length ? `<div><div class="small muted" style="margin-bottom:6px">Catégories récentes</div><div class="pills">${rc.map(c => `<button data-act="catpick" data-v="${esc(c)}" class="${d.cat === c ? "on" : ""}">${dotHtml(c,true)}${esc(c)}</button>`).join("")}</div></div>` : ""}
     <label class="f">${rc.length ? "Autre catégorie / enveloppe" : "Catégorie / enveloppe"}<select id="f-cat" ${livret?"disabled":""}>${catOptions(livret ? "" : d.cat)}</select></label>
     <div class="info" id="f-info" hidden></div>
@@ -920,6 +931,7 @@ function collectDraft(){
   d.date = $("#f-date").value; d.mont = $("#f-mont").value; d.cat = $("#f-cat").disabled ? "" : $("#f-cat").value;
   d.lib = $("#f-lib").value; d.pt = $("#f-pt").checked; d.note = $("#f-note").value;
   if ($("#f-remb")) d.remb = $("#f-remb").value;
+  if ($("#f-poche")) d.poche = $("#f-poche").value; if ($("#f-acct")) d.acct = $("#f-acct").value;
   V.draft = d;
 }
 function updateInfo(){
@@ -1003,7 +1015,7 @@ function viewSav(){
     <div class="small muted">« Livret A vraiment à moi » ne bouge que quand une ligne FUTUR est cochée « fait ». Tant qu'elle ne l'est pas, elle ne change que « Épargne prévue ». Départ : ${eur(S.settings.livretDepart)}${e.dateDepart ? " au " + e.dateDepart.slice(8,10) + "/" + e.dateDepart.slice(5,7) + "/" + e.dateDepart.slice(0,4) : ""}. Les mouvements pointés du journal après cette date s'ajoutent automatiquement.</div></div>
   <div class="card"><div class="top"><h2>Mouvements du Livret A</h2><button class="btn sm" data-act="lvnew">Ajouter</button></div>
     <div class="btns" style="margin:0 0 8px"><button class="btn ghost sm" data-act="lvadj">⚖ Réajuster avec le solde réel</button></div>
-    <div class="rows">${moves.length ? moves.map(m => `<div class="row"><button class="rowbtn" ${m.kind === "S" ? `data-act="lvedit" data-id="${m.id}"` : m.kind === "J" ? `data-act="jedit" data-id="${m.id}"` : "disabled"}><div class="t">${esc(m.lib || m.org)}</div><div class="s">${frDate(m.date)} · ${esc(m.org)}</div></button>
+    <div class="rows">${moves.length ? moves.map(m => `<div class="row"><button class="rowbtn" ${m.kind === "S" ? `data-act="lvedit" data-id="${m.id}"` : m.kind === "J" ? `data-act="jedit" data-id="${m.id}"` : "disabled"}><div class="t">${esc(m.lib || m.org)}</div><div class="s">${frDate(m.date)} · ${esc(m.org)}</div>${m.note ? `<div class="s" style="font-style:italic">📝 ${esc(m.note)}</div>` : ""}</button>
       <div class="amt num ${m.vers ? "pos" : "neg"}">${m.vers ? "+ " + eur(m.vers) : "− " + eur(m.ret)}</div></div>`).join("") : '<div class="empty">Aucun mouvement.</div>'}</div></div>
   <div class="card"><div class="top"><h2>Poches (argent qui n'est pas à moi)</h2><button class="btn sm" data-act="pochenew">Ajouter</button></div>
     <div class="rows">${L.poches.length ? L.poches.map(p => `<div class="row"><button class="rowbtn" data-act="pocheedit" data-id="${p.id}"><div class="t">${esc(p.n)}</div><div class="s">mis de côté ${eur(p.mis)} · utilisé ${eur(p.util)}</div></button><div class="amt num">${eur(p.reste)}</div></div>`).join("") : '<div class="empty">Aucune poche.</div>'}</div></div>
@@ -1022,6 +1034,8 @@ function sheetLivret(id){
     <label class="f">Libellé<input id="l-lib" value="${esc(m.lib)}"></label>
     <div class="grid2"><label class="f">Montant (€)<input id="l-mt" inputmode="decimal" value="${m.montant === "" ? "" : String(m.montant).replace(".",",")}"></label>
     <label class="f">Date<input id="l-date" type="date" value="${esc(m.date)}"></label></div>
+    ${id ? "" : `<label class="f">Contrepartie : où va (ou d'où vient) l'argent ?<select id="l-ct"><option value="">— Choisis —</option><option value="cc">Mon compte courant</option>${acctLive().map(a => `<option value="${esc(a.id)}">${esc(a.n)} (${esc(a.type)})</option>`).join("")}<option value="none">Nulle part (dépense directe, rien d'autre à noter)</option></select></label>
+    <div class="small muted">Sur ton compte courant : l'opération est aussi ajoutée au journal (Retrait ou Versement du Livret A), donc ton reste à vivre suit. Sur un autre compte : le mouvement est noté sur ce compte aussi.</div>`}
     <div class="small muted">« Versement… » fait entrer l'argent sur le Livret A, tout le reste le fait sortir.</div>
     <div class="btns"><button class="btn" data-act="lv-save" data-id="${id||""}" style="flex:1">Enregistrer</button>${id ? `<button class="btn danger" data-act="lv-del" data-id="${id}">Supprimer</button>` : ""}<button class="btn ghost" data-act="sheetclose">Fermer</button></div>`);
 }
@@ -1270,6 +1284,7 @@ const HELP = {
     "<b>Dépense</b> : retire de l'enveloppe choisie. <b>Revenu</b> : ajoute de l'argent. <b>Livret A</b> : un virement vers ou depuis ton Livret.",
     "<b>Déjà pointé</b> : active-le si tu as déjà vu l'opération passer sur ton relevé de banque."]},
   sav:{t:"L'épargne", p:[
+    "<b>Sortir de l'argent du Livret A :</b> deux chemins, même résultat. (1) Ajouter › « Retrait Livret A » : tu choisis la poche utilisée (ou « c'est mon argent ») et « Sur mon compte courant » ou un autre compte d'épargne. (2) Épargne › Mouvements du Livret A › Ajouter : choisis le motif (poche…) puis la « Contrepartie ». Compte courant = ajouté au journal, ton reste à vivre augmente. Autre compte d'épargne = noté sur le Livret A et sur ce compte, ton compte courant ne bouge pas. Même principe pour un versement.",
     "<b>Objectifs d'épargne</b> : ajoute un projet avec un montant visé et une date. La jauge montre où tu en es et « ≈ X € par mois » ce qu'il faut mettre de côté pour y arriver à temps. Lie l'objectif à une poche pour que la jauge suive l'argent réservé, ou saisis toi-même ce que tu as déjà.",
     "<b>FUTUR : lignes faites</b> : quand tu coches une ligne FUTUR « faite », elle compte tout de suite dans le Livret A, puis elle disparaît de la liste après 30 jours (archivée). Le bouton « Archiver les lignes faites » le fait tout de suite ; « Voir les archivées » les réaffiche. Décocher une ligne la remet dans la liste.",
     "<b>Réajuster le Livret A</b> : avec le temps (intérêts, centimes), le total de l'appli peut s'écarter du vrai solde. Bouton « Réajuster avec le solde réel » dans les mouvements : tu saisis le solde de ta banque, l'appli ajoute une ligne « Ajustement » pour la différence (poches et historique intacts).",
@@ -1638,12 +1653,18 @@ function saveOp(){
   if (!d.date) return toast("Choisissez une date");
   if (!mt || mt <= 0) return toast("Saisissez un montant supérieur à 0");
   const o = {date:d.date,type:d.type,cat:d.type.indexOf("Livret")>=0 ? "" : d.cat,lib:d.lib.trim(),montant:Math.round(mt*100)/100,pointe:d.pt?"x":"",note:d.note,remb:d.type==="Avance (à rembourser)" ? (d.remb||"") : "",upd:Date.now()};
-  if (V.editId){ Object.assign(S.journal.find(j => j.id === V.editId), o); toast("Opération modifiée"); }
+  const isLiv = d.type.indexOf("Livret") >= 0, vers = d.type === "Versement sur Livret A", acx = isLiv && !V.editId && d.acct ? acctLive().find(a => a.id === d.acct) : null;
+  if (isLiv){ if (d.poche) o.poche = d.poche; else if (V.editId) o.poche = ""; }
+  if (acx){ transferLivret({date:d.date, lib:o.lib || (vers ? "Versement depuis " : "Retrait vers ") + acx.n, mt:o.montant, vers, poche:d.poche || "", acct:acx.id}); toast((vers ? "Versement depuis " : "Retrait vers ") + acx.n + " noté"); }
+  else if (V.editId){ Object.assign(S.journal.find(j => j.id === V.editId), o); toast("Opération modifiée"); }
   else { S.journal.push(Object.assign({id:uid()},o)); toast("Enregistré : " + eur(o.montant)); }
   if (S.demo && !V.editId) { /* l'exemple reste affiché jusqu'à l'import */ }
   { const pp = periodOf(d.date); V.m = pp.m; V.y = pp.y; }
-  V.editId = null; V.draft = null; persist(); V.tab = "month"; render();
+  V.editId = null; V.draft = null; persist(); V.tab = acx ? "sav" : "month"; render();
 }
+function transferLivret(t){ const lk = uid(), now = Date.now();
+  S.epargne.manuel.push({id:uid(), date:t.date, lib:t.lib, montant:t.mt, pq:t.vers ? "Versement épargne" : (t.poche || "Transfert (−)"), poche:t.poche, acct:t.acct, lk, upd:now});
+  S.acctMv.push({id:lk, a:t.acct, date:t.date, lib:t.lib, mt:Math.round(t.mt*100)/100 * (t.vers ? -1 : 1), upd:now}); }
 async function onFile(file){
   try {
     if (/\.json$/i.test(file.name)){
@@ -1812,12 +1833,17 @@ document.addEventListener("click", ev => {
       const o = {date:$("#mv-dt").value, lib:$("#mv-l").value.trim(), mt:Math.round(mt * 100) / 100 * (plus ? 1 : -1), upd:Date.now()};
       if (id) Object.assign(S.acctMv.find(x => x.id === id), o); else S.acctMv.push(Object.assign({id:uid(), a:aid}, o));
       persist(); closeSheet(); render(); sheetAcct(aid); break; }
-    case "mv-del": { const m = S.acctMv.find(x => x.id === id), aid = m.a; m.del = true; m.upd = Date.now(); persist(); closeSheet(); render(); sheetAcct(aid); break; }
+    case "mv-del": { const m = S.acctMv.find(x => x.id === id), aid = m.a; m.del = true; m.upd = Date.now(); S.epargne.manuel.forEach(x => { if (x.lk === id && !x.del){ x.del = true; x.upd = Date.now(); } }); persist(); closeSheet(); render(); sheetAcct(aid); break; }
     case "lvnew": sheetLivret(""); break; case "lvedit": sheetLivret(id); break;
     case "lv-save": { const mt = parseNum($("#l-mt").value); if (!mt || mt <= 0) return toast("Saisissez un montant");
       const o = {date:$("#l-date").value, lib:$("#l-lib").value.trim(), montant:mt, pq:$("#l-pq").value};
-      o.upd = Date.now(); if (id) Object.assign(e_manuel(id), o); else S.epargne.manuel.push(Object.assign({id:uid()}, o)); persist(); closeSheet(); render(); break; }
-    case "lv-del": { const m = e_manuel(id); m.del = true; m.upd = Date.now(); persist(); closeSheet(); render(); break; }
+      const ct = id ? "none" : ($("#l-ct") ? $("#l-ct").value : "none"), adj = /^Ajustement/.test(o.pq);
+      if (!id && !adj && !ct) return toast("Choisis où va (ou d'où vient) l'argent");
+      o.upd = Date.now(); const poN = S.epargne.poches.some(x => x.n === o.pq) ? o.pq : "", vers = /^Versement/.test(o.pq);
+      if (!id && !adj && ct === "cc"){ S.journal.push({id:uid(), date:o.date, type:vers ? "Versement sur Livret A" : "Retrait du Livret A", cat:"", lib:o.lib, montant:Math.round(mt*100)/100, pointe:"x", note:"", remb:"", poche:poN, upd:o.upd}); toast("Ajouté au journal et au Livret A"); }
+      else if (!id && !adj && ct !== "none"){ transferLivret({date:o.date, lib:o.lib || "Transfert", mt, vers, poche:poN, acct:ct}); toast("Mouvement noté sur les deux comptes"); }
+      else if (id) Object.assign(e_manuel(id), o); else S.epargne.manuel.push(Object.assign({id:uid()}, o)); persist(); closeSheet(); render(); break; }
+    case "lv-del": { const m = e_manuel(id); m.del = true; m.upd = Date.now(); if (m.lk){ const x = S.acctMv.find(y => y.id === m.lk); if (x){ x.del = true; x.upd = Date.now(); } } persist(); closeSheet(); render(); break; }
     case "pochenew": sheetPoche(""); break; case "pocheedit": sheetPoche(id); break;
     case "po-save": { const n = $("#p-n").value.trim(); if (!n) return toast("Donnez un nom"); const o = {n, f:parseNum($("#p-f").value) || 0};
       if (id) Object.assign(S.epargne.poches.find(x => x.id === id), o); else S.epargne.poches.push(Object.assign({id:uid()}, o)); persist(); closeSheet(); render(); break; }
@@ -2135,6 +2161,11 @@ document.addEventListener("change", ev => { if (ev.target.id === "sch-a" || ev.t
 applyTheme();
 /* ===== Historique des mises à jour ===== */
 const CHANGELOG = [
+ {v:"3.0", d:"Octobre 2026", t:"Retraits et versements du Livret A", i:[
+  "Ajouter › Retrait ou Versement Livret A : tu choisis maintenant si tu utilises (ou alimentes) une poche, et où va l'argent : ton compte courant ou un autre compte d'épargne.",
+  "Épargne › Mouvements du Livret A › Ajouter : un nouveau choix « Contrepartie ». Sur le compte courant, l'opération est aussi ajoutée au journal ; sur un autre compte, le mouvement est noté des deux côtés.",
+  "Les poches suivent ces mouvements (argent utilisé ou ajouté).",
+  "Les notes des opérations s'affichent maintenant sous l'opération (📝) dans Mois et dans les mouvements du Livret A."]},
  {v:"2.9", d:"Octobre 2026", t:"Installation et données expliquées", i:[
   "Écran de bienvenue : les étapes pour installer l'appli sur iPhone (Safari) ou Android (Chrome), adaptées à ton appareil.",
   "Explication claire : tes données restent sur l'appareil où l'appli est installée ; pour les passer sur un autre, il faut sauvegarder puis restaurer.",
