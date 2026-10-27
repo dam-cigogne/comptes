@@ -450,7 +450,7 @@ function fixState(r,m,y){
   if (!dp) return {k:"wait", t:"à venir", amt:N(r.montant)};
   return dp < today ? {k:"late", t:"à pointer", amt:N(r.montant)} : {k:"wait", t:"à venir", amt:N(r.montant)};
 }
-function keepX(oldEnv, oldObj){ try { S.objectifs = Array.isArray(oldObj) ? oldObj : []; } catch(x){} }
+function keepX(oldEnv, oldObj, oldGran){ try { S.objectifs = Array.isArray(oldObj) ? oldObj : []; if (oldGran) S.gran = oldGran; } catch(x){} }
 function calc(m,y){
   const J = live().filter(j => inMonth(j,m,y));
   const sum = (f) => J.filter(f).reduce((a,j) => a + N(j.montant), 0);
@@ -800,6 +800,7 @@ function viewHome(){
       return cu ? `<div class="small muted" style="margin-top:10px">✓ Mois précédent clôturé le ${frDate(cu)}. Le bouton « Clôture fin de mois » revient dans quelques jours, pour clôturer ${MOIS[cp.m].toLowerCase()}.</div>${S.lastClose ? `<div class="btns"><button class="btn ghost sm" data-act="cl-undo">Annuler la clôture</button></div>` : ""}` : ""; })()}</div>` : ""}
   ${forecastHtml(c)}
   ${(() => { const M = nextMoves(); return M.length ? `<div class="card"><h2>Prochains mouvements</h2><div>${M.map(m => `<div class="mv"><span class="dt num">${pad(m.dt.getDate())}/${pad(m.dt.getMonth()+1)}</span><span class="nm">${esc(m.name)}</span><span class="num ${m.sign > 0 ? "pos" : ""}" style="font-weight:700">${m.sign > 0 ? "+ " : "− "}${eur(m.amt)}</span></div>`).join("")}</div></div>` : ""; })()}
+  ${granHomeHtml()}
   <div class="card"><div class="top"><h2>Épargne</h2><button class="btn sm" data-act="gosav">Détail</button></div>
     <div class="kv"><span>Livret A</span><span class="num">${eur(L.solde)}</span></div>
     <div class="kv"><span>Livret A vraiment à moi</span><span class="num">${eur(L.aMoi)}</span></div>
@@ -842,7 +843,7 @@ function viewMonth(){
     const wait = j.type === "Avance (à rembourser)" && !j.remb, recv = j.type === "Revenu" && j.pointe !== "x";
     return `<div class="row"><button class="chk ${j.pointe==="x"?"on":""}" data-act="jtoggle" data-id="${j.id}" aria-label="Pointer">${ICON.check}</button>${dotHtml(j.cat || TYPE_SHORT[j.type])}
       <button class="rowbtn" data-act="jedit" data-id="${j.id}"><div class="t">${esc(j.lib || j.cat || j.type)}</div>
-      <div class="s">${frDate(j.date)} · ${esc(j.cat || TYPE_SHORT[j.type])}${wait ? ' · <span class="chip warn">à rembourser</span>' : ""}${recv ? ' · <span class="chip warn">à recevoir</span>' : ""}</div>${j.note ? `<div class="s" style="font-style:italic">📝 ${esc(j.note)}</div>` : ""}</button>
+      <div class="s">${frDate(j.date)} · ${esc(j.cat || TYPE_SHORT[j.type])}${N(j.sacs) > 0 ? " · " + fnum(N(j.sacs)) + " sac" + (N(j.sacs) > 1 ? "s" : "") : ""}${wait ? ' · <span class="chip warn">à rembourser</span>' : ""}${recv ? ' · <span class="chip warn">à recevoir</span>' : ""}</div>${j.note ? `<div class="s" style="font-style:italic">📝 ${esc(j.note)}</div>` : ""}</button>
       <div class="amt num ${sign>0?"pos":""}">${sign>0?"+":"−"} ${eur(j.montant)}</div></div>`;
   }).join("") : `<div class="empty">${J0.length ? "Tout est pointé. Touche « Masquer les pointés » pour tout revoir." : "Aucune opération ce mois-ci."}</div>`;
   const kv = (l,v,cl) => `<div class="kv"><span>${l}</span><span class="num ${cl||""}">${eur(v)}</span></div>`;
@@ -885,6 +886,47 @@ function recentCats(){
     if (j.type !== "Dépense" || !j.cat || out.indexOf(j.cat) >= 0) continue; out.push(j.cat); if (out.length >= 5) break; }
   return out;
 }
+/* ===== Suivi des granulés (réglage activable) ===== */
+const gr = () => S.gran || (S.gran = {on:false, kw:"granulé", kg:15, budget:0, mode:"chauffe", hist:[]});
+const granMatch = (lib, cat) => { const g = gr(); if (!g.on) return false; const t = norm((lib || "") + " " + (cat || "")); return String(g.kw || "granulé").split(",").map(x => norm(x).trim()).filter(Boolean).some(k => t.includes(k)); };
+function granKey(date){ const y = +date.slice(0,4), m = +date.slice(5,7) - 1; return gr().mode === "civile" ? y : (m >= 6 ? y : y - 1); }
+const granLabel = k => gr().mode === "civile" ? String(k) : k + "-" + (k + 1);
+function granList(){ const out = live().filter(j => j.type === "Dépense" && N(j.sacs) > 0).map(j => ({id:j.id, date:j.date, sacs:N(j.sacs), mt:N(j.montant), src:"j", lib:j.lib}));
+  return out.concat((gr().hist || []).map(h => ({id:h.id, date:h.date, sacs:N(h.sacs), mt:N(h.mt), src:"h", lib:"Historique"}))).sort((a,b) => b.date.localeCompare(a.date)); }
+function granStats(k){ const L = granList().filter(x => granKey(x.date) === k), sacs = L.reduce((a,x) => a + x.sacs, 0), mt = L.reduce((a,x) => a + x.mt, 0), kg = sacs * N(gr().kg);
+  return {L, sacs, mt, kg, parSac:sacs ? mt / sacs : 0, parKg:kg ? mt / kg : 0}; }
+const fnum = (n, d) => new Intl.NumberFormat("fr-FR", {maximumFractionDigits:d == null ? 1 : d}).format(n);
+function granInfo(){ const b = $("#f-gran"); if (!b) return; const lib = $("#f-lib") ? $("#f-lib").value : "", ct = $("#f-cat") ? $("#f-cat").value : "", sc = parseNum($("#f-sacs").value), mt = parseNum($("#f-mont") ? $("#f-mont").value : "");
+  b.hidden = !(granMatch(lib, ct) || $("#f-sacs").value.trim() !== ""); const el = $("#f-gran-info"); if (!el) return;
+  el.textContent = sc > 0 ? fnum(sc * N(gr().kg), 0) + " kg" + (mt > 0 ? " · " + eur(mt / sc) + " le sac · " + eur(mt / (sc * N(gr().kg))) + " le kg" : "") : "Mets 0 si ce n'est pas un achat de granulés."; }
+function sheetGran(){ const g = gr(), cur = V.gk != null ? V.gk : granKey(todayIso()), st = granStats(cur), pv = granStats(cur - 1), bud = N(g.budget), pct = bud > 0 ? Math.min(100, Math.round(st.mt / bud * 100)) : 0, over = bud > 0 && st.mt > bud;
+  const dif = (a,b,f) => b ? ((a - b >= 0 ? "+ " : "− ") + f(Math.abs(a - b))) : "—";
+  openSheet(`<h2>Granulés · saison ${granLabel(cur)}</h2>
+    <div class="btns"><button class="btn ghost sm" data-act="granprev">‹ Avant</button><button class="btn ghost sm" data-act="granperiod" style="flex:1">${g.mode === "civile" ? "Année civile" : "Saison de chauffe (septembre → juin)"}</button><button class="btn ghost sm" data-act="grannext">Après ›</button></div>
+    <div class="kv"><span>Sacs achetés</span><span class="num">${fnum(st.sacs)}</span></div>
+    <div class="kv"><span>Poids total</span><span class="num">${fnum(st.kg, 0)} kg (${fnum(st.kg / 1000, 2)} t)</span></div>
+    <div class="kv"><span>Dépensé</span><span class="num">${eur(st.mt)}</span></div>
+    <div class="kv"><span>Prix moyen</span><span class="num">${st.sacs ? eur(st.parSac) + " le sac · " + eur(st.parKg) + " le kg" : "—"}</span></div>
+    ${bud > 0 ? `<span class="bar" style="margin:8px 0 4px"><i style="display:block;height:100%;width:${pct}%;background:${over ? "#c0392b" : "var(--accent,#0b6b52)"};border-radius:999px"></i></span><div class="small ${over ? "neg" : ""}">Budget ${eur(bud)} : ${over ? "dépassé de " + eur(st.mt - bud) : "il reste " + eur(bud - st.mt)} (${pct} %)</div>` : `<div class="small muted">Fixe un budget annuel dans Réglages › Suivi des granulés pour voir la jauge.</div>`}
+    <div class="small muted" style="margin-top:8px">Saison précédente (${granLabel(cur - 1)}) : ${pv.sacs ? fnum(pv.sacs) + " sacs · " + eur(pv.mt) + " · écart " + dif(st.mt, pv.mt, eur) : "aucun achat enregistré"}</div>
+    <h3 style="margin:12px 0 4px">Achats</h3><div class="rows">${st.L.length ? st.L.map(x => `<div class="row">${x.src === "h" ? `<button class="rowbtn" data-act="granhedit" data-id="${x.id}">` : `<div class="rowbtn">`}<div class="t">${fnum(x.sacs)} sac${x.sacs > 1 ? "s" : ""} · ${frDate(x.date)}/${x.date.slice(2,4)}</div><div class="s">${x.src === "h" ? "historique" : esc(x.lib || "")} · ${eur(x.mt / x.sacs)} le sac</div>${x.src === "h" ? "</button>" : "</div>"}<div class="amt num">${eur(x.mt)}</div></div>`).join("") : '<div class="empty">Aucun achat sur cette saison.</div>'}</div>
+    <div class="btns"><button class="btn ghost" data-act="granhnew">Ajouter un achat passé</button><button class="btn" data-act="sheetclose" style="flex:1">Fermer</button></div>`); }
+function sheetGranH(id){ const h = id ? gr().hist.find(x => x.id === id) : {date:todayIso(), sacs:"", mt:""}, sv = v => v === "" ? "" : String(v).replace(".",",");
+  openSheet(`<h2>${id ? "Modifier" : "Ajouter"} un achat de granulés passé</h2><div class="small muted">Pour garder l'historique des années précédentes. Il compte dans le suivi, mais pas dans tes enveloppes ni dans Excel.</div>
+    <div class="grid2"><label class="f">Date<input id="gh-d" type="date" value="${esc(h.date)}"></label><label class="f">Nombre de sacs<input id="gh-s" inputmode="decimal" value="${sv(h.sacs)}"></label></div>
+    <label class="f">Montant payé (€)<input id="gh-m" inputmode="decimal" value="${sv(h.mt)}"></label>
+    <div class="btns"><button class="btn" data-act="gh-save" data-id="${id||""}" style="flex:1">Enregistrer</button>${id ? `<button class="btn danger" data-act="gh-del" data-id="${id}">Supprimer</button>` : ""}<button class="btn ghost" data-act="granopen">Retour</button></div>`); }
+function granHomeHtml(){ const g = gr(); if (!g.on) return ""; const k = granKey(todayIso()), st = granStats(k), bud = N(g.budget);
+  return `<div class="card"><div class="top"><h2>Granulés</h2><button class="btn sm" data-act="granopen">Suivi</button></div>
+    <div class="kv"><span>Saison ${granLabel(k)}</span><span class="num">${fnum(st.sacs)} sacs · ${fnum(st.kg, 0)} kg</span></div>
+    <div class="kv"><span>Dépensé</span><span class="num">${eur(st.mt)}${bud > 0 ? " / " + eur(bud) : ""}</span></div></div>`; }
+function granSetHtml(){ const g = gr();
+  return `<div class="card"><h2>Suivi des granulés</h2><div class="small muted">Pour ton poêle : quand tu ajoutes une dépense « granulés » (dans le libellé ou dans l'enveloppe Granulés), l'appli te demande le nombre de sacs et calcule les kg, le prix au sac et ta dépense de la saison.</div>
+    <div class="swrow"><span>Activer le suivi</span><label class="sw"><input type="checkbox" data-gset="on" ${g.on ? "checked" : ""} aria-label="Activer le suivi des granulés"><i></i></label></div>
+    ${g.on ? `<div class="grid2"><label class="f">Poids d'un sac (kg)<input data-gset="kg" inputmode="decimal" value="${String(N(g.kg)).replace(".",",")}"></label><label class="f">Budget annuel (€)<input data-gset="budget" inputmode="decimal" value="${N(g.budget) ? String(N(g.budget)).replace(".",",") : ""}" placeholder="Ex. 900"></label></div>
+    <label class="f">Mot repéré (libellé ou enveloppe)<input data-gset="kw" value="${esc(g.kw)}"></label>
+    <label class="f">Période du suivi<select data-gset="mode"><option value="chauffe" ${g.mode !== "civile" ? "selected" : ""}>Saison de chauffe (septembre → juin)</option><option value="civile" ${g.mode === "civile" ? "selected" : ""}>Année civile (janvier → décembre)</option></select></label>
+    <div class="btns"><button class="btn" data-act="granopen">Voir le suivi</button></div>` : ""}</div>`; }
 function livFieldsHtml(d, ed){
   const vers = d.type === "Versement sur Livret A", po = S.epargne.poches.filter(p => p.n), ac = acctLive();
   return `<div class="card" style="background:var(--surface2,rgba(0,0,0,.03));box-shadow:none;border:1px dashed var(--line)"><b>${vers ? "Versement sur le Livret A" : "Retrait du Livret A"}</b>
@@ -893,7 +935,7 @@ function livFieldsHtml(d, ed){
     <div class="small muted">Si tu choisis un autre compte d'épargne, le mouvement est noté des deux côtés (Livret A et ce compte) et ton compte courant ne bouge pas.</div>`}</div>`; }
 function viewAdd(){
   const ed = V.editId ? S.journal.find(j => j.id === V.editId) : null;
-  const d = V.draft || (ed ? {date:ed.date,type:ed.type,cat:ed.cat,lib:ed.lib,mont:String(ed.montant).replace(".",","),pt:ed.pointe==="x",note:ed.note,remb:ed.remb,poche:ed.poche || ""}
+  const d = V.draft || (ed ? {date:ed.date,type:ed.type,cat:ed.cat,lib:ed.lib,mont:String(ed.montant).replace(".",","),pt:ed.pointe==="x",note:ed.note,remb:ed.remb,poche:ed.poche || "",sacs:N(ed.sacs) > 0 ? ed.sacs : ""}
                            : {date:todayIso(),type:"Dépense",cat:"",lib:"",mont:"",pt:true,note:"",remb:""});
   V.draft = d;
   const livret = d.type.indexOf("Livret") >= 0;
@@ -911,6 +953,7 @@ function viewAdd(){
     <div class="keys">${["1","2","3","4","5","6","7","8","9",",","0","del"].map(k => `<button data-act="key" data-v="${k}" aria-label="${k === "del" ? "Effacer" : k === "," ? "Virgule" : k}">${k === "del" ? "⌫" : k}</button>`).join("")}</div>
     <label class="f">Libellé<input id="f-lib" placeholder="Courses, Vinted…" value="${esc(d.lib)}"></label>
     ${livret ? livFieldsHtml(d, ed) : ""}
+    ${!livret && d.type === "Dépense" && gr().on ? `<div class="info" id="f-gran" ${granMatch(d.lib, d.cat) || N(d.sacs) > 0 ? "" : "hidden"}><label class="f">Combien de sacs de granulés ?<input id="f-sacs" inputmode="decimal" value="${esc(d.sacs == null ? "" : String(d.sacs).replace(".",","))}" placeholder="Ex. 8"></label><div class="small" id="f-gran-info"></div></div>` : ""}
     ${rc.length ? `<div><div class="small muted" style="margin-bottom:6px">Catégories récentes</div><div class="pills">${rc.map(c => `<button data-act="catpick" data-v="${esc(c)}" class="${d.cat === c ? "on" : ""}">${dotHtml(c,true)}${esc(c)}</button>`).join("")}</div></div>` : ""}
     <label class="f">${rc.length ? "Autre catégorie / enveloppe" : "Catégorie / enveloppe"}<select id="f-cat" ${livret?"disabled":""}>${catOptions(livret ? "" : d.cat)}</select></label>
     <div class="info" id="f-info" hidden></div>
@@ -931,11 +974,12 @@ function collectDraft(){
   d.date = $("#f-date").value; d.mont = $("#f-mont").value; d.cat = $("#f-cat").disabled ? "" : $("#f-cat").value;
   d.lib = $("#f-lib").value; d.pt = $("#f-pt").checked; d.note = $("#f-note").value;
   if ($("#f-remb")) d.remb = $("#f-remb").value;
+  if ($("#f-sacs")) d.sacs = $("#f-sacs").value;
   if ($("#f-poche")) d.poche = $("#f-poche").value; if ($("#f-acct")) d.acct = $("#f-acct").value;
   V.draft = d;
 }
 function updateInfo(){
-  const el = $("#f-info"); if (!el) return; collectDraft(); const d = V.draft;
+  granInfo(); const el = $("#f-info"); if (!el) return; collectDraft(); const d = V.draft;
   const env = S.settings.envelopes.find(e => e.n === d.cat); const mt = parseNum(d.mont);
   if (d.type !== "Dépense" || !env || !d.date){ el.hidden = true; return; }
   const pp = periodOf(d.date), m = pp.m, y = pp.y;
@@ -1188,6 +1232,7 @@ function viewSet(){
   return `<div class="top"><div class="app">Réglages</div></div>${V.msg ? `<div class="info">${esc(V.msg)}</div>` : ""}${pend}
   <div class="card"><h2>Guide d'utilisation</h2><div class="small muted">Comment marche chaque partie de l'appli, expliqué simplement. Le bouton ? en haut de chaque écran donne aussi l'aide de l'écran.</div>
     <div class="btns"><button class="btn" data-act="guide">Ouvrir le guide</button><button class="btn ghost" data-act="upd-hist">Historique des mises à jour</button></div></div>
+  ${granSetHtml()}
   <div class="card"><h2>Installer l'appli</h2>${installHtml()}</div>
   <div class="card"><h2>Utiliser plusieurs appareils</h2><div class="small muted">${MULTI_WARN}</div><div class="btns"><button class="btn ghost" data-act="multi-open">Voir comment faire</button><button class="btn ghost" data-act="exp-json">Sauvegarder maintenant</button></div></div>
   <div class="card"><h2>Fiche de l'appli (à partager)</h2><div class="small muted">Une fiche de présentation et des affiches pour faire connaître l'appli à tes proches. Aucune donnée personnelle dedans.</div>
@@ -1302,6 +1347,7 @@ const HELP = {
     "<b>C'est quoi ?</b> Un carnet pour retrouver tes sites et comptes en ligne (banque, achats, administratif…).",
     "Note le site, l'identifiant, la catégorie et l'état (« À changer », « Changé », « OK »). <b>Ne mets jamais tes mots de passe</b> : ils sont à garder dans un gestionnaire de mots de passe."]},
   set:{t:"Les réglages", p:[
+    "<b>Suivi des granulés</b> (pour un poêle) : active l'interrupteur, règle le poids d'un sac (15 kg par défaut), ton budget annuel et la période (saison de chauffe septembre → juin, ou année civile). Ensuite, quand tu ajoutes une dépense dont le libellé ou l'enveloppe contient « granulé » (par exemple une enveloppe « Granulés »), l'appli te demande combien de sacs (mets 0 si ce n'est pas un achat de granulés). Le suivi (Accueil › Granulés › Suivi) montre les sacs, les kg, la dépense, le prix moyen, la jauge du budget et la comparaison avec la saison précédente. « Ajouter un achat passé » permet de saisir l'historique des années précédentes : il compte dans le suivi mais pas dans tes enveloppes ni dans Excel.",
     "<b>Fiche de l'appli (à partager)</b> : trois affiches et une carte d'aperçu. Touche une vignette pour la voir en grand et la partager ou l'enregistrer. « Partager avec le descriptif » envoie un court texte et le lien de la fiche de présentation ; « Voir la fiche » l'ouvre ; « Copier le lien » le copie. Aucune donnée personnelle dans ces images.",
     "<b>Où enregistrer les exports ?</b> Sur PC et Android, choisis un dossier une fois : les exports y sont écrits directement en remplaçant l'ancien fichier. Sur iPhone et iPad, Apple ne le permet pas : dans la feuille de partage, touche « Enregistrer dans Fichiers » (iOS rouvre en général le dernier dossier) et choisis « Remplacer ».",
     "<b>Taille de l'affichage</b> : en Automatique, l'appli s'agrandit toute seule sur tablette et grand écran. Si c'est encore trop petit ou trop grand, choisis Normal, Grand, Très grand ou Maximum.",
@@ -1653,6 +1699,7 @@ function saveOp(){
   if (!d.date) return toast("Choisissez une date");
   if (!mt || mt <= 0) return toast("Saisissez un montant supérieur à 0");
   const o = {date:d.date,type:d.type,cat:d.type.indexOf("Livret")>=0 ? "" : d.cat,lib:d.lib.trim(),montant:Math.round(mt*100)/100,pointe:d.pt?"x":"",note:d.note,remb:d.type==="Avance (à rembourser)" ? (d.remb||"") : "",upd:Date.now()};
+  if (d.type === "Dépense" && gr().on && $("#f-sacs")){ const sc = parseNum(d.sacs); if (granMatch(d.lib, d.cat) && String(d.sacs || "").trim() === "") return toast("Combien de sacs de granulés ? (0 si ce n'est pas un achat de granulés)"); o.sacs = sc > 0 ? sc : 0; }
   const isLiv = d.type.indexOf("Livret") >= 0, vers = d.type === "Versement sur Livret A", acx = isLiv && !V.editId && d.acct ? acctLive().find(a => a.id === d.acct) : null;
   if (isLiv){ if (d.poche) o.poche = d.poche; else if (V.editId) o.poche = ""; }
   if (acx){ transferLivret({date:d.date, lib:o.lib || (vers ? "Versement depuis " : "Retrait vers ") + acx.n, mt:o.montant, vers, poche:d.poche || "", acct:acx.id}); toast((vers ? "Versement depuis " : "Retrait vers ") + acx.n + " noté"); }
@@ -1718,11 +1765,11 @@ function sheetDiff(){
 function commitImport(replace){
   const p = V.pending; if (!p) return;
  const keepWeb = S.web || [], keepSeen = S.webSeen, keepCats = S.webCatList, keepBank = S.bank, keepRules = S.rules, keepLB = S.lastBackup, keepAc = S.accts, keepMvv = S.acctMv, keepArch = S.archives, keepYR = S.yearRecap, keepFY = S.fixYear, keepCuts = S.cuts, keepLC = S.lastClose;
-  const prevPay = S.settings.payday, oldEnv = S.settings.envelopes, oldObj = S.objectifs; if (replace && p.kind === "classeur"){ const prevCats = S.settings.cats; S = p.data; S.demo = false; keepX(oldEnv, oldObj); if (!S.settings.cats.length) S.settings.cats = prevCats; V.msg = "Données remplacées par le classeur."; }
+  const prevPay = S.settings.payday, oldEnv = S.settings.envelopes, oldObj = S.objectifs, oldGran = S.gran; if (replace && p.kind === "classeur"){ const prevCats = S.settings.cats; S = p.data; S.demo = false; keepX(oldEnv, oldObj, oldGran); if (!S.settings.cats.length) S.settings.cats = prevCats; V.msg = "Données remplacées par le classeur."; }
   else if (replace && p.kind === "echange"){ const f = p.full; const base = emptyData();
     S = Object.assign(base,{journal:p.rows}); if (f.settings) S.settings = f.settings; if (f.fixRev) S.fixRev = f.fixRev; if (f.fixCh) S.fixCh = f.fixCh; if (f.epargne) S.epargne = f.epargne; if (f.accts){ S.accts = f.accts; S.acctMv = f.acctMv; }
     if (/^export_appli/i.test(p.name)) S.seen = seenOf(p);
-    keepX(oldEnv, oldObj); V.msg = "Données remplacées par le fichier d'échange."; }
+    keepX(oldEnv, oldObj, oldGran); V.msg = "Données remplacées par le fichier d'échange."; }
   else if (replace && p.kind === "json"){ S = p.data; S.demo = false; V.msg = "Sauvegarde restaurée."; }
   else {
     const rows = p.kind === "classeur" ? p.data.journal : p.rows;
@@ -1847,6 +1894,14 @@ document.addEventListener("click", ev => {
     case "pochenew": sheetPoche(""); break; case "pocheedit": sheetPoche(id); break;
     case "po-save": { const n = $("#p-n").value.trim(); if (!n) return toast("Donnez un nom"); const o = {n, f:parseNum($("#p-f").value) || 0};
       if (id) Object.assign(S.epargne.poches.find(x => x.id === id), o); else S.epargne.poches.push(Object.assign({id:uid()}, o)); persist(); closeSheet(); render(); break; }
+    case "granopen": sheetGran(); break;
+    case "granprev": V.gk = (V.gk != null ? V.gk : granKey(todayIso())) - 1; sheetGran(); break;
+    case "grannext": V.gk = (V.gk != null ? V.gk : granKey(todayIso())) + 1; sheetGran(); break;
+    case "granperiod": break;
+    case "granhnew": sheetGranH(""); break; case "granhedit": sheetGranH(id); break;
+    case "gh-save": { const s2 = parseNum($("#gh-s").value), m2 = parseNum($("#gh-m").value), d2 = $("#gh-d").value; if (!d2 || !(s2 > 0) || !(m2 >= 0)) return toast("Indique la date, le nombre de sacs et le montant");
+      const g = gr(); if (!Array.isArray(g.hist)) g.hist = []; if (id) Object.assign(g.hist.find(x => x.id === id), {date:d2, sacs:s2, mt:m2}); else g.hist.push({id:uid(), date:d2, sacs:s2, mt:m2}); V.gk = granKey(d2); persist(); sheetGran(); break; }
+    case "gh-del": { const g = gr(); g.hist.splice(g.hist.findIndex(x => x.id === id), 1); persist(); sheetGran(); break; }
     case "objnew": sheetObj(""); break; case "objedit": sheetObj(id); break;
     case "ob-save": { if (!Array.isArray(S.objectifs)) S.objectifs = []; const n = $("#ob-n").value.trim(), c = parseNum($("#ob-c").value); if (!n) return toast("Donnez un nom"); if (!(c > 0)) return toast("Indique le montant visé");
       const o = {n, cible:c, date:$("#ob-d").value || "", poche:$("#ob-p").value || "", acquis:parseNum($("#ob-a").value) || 0};
@@ -1954,11 +2009,13 @@ document.addEventListener("change", ev => {
   if (t.id === "s-lenv"){ S.epargne.envA = t.value; persist(); return; }
   if (t.id === "s-pay"){ const v = Math.round(parseNum(t.value) || 1); S.settings.payday = v >= 2 && v <= 28 ? v : 1; const cp = curPeriod(); V.m = cp.m; V.y = cp.y; persist(); toast(payday() > 1 ? "Mois budgétaire : du " + payday() + " au " + (payday() - 1) + " suivant" : "Mois calendaire"); render(); return; }
   if (t.id === "s-livret"){ S.settings.livretDepart = parseNum(t.value) || 0; persist(); return; }
+  if (t.dataset.gset){ const g = gr(), k = t.dataset.gset; if (k === "on"){ g.on = t.checked; if (g.on && !g.kw) g.kw = "granulé"; } else if (k === "kg") g.kg = parseNum(t.value) || 15; else if (k === "budget") g.budget = parseNum(t.value) || 0; else if (k === "kw") g.kw = t.value.trim() || "granulé"; else if (k === "mode"){ g.mode = t.value; V.gk = null; } persist(); if (k === "on") render(); return; }
   if (t.dataset.env){ const e = S.settings.envelopes[+t.dataset.i];
     if (t.dataset.env === "n"){ const old = e.n; e.n = t.value.trim() || old; S.journal.forEach(j => { if (j.cat === old && e.n !== old){ j.cat = e.n; j.upd = Date.now(); } }); }
     else e.b = parseNum(t.value) || 0; persist(); return; }
   if (V.tab === "add" && /^f-/.test(t.id)) updateInfo();
 });
+document.addEventListener("input", ev => { if (ev.target.id === "f-lib" || ev.target.id === "f-sacs") granInfo(); });
 document.addEventListener("input", ev => { if (ev.target.id === "adj-real") adjUpdate(); if (ev.target.id === "sq") $("#sq-res").innerHTML = searchHtml(ev.target.value); });
 document.addEventListener("input", ev => { if (ev.target.id === "cl-amt") ev_amt_auto = false; else if (ev.target.closest && ev.target.closest("#clsheet")) clUpdate(); });
 document.addEventListener("change", ev => { if (ev.target.closest && ev.target.closest("#clsheet")) clUpdate(); });
@@ -2161,6 +2218,10 @@ document.addEventListener("change", ev => { if (ev.target.id === "sch-a" || ev.t
 applyTheme();
 /* ===== Historique des mises à jour ===== */
 const CHANGELOG = [
+ {v:"3.2", d:"Octobre 2026", t:"Suivi des granulés", i:[
+  "Réglages › Suivi des granulés (désactivé par défaut) : quand tu ajoutes une dépense « granulés », l'appli demande le nombre de sacs et calcule les kg, le prix au sac et au kg.",
+  "Un suivi par saison (saison de chauffe septembre → juin, les achats de juillet-août comptant pour la saison qui arrive ; ou année civile) avec budget annuel et jauge, comparaison avec la saison précédente et liste des achats.",
+  "Tu peux ajouter l'historique des années précédentes (sacs et montant) sans toucher à tes enveloppes ni à Excel."]},
  {v:"3.1", d:"Octobre 2026", t:"Partage de l'appli plus complet", i:[
   "« Partager avec le descriptif » envoie maintenant un texte plus complet (reste à vivre, enveloppes, prévision, épargne et objectifs, Excel, gratuit, sans compte).",
   "Nouvelle carte d'aperçu du lien avec des captures de l'appli, et affiches mises à jour."]},
