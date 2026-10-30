@@ -1,4 +1,4 @@
-const C = 'comptes-v61';
+const C = 'comptes-v62';
 const SHELL = ['./', './index.html', './manifest.json', './icon-180.png', './icon-192.png', './icon-512.png',
   'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'];
 const FONT_CSS = 'https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Instrument+Sans:wght@400;500;600&display=swap';
@@ -13,9 +13,10 @@ self.addEventListener('install', e => e.waitUntil(
     } catch (err) {}
   }).then(() => self.skipWaiting())));
 self.addEventListener('activate', e => e.waitUntil(
-  caches.keys().then(k => Promise.all(k.filter(x => x !== C).map(x => caches.delete(x)))).then(() => self.clients.claim())));
+  caches.keys().then(k => Promise.all(k.filter(x => x.startsWith('comptes-') && x !== C).map(x => caches.delete(x)))).then(() => self.clients.claim())));   // seulement nos anciens caches : agd- et glf- sont les autres applis du même site
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
+  if (/\.mp4$/i.test(new URL(e.request.url).pathname)) return;   // vidéo : lue directement, jamais mise en cache
   const same = new URL(e.request.url).origin === self.location.origin;
   if (same) {   // fichiers de l'appli : réseau d'abord (mises à jour), cache si hors ligne
     e.respondWith(fetch(e.request, {cache:'no-cache'}).then(n => { const cp = n.clone(); caches.open(C).then(c => c.put(e.request, cp)); return n; })

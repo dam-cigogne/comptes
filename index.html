@@ -137,6 +137,7 @@ button{cursor:pointer}
 .sw input:checked + i{background:var(--accent)}.sw input:checked + i::after{transform:translateX(22px)}
 .sw input:focus-visible + i{outline:2px solid var(--accent);outline-offset:2px}
 .banner{background:var(--warn-soft);color:var(--ink);border:1px solid var(--warn);border-radius:12px;padding:10px 12px;font-size:13px}
+.banner.demo{background:var(--accent-soft);border-color:var(--accent);display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
 .rows{display:flex;flex-direction:column}
 .row{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line);min-width:0}
 .row:first-child{border-top:0}
@@ -168,6 +169,7 @@ button.env{width:100%;text-align:left;background:none;border:0;border-top:1px so
 .seg button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
 label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
 label.f input,label.f select,label.f textarea{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px;color:var(--ink);font-size:16px;width:100%;min-width:0}
+.wc-name{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px;color:var(--ink);font:inherit;font-size:16px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .btn{border:0;border-radius:14px;padding:13px 16px;transition:transform .08s ease,opacity .15s;font-weight:600;background:var(--accent);color:var(--accent-ink);font-size:15px}
 .btn.ghost{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
@@ -259,7 +261,7 @@ body.priv #main,body.priv #tabs{visibility:hidden}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
-const FICHE_URL = "https://dam-cigogne.github.io/comptes/fiche.html", FICHE_TXT = "Les comptes en poches : ton budget dans la poche, simple et lisible. Ton reste à vivre jusqu'à la paie, tes enveloppes, tes fixes à pointer, la prévision du solde, le Livret A, les poches et objectifs d'épargne, la synchro avec Excel et l'export PDF. Gratuit, sans publicité, sans compte : tout reste sur ton téléphone.";
+const FICHE_URL = "https://dam-cigogne.github.io/comptes/presentation.html", FICHE_TXT = "Les comptes en poches : ton budget dans la poche, simple et lisible. Ton reste à vivre jusqu'à la paie, tes enveloppes, tes fixes à pointer, la prévision du solde, le Livret A, les poches et objectifs d'épargne, la synchro avec Excel et l'export PDF. Gratuit, sans publicité, sans compte : tout reste sur ton téléphone.";
 /* RÈGLE : à chaque grosse nouveauté, mettre à jour CHANGELOG, HELP, src/fiche.html et, si c'est important, les affiches (src/affiches/make.py). */
 "use strict";
 /* ============ Constantes ============ */
@@ -294,9 +296,9 @@ function anyToIso(v){
 const frDate = iso => iso ? iso.slice(8,10)+"/"+iso.slice(5,7) : "";
 
 /* ============ Données ============ */
-let S = null, memCopy = null;
+let S = null, memCopy = null, DEMO = false, REAL = null;   // DEMO : mode démo, rien n'est enregistré
 function load(){ try { const t = localStorage.getItem(KEY); if (t) return JSON.parse(t); } catch(e){} return memCopy; }
-function persist(){ if (!S) return; memCopy = S; if (SEC.on){ SEC.dirty = true; if (!SEC.saving) flushEnc(); return; } try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} }
+function persist(){ if (!S || DEMO) return; memCopy = S; if (SEC.on){ SEC.dirty = true; if (!SEC.saving) flushEnc(); return; } try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} }
 
 /* ============ Sécurité : code, Face ID, chiffrement AES-GCM ============ */
 const ENC = KEY + "-enc", SECK = KEY + "-sec";
@@ -402,8 +404,15 @@ function demoData(){
   d.fixRev[0].m[m] = "x"; d.fixCh[0].m[m] = "x";
   d.epargne = {dateDepart:y+"-01-01", envA:"Épargne", envB:"",
     manuel:[{id:uid(), date:day(3), lib:"Versement (exemple)", montant:200, pq:"Versement épargne", upd:Date.now()}],
-    poches:[{id:uid(), n:"Taxe foncière", f:300}],
+    poches:[{id:"pq-tf", n:"Taxe foncière", f:300}, {id:"pq-vac", n:"Vacances", f:400}],
     futur:[{id:uid(), date:y+"-11-15", lib:"Impôt (exemple)", sortie:120, entree:0, fait:""}]};
+  d.settings.envelopes.push({n:"Cadeaux", b:0, m:Array(12).fill(null).map((v,i) => i === m ? 60 : null)});   // enveloppe de ce mois seulement
+  d.journal.push(J(day(6),"Dépense","Cadeaux","Anniversaire (exemple)",25,true), J(day(1),"Revenu","","Remboursement mutuelle (exemple)",32.5,true));
+  d.objectifs = [{id:uid(), n:"Vacances d'été", cible:1200, date:(y+1)+"-07-01", poche:"pq-vac", acquis:0}];
+  d.accts = [{id:"ac-ldds", n:"LDDS (exemple)", type:"Livret", depart:1500, date:y+"-01-01", upd:Date.now()}]; d.acctMv = [];
+  d.modeles = [{id:"m-boul", lib:"Boulangerie", mont:6.4, type:"Dépense", cat:"Nourriture", pt:true}, {id:"m-plein", lib:"Plein d'essence", mont:60, type:"Dépense", cat:"Essence", pt:true}];
+  const W = (site,url,cat,st) => ({id:uid(), site, url, ident:"prenom.nom@exemple.fr", cat, st, note:"", upd:Date.now()});
+  d.web = [W("Ma banque (exemple)","exemple-banque.fr","Banque","OK"), W("Boutique en ligne (exemple)","exemple-boutique.fr","Achats","À changer"), W("Impôts (exemple)","impots.gouv.fr","Administratif","Changé")];
   return d;
 }
 
@@ -458,7 +467,7 @@ function calc(m,y){
   const envs = S.settings.envelopes.map(e => {
     const bud = isNum(e.m[m]) ? e.m[m] : N(e.b);
     const dep = sum(j => j.type === "Dépense" && j.cat === e.n);
-    return {n:e.n, bud, dep, reste:bud-dep};
+    return {n:e.n, bud, dep, reste:bud-dep, hide:!N(e.b) && !isNum(e.m[m]) && dep < 0.005};   // enveloppe d'un autre mois : masquée ici
   });
   const rev = fixCalc(S.fixRev,m,y), ch = fixCalc(S.fixCh,m,y);
   const revExc = sum(j => j.type === "Revenu");
@@ -730,7 +739,7 @@ function splitCard(c){
 function bkpAge(){ return S.lastBackup ? Math.floor((Date.now() - S.lastBackup) / 864e5) : null; }
 function bkpBanner(){ if (S.demo) return ""; const a = bkpAge(); if (a !== null && a < 14) return "";
   return `<div class="banner">${a === null ? "Aucune sauvegarde faite pour l'instant." : "Dernière sauvegarde il y a " + a + " jours."} <button class="btn sm" data-act="exp-json">Sauvegarder</button></div>`; }
-function topbar(){ return `<div class="top"><div class="app tt">Les comptes<br>en poches</div><div class="topr">${monthNav()}<button class="gear" data-act="tab" data-v="set" aria-label="Réglages">${ICON.set}</button></div></div>` + bkpBanner() + (S.demo ? `<div class="banner">Données d'exemple. Importez votre classeur Excel dans <b>Réglages</b> pour travailler avec vos vrais comptes.</div>` : ""); }
+function topbar(){ return `<div class="top"><div class="app tt">Les comptes<br>en poches</div><div class="topr">${monthNav()}<button class="gear" data-act="tab" data-v="set" aria-label="Réglages">${ICON.set}</button></div></div>` + (DEMO ? `<div class="banner demo"><span><b>Mode démo</b> · rien n'est enregistré</span><button class="btn sm" data-act="demo-exit">Quitter la démo</button></div>` : bkpBanner()) + (S.demo && !DEMO ? `<div class="banner">Données d'exemple. Importez votre classeur Excel dans <b>Réglages</b> pour travailler avec vos vrais comptes.</div>` : ""); }
 
 function periodInfo(){
   const r = periodRange(V.m, V.y), t = todayIso();
@@ -773,7 +782,7 @@ function forecastHtml(c){
 }
 function viewHome(){
   const c = calc(V.m,V.y); const L = livretCalc(); const soldeVal = S.settings.solde;
-  const envHtml = c.envs.length ? c.envs.map((e,ei) => {
+  const envHtml = c.envs.some(e => !e.hide) ? c.envs.map((e,ei) => { if (e.hide) return "";
     const p = e.bud > 0 ? Math.min(100, Math.round(e.dep / e.bud * 100)) : (e.dep > 0 ? 100 : 0);
     const cls = e.dep > e.bud ? "bad" : (e.bud > 0 && e.dep / e.bud >= .8 ? "warn" : "");
     const stTxt = cls === "bad" ? "dépassé" : cls === "warn" ? (e.reste < 0.005 ? "atteint" : "presque atteint") : "";
@@ -1135,7 +1144,7 @@ function viewWeb(){
   <div class="info">Ne notez jamais de mot de passe ici : les données restent en clair sur le téléphone. Gardez-les dans Mots de passe Apple. Ici : le site, l'identifiant et l'état.</div>
   <input class="search" id="web-q" placeholder="Rechercher un site, un identifiant…" value="${esc(V.wq || "")}" enterkeyhint="search">
   <div class="seg">${["Tous"].concat(WEB_ST).map(x => `<button class="${f === x ? "on" : ""}" data-act="webf" data-v="${x}">${x}${x === "Tous" ? " (" + all.length + ")" : " (" + cnt(x) + ")"}</button>`).join("")}</div>
-  <div class="catbar" aria-label="Catégories">${webCats().map(c => { const n = all.filter(x => (f === "Tous" || x.st === f) && x.cat === c).length; return `<button class="${V.wc === c ? "on" : ""}" data-act="webc" data-v="${esc(c)}">${esc(c)}<span>${n}</span></button>`; }).join("")}</div>
+  <div class="catbar" aria-label="Catégories">${webCats().map(c => { const n = all.filter(x => (f === "Tous" || x.st === f) && x.cat === c).length; return `<button class="${V.wc === c ? "on" : ""}" data-act="webc" data-v="${esc(c)}">${esc(c)}<span>${n}</span></button>`; }).join("")}<button data-act="webcats" aria-label="Modifier les catégories">✎ Catégories</button></div>
   <div class="card"><div class="rows" id="web-list">${webList()}</div></div>`;
 }
 const webCats = () => { const present = (S.web || []).filter(x => !x.del && x.cat).map(x => x.cat), base = (S.webCatList && S.webCatList.length) ? S.webCatList : (present.length ? [] : WEB_CATS); return [...new Set(base.concat(present))]; };
@@ -1191,6 +1200,14 @@ function sheetWebImport(){
     <div class="small muted">Catégories utilisées par les comptes du fichier : ${new Set(p.rows.map(r => r.cat || "(vide)")).size}${p.rows.filter(r => !r.cat).length ? " — dont " + p.rows.filter(r => !r.cat).length + " compte(s) sans catégorie" : ""}.${p.cats ? " Liste « Categories_web » : " + p.cats.length + " catégorie(s)." : " Pas de feuille « Categories_web » dans ce fichier."}</div><div class="small muted">Fusionner ajoute les nouveaux et met à jour les autres sans rien supprimer. Remplacer vide d'abord la liste actuelle.</div>
     <div class="btns"><button class="btn" data-act="web-merge" style="flex:1">Fusionner</button><button class="btn ghost" data-act="web-replace">Remplacer la liste</button><button class="btn ghost" data-act="sheetclose">Annuler</button></div>`);
 }
+function sheetWebCats(){
+  const all = (S.web || []).filter(x => !x.del), cats = webCats();
+  openSheet(`<h2>Catégories des comptes en ligne</h2>
+    <div class="small muted">Renommez une catégorie en modifiant son nom puis « Enregistrer ». Supprimer une catégorie range ses comptes dans « Autre ».</div>
+    <div class="rows">${cats.map((c, i) => { const n = all.filter(x => x.cat === c).length; return `<div class="row" style="gap:6px"><input class="wc-name" data-old="${esc(c)}" value="${esc(c)}" style="flex:1;min-width:0"><span class="small muted" style="white-space:nowrap">${n} compte${n > 1 ? "s" : ""}</span>${c === "Autre" ? "" : `<button class="mini" data-act="wc-del" data-v="${esc(c)}" aria-label="Supprimer ${esc(c)}">×</button>`}</div>`; }).join("")}</div>
+    <label class="f">Nouvelle catégorie<input id="wc-new" placeholder="Ex. Santé"></label>
+    <div class="btns"><button class="btn" data-act="wc-save" style="flex:1">Enregistrer</button><button class="btn ghost" data-act="sheetclose">Fermer</button></div>`);
+}
 function sheetWeb(id){
   const w = id ? S.web.find(x => x.id === id) : {site:"", url:"", ident:"", cat:V.wc || (webCats().includes("Autre") ? "Autre" : webCats()[0]), st:"À changer", note:""};
   const sel = (lab, key, arr) => `<label class="f">${lab}<select id="w-${key}">${arr.map(o => `<option ${o === w[key] ? "selected" : ""}>${esc(o)}</option>`).join("")}</select></label>`;
@@ -1233,6 +1250,9 @@ function viewSet(){
   return `<div class="top"><div class="app">Réglages</div></div>${V.msg ? `<div class="info">${esc(V.msg)}</div>` : ""}${pend}
   <div class="card"><h2>Guide d'utilisation</h2><div class="small muted">Comment marche chaque partie de l'appli, expliqué simplement. Le bouton ? en haut de chaque écran donne aussi l'aide de l'écran.</div>
     <div class="btns"><button class="btn" data-act="guide">Ouvrir le guide</button><button class="btn ghost" data-act="upd-hist">Historique des mises à jour</button></div></div>
+  <div class="card"><h2>Mode démo</h2><div class="small muted">Découvre toutes les fonctions avec des données d'exemple. Tes vraies données ne sont ni touchées ni affichées, et rien n'est enregistré pendant la démo. Pratique aussi pour montrer l'appli à quelqu'un.</div>
+    <div class="btns">${DEMO ? `<button class="btn" data-act="demo-exit">Quitter la démo</button>` : `<button class="btn" data-act="demo">Voir le mode démo</button>`}<button class="btn ghost" data-act="fview">Fiche de présentation</button><button class="btn ghost" data-act="vview">Vidéo (3 min)</button></div>
+    <div class="small muted">Lien direct à partager : dam-cigogne.github.io/comptes/?demo=1</div></div>
   ${granSetHtml()}
   <div class="card"><h2>Installer l'appli</h2>${installHtml()}</div>
   <div class="card"><h2>Utiliser plusieurs appareils</h2><div class="small muted">${MULTI_WARN}</div><div class="btns"><button class="btn ghost" data-act="multi-open">Voir comment faire</button><button class="btn ghost" data-act="exp-json">Sauvegarder maintenant</button></div></div>
@@ -1308,6 +1328,7 @@ const HELP = {
     "<b>Rappel « à pointer »</b> : au premier lancement de la journée, la liste de ce qui est passé sur ton compte et qu'il reste à pointer s'affiche. À désactiver dans Réglages.",
     "<b>Prochains mouvements</b> : les prochains revenus et charges fixes prévus (salaire, loyer, abonnements…).",
     "<b>Enveloppes</b> : un budget par catégorie (Nourriture, Essence…). Barre verte = tout va bien, orange = presque atteint, rouge = dépassé. Touche une enveloppe pour changer son budget <b>de ce mois seulement</b>.",
+    "<b>Enveloppe pour ce mois</b> (« + Enveloppe pour ce mois ») : elle n'apparaît que le mois où tu l'as créée. Les autres mois elle est masquée, sauf si tu y as noté une dépense.",
     "<b>À mettre de côté en fin de mois</b> : ce que tu pourrais épargner si tu dépensais tous tes budgets.","<b>Clôture fin de mois</b> : à faire à chaque fin de mois, que tu sois payé à la date habituelle ou plus tôt (exemple : payé le 23 au lieu du 25). Le bouton est en bas de cette carte. Tu indiques : 1) le solde réel de ton compte (paie comprise) ; 2) la paie déjà reçue (case à cocher avec le montant réel, ou le champ « paie / revenu déjà reçu »). L'appli calcule alors : solde − paie − ce qui doit encore partir du compte (charges fixes et dépenses non pointées) = ce que tu peux vraiment mettre de côté. Elle le compare à l'épargne prévue (ton enveloppe d'épargne) et te propose le total, que tu peux modifier.","<b>Quand tu valides</b> : 1) le nouveau mois démarre (aujourd'hui si tu es payé plus tôt, cette fois seulement) ; 2) les opérations non pointées du journal restent datées dans leur mois d'origine (elles comptent dans les enveloppes de ce mois-là) ; 3) leur montant et celui des fixes non pointés sont repris dans le reste à vivre du nouveau mois, dans une carte « Repris de … » : ils ne consomment pas les enveloppes du nouveau mois, et disparaissent de la carte dès que tu les pointes ; 4) le Livret A reçoit tout de suite deux lignes : l'épargne prévue, puis le surplus ; 5) le solde du compte baisse du montant mis de côté, donc l'argent des prélèvements à venir reste sur le compte et tu ne passes pas à découvert. Pense à faire le virement réel vers ton Livret A. Si le montant reçu diffère du prévu, le montant du mois suivant est mis à jour.","<b>Se tromper ?</b> Réglages → Données → « Annuler la dernière clôture de mois » remet tout comme avant (opérations, solde, Livret A)."]},
   month:{t:"Le mois", p:[
     "<b>Tout / Fixes / Opérations</b> : sous le bilan, trois boutons choisissent ce qui s'affiche. « Fixes » montre seulement les fixes et revenus, « Opérations » seulement les opérations du mois (plus besoin de faire défiler les fixes), « Tout » affiche tout. Ton choix est retenu.",
@@ -1346,8 +1367,10 @@ const HELP = {
     "<b>Une ligne qui n'existe que certains mois</b> (une taxe annuelle) : ajoute-la, puis dans les mois où elle ne tombe pas, mets 0 à ce mois."]},
   web:{t:"Comptes en ligne", p:[
     "<b>C'est quoi ?</b> Un carnet pour retrouver tes sites et comptes en ligne (banque, achats, administratif…).",
-    "Note le site, l'identifiant, la catégorie et l'état (« À changer », « Changé », « OK »). <b>Ne mets jamais tes mots de passe</b> : ils sont à garder dans un gestionnaire de mots de passe."]},
+    "Note le site, l'identifiant, la catégorie et l'état (« À changer », « Changé », « OK »). <b>Ne mets jamais tes mots de passe</b> : ils sont à garder dans un gestionnaire de mots de passe.",
+    "<b>Changer les catégories</b> : touche « ✎ Catégories » au bout de la barre des catégories. Tu peux renommer une catégorie (ses comptes suivent), en ajouter une ou en supprimer une (ses comptes passent dans « Autre »)."]},
   set:{t:"Les réglages", p:[
+    "<b>Mode démo</b> : « Voir le mode démo » affiche l'appli avec des données d'exemple pour tout découvrir ou la montrer à quelqu'un. Tes vraies données ne sont pas touchées et rien n'est enregistré pendant la démo. « Quitter la démo » (en haut de l'écran) te ramène à tes comptes. Le lien dam-cigogne.github.io/comptes/?demo=1 ouvre directement la démo. « Vidéo (3 min) » ouvre la visite guidée en vidéo, avec un bouton pour la partager.",
     "<b>Suivi des granulés</b> (pour un poêle) : active l'interrupteur, règle le poids d'un sac (15 kg par défaut), ton budget annuel et la période (saison de chauffe septembre → juin, ou année civile). Ensuite, quand tu ajoutes une dépense dont le libellé ou l'enveloppe contient « granulé » (par exemple une enveloppe « Granulés »), l'appli te demande combien de sacs (mets 0 si ce n'est pas un achat de granulés). Le suivi (Accueil › Granulés › Suivi) montre les sacs, les kg, la dépense, le prix moyen, la jauge du budget et la comparaison avec la saison précédente. « Ajouter un achat passé » permet de saisir l'historique des années précédentes : il compte dans le suivi mais pas dans tes enveloppes ni dans Excel.",
     "<b>Fiche de l'appli (à partager)</b> : trois affiches et une carte d'aperçu. Touche une vignette pour la voir en grand et la partager ou l'enregistrer. « Partager avec le descriptif » envoie un court texte et le lien de la fiche de présentation ; en ouvrant une affiche, « Partager avec le texte » envoie l'image avec ce texte (« Copier le texte » si ton appli de messagerie le retire) ; « Voir la fiche » l'ouvre ; « Copier le lien » le copie. Aucune donnée personnelle dans ces images.",
     "<b>Où enregistrer les exports ?</b> Sur PC et Android, choisis un dossier une fois : les exports y sont écrits directement en remplaçant l'ancien fichier. Sur iPhone et iPad, Apple ne le permet pas : dans la feuille de partage, touche « Enregistrer dans Fichiers » (iOS rouvre en général le dernier dossier) et choisis « Remplacer ».",
@@ -1801,7 +1824,11 @@ function commitImport(replace){
 document.addEventListener("click", ev => {
   const b = ev.target.closest("[data-act]"); if (!b) { if (ev.target.id === "sheetbg") closeSheet(); return; }
   const a = b.dataset.act, id = b.dataset.id, k = b.dataset.k;
+  if (DEMO && DEMO_BLOCK.includes(a)) return toast("Quitte d'abord le mode démo");
   switch (a){
+    case "demo": enterDemo(); break;
+    case "demo-exit": exitDemo(); break;
+    case "vview": window.open("https://dam-cigogne.github.io/comptes/video.html", "_blank", "noopener"); break;
     case "tab": V.webMsg = ""; if (V.tab === "add") collectDraft(); if (b.dataset.v === "add" && V.tab !== "add"){ V.editId = null; V.draft = null; } V.tab = b.dataset.v; render(); break;
     case "help": sheetHelp(b.dataset.v); break;
     case "yr-reset": yearReset(+b.dataset.v); break;
@@ -1936,6 +1963,17 @@ document.addEventListener("click", ev => {
     case "webnew": sheetWeb(""); break; case "webedit": sheetWeb(id); break;
     case "webf": V.wf = b.dataset.v; render(); break;
     case "webc": V.wc = V.wc === b.dataset.v ? "" : b.dataset.v; render(); break;
+    case "webcats": sheetWebCats(); break;
+    case "wc-save": { const now = Date.now(); let list = [], err = "";
+      document.querySelectorAll(".wc-name").forEach(el => { const o = el.dataset.old, nv = el.value.trim() || o;
+        if (list.includes(nv)) { err = "Deux catégories portent le nom « " + nv + " »"; return; }
+        list.push(nv); if (nv !== o) (S.web || []).forEach(w => { if (!w.del && w.cat === o){ w.cat = nv; w.upd = now; } }); if (V.wc === o) V.wc = nv; });
+      if (err) return toast(err);
+      const add = ($("#wc-new").value || "").trim(); if (add && !list.includes(add)) list.push(add);
+      S.webCatList = list; persist(); closeSheet(); render(); toast("Catégories enregistrées"); break; }
+    case "wc-del": { const c = b.dataset.v, now = Date.now(), list = webCats().filter(x => x !== c); if (!list.includes("Autre")) list.push("Autre");
+      (S.web || []).forEach(w => { if (!w.del && w.cat === c){ w.cat = "Autre"; w.upd = now; } }); if (V.wc === c) V.wc = "";
+      S.webCatList = list; persist(); render(); sheetWebCats(); break; }
     case "web-save": { const site = $("#w-site").value.trim(); if (!site) return toast("Donnez le nom du site");
       const o = {site, url:$("#w-url").value.trim(), ident:$("#w-ident").value.trim(), cat:$("#w-cat").value, st:$("#w-st").value, note:$("#w-note").value.trim(), upd:Date.now()};
       if (id) Object.assign(S.web.find(x => x.id === id), o); else S.web.push(Object.assign({id:uid()}, o)); persist(); closeSheet(); render(); break; }
@@ -1974,8 +2012,8 @@ document.addEventListener("click", ev => {
     case "fshare": { const url = FICHE_URL, text = FICHE_TXT;
       if (navigator.share){ navigator.share({title:"Les comptes en poches", text, url}).catch(() => {}); } else { copyText(text + "\n" + url).then(() => toast("Texte et lien copiés")); } break; }
     case "ftxtcopy": copyText(FICHE_TXT + "\n" + FICHE_URL).then(() => toast("Texte et lien copiés")); break;
-    case "fview": window.open("https://dam-cigogne.github.io/comptes/fiche.html", "_blank", "noopener"); break;
-    case "fcopy": copyText("https://dam-cigogne.github.io/comptes/fiche.html").then(() => toast("Lien copié")); break;
+    case "fview": window.open("https://dam-cigogne.github.io/comptes/presentation.html", "_blank", "noopener"); break;
+    case "fcopy": copyText("https://dam-cigogne.github.io/comptes/presentation.html").then(() => toast("Lien copié")); break;
     case "dirpick": (async () => { try { const h = await window.showDirectoryPicker({mode:"readwrite"}); await dirSet(h); lsSet("mc-dirname", h.name); toast("Dossier choisi : " + h.name); render(); } catch(e){} })(); break;
     case "dirclear": dirSet(null); try { localStorage.removeItem("mc-dirname"); } catch(e){} render(); break;
     case "zoom": { const v = b.dataset.v; if (v === "auto") { try { localStorage.removeItem("mc-zoom"); } catch(e){} } else lsSet("mc-zoom", v); applyZoom(); render(); break; }
@@ -1999,7 +2037,7 @@ document.addEventListener("input", ev => { if (ev.target.id === "web-q"){ V.wq =
 document.addEventListener("change", ev => {
   const t = ev.target;
   if (V.wiz && t.dataset.w !== undefined){ collectWiz(); if (t.dataset.w === "livret.on") render(); return; }
-  if (t.id === "file" && t.files[0]) { onFile(t.files[0]); t.value = ""; return; }
+  if (t.id === "file" && t.files[0]) { if (DEMO){ t.value = ""; return toast("Quitte d'abord le mode démo"); } onFile(t.files[0]); t.value = ""; return; }
   if (t.id === "solde" || t.id === "s-solde"){ const v = parseNum(t.value); S.settings.solde = t.value.trim() === "" ? null : v; persist(); if (V.tab === "home") render(); return; }
   if (t.id === "webfile" && t.files[0]){ const f = t.files[0]; t.value = "";
     f.arrayBuffer().then(buf => { const wb = XLSX.read(buf,{type:"array"}); V.webPending = parseWeb(wb); if (!V.webPending.rows.length) throw new Error("Aucun compte trouvé."); sheetWebImport(); })
@@ -2221,6 +2259,12 @@ document.addEventListener("change", ev => { if (ev.target.id === "sch-a" || ev.t
 applyTheme();
 /* ===== Historique des mises à jour ===== */
 const CHANGELOG = [
+ {v:"3.4", d:"Octobre 2026", t:"Mode démo et fiche de présentation", i:[
+  "Réglages › Mode démo : découvre ou montre l'appli avec des données d'exemple, sans toucher à tes vraies données (rien n'est enregistré). Lien direct : dam-cigogne.github.io/comptes/?demo=1.",
+  "Nouvelle fiche de présentation et d'installation, avec des captures de l'appli et un bouton pour essayer la démo.",
+  "Une vidéo de 3 minutes avec le son (Réglages › Mode démo › Vidéo) : le reste à vivre, les enveloppes, l'ajout rapide, le pointage, une avance, le Livret A et ses poches, les comptes en ligne. Sa page a un bouton « Partager » pour l'envoyer en un geste.",
+  "Comptes en ligne : « ✎ Catégories » pour renommer, ajouter ou supprimer les catégories directement dans l'appli.",
+  "Une enveloppe créée pour un seul mois n'apparaît plus à 0 € les mois suivants."]},
  {v:"3.3", d:"Octobre 2026", t:"Affiches avec le texte", i:[
   "Quand tu ouvres une affiche (Réglages › Fiche de l'appli), « Partager avec le texte » envoie l'image avec le petit descriptif et le lien. « Image seule » envoie juste l'image, « Copier le texte » copie le descriptif à coller toi-même (utile si ton appli de messagerie ignore le texte)."]},
  {v:"3.2", d:"Octobre 2026", t:"Suivi des granulés", i:[
@@ -2398,7 +2442,12 @@ function sheetExport(){ if (V.xm == null) { V.xm = V.m; V.xy = V.y; }
   openSheet(`<h2>Exporter un bilan</h2><label class="f">Mois à exporter<select id="xsel">${opts.map(([m,y]) => `<option value="${m}-${y}" ${m === V.xm && y === V.xy ? "selected" : ""}>${MOIS[m]} ${y}</option>`).join("")}</select></label><div class="small muted">Le bilan, les fixes et les opérations du mois. Excel : fichier .xlsx (3 feuilles : Bilan, Fixes, Opérations). PDF : fichier prêt à lire ou à envoyer.</div>
   <div class="btns"><button class="btn" data-act="ex-csv" style="flex:1">Exporter en Excel</button><button class="btn" data-act="ex-pdf" style="flex:1">Exporter en PDF</button></div><div class="btns"><button class="btn ghost" data-act="sheetclose" style="flex:1">Fermer</button></div>`); }
 function xread(){ const v = ($("#xsel") || {}).value; if (v){ const [m,y] = v.split("-").map(Number); V.xm = m; V.xy = y; } }
+function enterDemo(){ if (!DEMO) REAL = S; DEMO = true; S = demoData(); S.demo = false; S.lastBackup = Date.now(); migrate(); V.wiz = null; V.pending = null; V.tab = "home"; V.m = new Date().getMonth(); V.y = new Date().getFullYear(); closeSheet(); render(); toast("Mode démo : rien n'est enregistré"); }
+function exitDemo(){ DEMO = false; if (/[?&]demo=1/.test(location.search)){ location.replace(location.pathname); return; }
+  S = REAL || load(); REAL = null; if (!S || !S.settings){ S = emptyData(); V.wiz = wizInit(); } migrate(); V.tab = "home"; render(); toast("Démo quittée : tes données sont là"); }
+const DEMO_BLOCK = ["exp-json","exp-journal","ex-csv","ex-pdf","imp-replace","imp-merge","w-import","wipe","wipe-yes","sec-on","sec-off","sec-change","face-on","face-off","bk-open","bk-apply","web-merge","web-replace","yr-save","yr-reset","dirpick"];
 function startApp(){
+  if (/[?&]demo=1/.test(location.search)){ S = emptyData(); enterDemo(); return; }
   S = load(); const hadData = !!(S && S.settings);
   if (!S || !S.settings){ S = emptyData(); V.wiz = wizInit(); }
   migrate(); bootStart(hadData); render(); bootAfter(hadData);
@@ -2406,7 +2455,7 @@ function startApp(){
 if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) { try { navigator.serviceWorker.register("sw.js").catch(() => {}); } catch(e){} }
 secCfgLoad();
 faceOK().then(v => { V.faceOK = v; });
-if (secAvailable() && lsGet(ENC)){ SEC.on = true; showLock(); } else startApp();
+if (secAvailable() && lsGet(ENC) && !/[?&]demo=1/.test(location.search)){ SEC.on = true; showLock(); } else startApp();
 /* iOS : recale les éléments fixes (barre d'onglets, feuilles) après reprise, rotation ou clavier */
 (function(){ const fix = () => { try { const n = document.querySelector("nav.tabs"); if (n){ n.style.display = "none"; void n.offsetHeight; n.style.display = ""; } window.scrollTo(window.scrollX, window.scrollY); } catch(e){} };
   window.addEventListener("pageshow", fix); window.addEventListener("orientationchange", () => setTimeout(fix, 300)); window.addEventListener("resize", () => setTimeout(fix, 150));

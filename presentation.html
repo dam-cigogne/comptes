@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Les comptes en poches · ton budget simple et lisible</title>
+<meta name="description" content="Les comptes en poches : l'appli simple pour savoir ce qu'il te reste à vivre jusqu'à la paie, suivre tes enveloppes, tes fixes et ton Livret A. Gratuite, sans publicité, sans compte, qui marche hors connexion.">
+<meta name="theme-color" content="#0E6B5C">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Les comptes en poches">
+<meta property="og:title" content="Les comptes en poches · ton budget en poche">
+<meta property="og:description" content="Reste à vivre, enveloppes, fixes, prévision du solde, épargne et objectifs, synchro Excel. Gratuit, sans publicité, sans compte, hors connexion.">
+<meta property="og:image" content="https://dam-cigogne.github.io/comptes/apercu.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://dam-cigogne.github.io/comptes/presentation.html">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+:root{--bg:#F2F5F3;--surface:#fff;--text:#15231F;--muted:#5C6C66;--line:#DCE3DF;--accent:#0E6B5C;--warn:#E8890C}
+@media(prefers-color-scheme:dark){:root{--bg:#0E1715;--surface:#16221F;--text:#E6EFEB;--muted:#93A59E;--line:#26362F;--accent:#3CC2A6}}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;font-size:18px}
+.wrap{max-width:62rem;margin:0 auto;padding:0 1.2rem}
+header.hero{background:linear-gradient(135deg,#13806E,#0E6B5C 60%,#0A4F44);color:#fff;padding:3rem 0 3.4rem}
+.brand{display:flex;align-items:center;gap:.8rem;font-weight:800;font-size:1.4rem}
+.brand img{width:3rem;height:3rem;border-radius:.8rem}
+h1{font-size:clamp(2rem,6vw,3.2rem);line-height:1.1;margin:1.6rem 0 .8rem;letter-spacing:-.02em}
+.hero p{font-size:1.2rem;max-width:38rem;margin:0 0 1.6rem;opacity:.95}
+.btn{display:inline-block;padding:.85rem 1.4rem;border-radius:1rem;font-weight:750;text-decoration:none;margin:0 .5rem .5rem 0}
+.btn.w{background:#fff;color:#0A4F44}.btn.o{border:2px solid rgba(255,255,255,.6);color:#fff}
+section{padding:2.2rem 0}
+h2{font-size:1.7rem;letter-spacing:-.01em;margin:0 0 1rem}
+.shots{display:flex;gap:1rem;overflow-x:auto;padding:.3rem .2rem 1rem;margin-top:-2.4rem;scroll-snap-type:x mandatory}
+.shots figure{margin:0;flex:none;scroll-snap-align:start;text-align:center}
+.shots img{height:30rem;border-radius:1.6rem;border:1px solid var(--line);box-shadow:0 14px 40px rgba(16,24,40,.22);background:#fff;display:block}
+.shots figcaption{font-size:.9rem;color:var(--muted);margin-top:.5rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));gap:1rem}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:1.1rem;padding:1.1rem 1.2rem}
+.card h3{margin:0 0 .4rem;font-size:1.1rem}
+.card p,.card li{margin:.2rem 0;color:var(--muted);font-size:1rem}
+.card b{color:var(--text)}
+ol,ul{padding-left:1.2rem;margin:.4rem 0}
+.warn{background:rgba(232,137,12,.14);border:1px solid rgba(232,137,12,.5);border-radius:1rem;padding:1rem 1.2rem;margin-top:1rem;font-size:1rem}
+.warn b:first-child{display:block;margin-bottom:.3rem}
+.demo{background:var(--surface);border:2px solid var(--accent);border-radius:1.2rem;padding:1.2rem;display:flex;flex-wrap:wrap;gap:1rem;align-items:center;justify-content:space-between}
+.demo p{margin:0;color:var(--muted);font-size:1rem;max-width:36rem}
+.demo a{background:var(--accent);color:#fff;margin:0}
+@media(prefers-color-scheme:dark){.demo a{color:#04231C}}
+footer{padding:2rem 0 3rem;color:var(--muted);font-size:.9rem;text-align:center}
+a{color:var(--accent)}
+</style>
+</head>
+<body>
+<header class="hero"><div class="wrap">
+  <div class="brand"><img src="icon-192.png" alt=""> Les comptes en poches</div>
+  <h1>Ton budget,<br>simple et lisible.</h1>
+  <p>Un seul chiffre à regarder : ce qu'il te reste à vivre jusqu'à la paie. Gratuit, sans publicité, sans compte, et tes comptes ne quittent pas ton téléphone.</p>
+  <a class="btn w" href="./">Ouvrir l'appli</a><a class="btn o" href="./?demo=1">Voir la démo</a>
+</div></header>
+
+<div class="wrap">
+  <div class="shots" aria-label="Captures d'écran (données d'exemple)">
+    <figure><img src="screenshots/accueil.jpg" alt="Accueil : le reste à vivre après enveloppes" loading="lazy"><figcaption>Le reste à vivre</figcaption></figure>
+    <figure><img src="screenshots/enveloppes.jpg" alt="Les enveloppes du mois avec leurs barres" loading="lazy"><figcaption>Les enveloppes</figcaption></figure>
+    <figure><img src="screenshots/mois.jpg" alt="Le bilan du mois" loading="lazy"><figcaption>Le mois</figcaption></figure>
+    <figure><img src="screenshots/ajouter.jpg" alt="Ajouter une dépense au pavé numérique" loading="lazy"><figcaption>Ajouter en 3 secondes</figcaption></figure>
+    <figure><img src="screenshots/epargne.jpg" alt="Livret A, poches et objectifs" loading="lazy"><figcaption>L'épargne</figcaption></figure>
+    <figure><img src="screenshots/fixes.jpg" alt="Revenus et charges fixes" loading="lazy"><figcaption>Les fixes</figcaption></figure>
+    <figure><img src="screenshots/comptes.jpg" alt="Carnet des comptes en ligne, sans mot de passe" loading="lazy"><figcaption>Comptes en ligne</figcaption></figure>
+  </div>
+
+  <div class="demo">
+    <p><b>Essaie sans rien installer.</b> La démo ouvre l'appli avec des données d'exemple. Rien n'est enregistré, et si tu as déjà l'appli, tes vrais comptes ne sont ni touchés ni affichés.</p>
+    <a class="btn" href="./?demo=1">Voir la démo</a>
+  </div>
+
+  <section id="video">
+    <h2>La visite guidée en vidéo</h2>
+    <div class="card" style="max-width:26rem"><video controls playsinline preload="metadata" poster="video/poster.jpg" src="video/comptes-en-poches-demo.mp4" style="width:100%;border-radius:1rem;display:block;background:#0A4F44"></video>
+      <p style="margin-top:.6rem">3 minutes, avec le son : le reste à vivre, les enveloppes, l'ajout rapide, le pointage, une avance, le Livret A et ses poches, les comptes en ligne. <a href="video.html">Ouvrir la page de la vidéo pour la partager</a>.</p></div>
+  </section>
+
+  <section id="difference">
+    <h2>Ce qui la rend différente</h2>
+    <div class="grid">
+      <div class="card"><h3>Un seul chiffre : ton reste à vivre</h3><p><b>Ici :</b> solde du compte − fixes à payer − dépenses non pointées − enveloppes restantes. Tu sais tout de suite ce que tu peux encore dépenser jusqu'à la paie. <b>Souvent ailleurs :</b> des graphiques, mais pas la réponse à « combien il me reste ? ».</p></div>
+      <div class="card"><h3>Gratuite, sans pub, sans compte</h3><p><b>Ici :</b> aucune publicité, aucun abonnement, aucune inscription. <b>Souvent ailleurs :</b> version payante, compte obligatoire ou accès à ta banque.</p></div>
+      <div class="card"><h3>Tes comptes restent chez toi</h3><p><b>Ici :</b> tout est enregistré sur ton appareil, chiffré par ton code (Face ID en option). Il n'existe aucun serveur de l'appli. <b>Souvent ailleurs :</b> tes opérations passent par les serveurs de l'éditeur.</p></div>
+      <div class="card"><h3>Des enveloppes, comme en vrai</h3><p><b>Ici :</b> un budget par enveloppe (nourriture, essence…) avec une barre verte, orange puis rouge. Un budget différent un mois précis, ou une enveloppe pour ce mois seulement, en deux touches.</p></div>
+      <div class="card"><h3>Synchronisée avec Excel</h3><p><b>Ici :</b> l'appli reprend ton classeur Excel et échange avec lui par un fichier (via OneDrive par exemple). Bilan du mois en Excel ou en PDF, rapprochement avec ton relevé de banque.</p></div>
+      <div class="card"><h3>Pensée pour l'iPhone</h3><p><b>Ici :</b> installation depuis Safari, sans App Store, plein écran, et l'appli marche sans connexion. Aussi sur Android, tablette et ordinateur.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Ce que fait chaque écran</h2>
+    <div class="grid">
+      <div class="card"><h3>Accueil</h3><p>Le reste à vivre, le solde de ton compte à recopier depuis ta banque, les enveloppes du mois, ce que tu peux mettre de côté en fin de mois et la prévision du solde jusqu'à la paie, avec alerte si tu risques le rouge.</p></div>
+      <div class="card"><h3>Mois</h3><p>Le bilan du mois (revenus, dépenses, résultat, épargne) expliqué, où part l'argent, les fixes à pointer, les opérations, la recherche et l'export.</p></div>
+      <div class="card"><h3>Ajouter</h3><p>Dépense, revenu, versement ou retrait du Livret A, avance. Pavé numérique, catégories récentes, modèles pour ce qui revient souvent.</p></div>
+      <div class="card"><h3>Épargne</h3><p>Ton Livret A (mouvements, ajustement au centime, mouvements futurs qui s'archivent tout seuls), tes poches d'épargne et tes objectifs avec ce qu'il faut mettre de côté par mois.</p></div>
+      <div class="card"><h3>Fixes</h3><p>Tes revenus et charges qui reviennent chaque mois, avec le jour, le montant prévu et un montant différent pour un mois précis.</p></div>
+      <div class="card"><h3>Comptes en ligne</h3><p>Un carnet pour retrouver tes sites et identifiants, avec des catégories que tu changes toi-même. Jamais de mot de passe : l'appli te le rappelle.</p></div>
+      <div class="card"><h3>Réglages</h3><p>Couleurs, mode clair ou sombre, rappel à l'ouverture, code et Face ID, sauvegardes, synchro Excel, mode démo, nouvelle année, historique des mises à jour et guide d'utilisation.</p></div>
+    </div>
+  </section>
+
+  <section id="installer">
+    <h2>Installer sur ton téléphone</h2>
+    <div class="grid">
+      <div class="card"><h3>iPhone ou iPad (Safari)</h3><ol>
+        <li>Ouvre le lien de l'appli dans <b>Safari</b> (pas dans une autre appli).</li>
+        <li>Touche le bouton <b>Partager</b> (carré avec une flèche).</li>
+        <li>Choisis <b>Sur l'écran d'accueil</b>, puis <b>Ajouter</b>.</li>
+        <li>Ouvre ensuite l'appli avec son icône : c'est là que tes données sont enregistrées.</li></ol></div>
+      <div class="card"><h3>Android (Chrome)</h3><ol>
+        <li>Ouvre le lien de l'appli dans <b>Chrome</b>.</li>
+        <li>Touche le menu <b>⋮</b>, puis <b>Installer l'application</b> (ou « Ajouter à l'écran d'accueil »).</li>
+        <li>Confirme. L'icône apparaît sur l'écran d'accueil.</li></ol></div>
+    </div>
+    <div class="warn"><b>⚠️ Plusieurs appareils : pas de synchronisation automatique</b>
+      Tes comptes restent sur chaque appareil. Pour les retrouver ailleurs : <b>Réglages › Sauvegarde</b> sur le premier appareil, puis restaure la sauvegarde sur le second. Un nouvel appareil est vide tant que tu ne l'as pas fait.</div>
+  </section>
+
+  <section id="tutos">
+    <h2>Mode d'emploi rapide</h2>
+    <div class="grid">
+      <div class="card"><h3>Bien démarrer</h3><ol>
+        <li>Au premier lancement, l'assistant te demande tes revenus, tes charges fixes et tes enveloppes. Le montant habituel suffit.</li>
+        <li>Tu as déjà un classeur Excel ? <b>Réglages › Importer un fichier</b> le reprend.</li>
+        <li>Recopie le <b>solde de ton compte</b> sur l'accueil : tout le calcul part de là.</li></ol></div>
+      <div class="card"><h3>Au quotidien</h3><ol>
+        <li>Touche <b>+</b> pour ajouter une dépense : montant, catégorie, c'est tout.</li>
+        <li>Quand une opération passe sur ton compte, <b>pointe-la</b> (le rond).</li>
+        <li>Regarde le <b>reste à vivre</b> : c'est ce que tu peux encore dépenser.</li></ol></div>
+      <div class="card"><h3>Un mois pas comme les autres</h3><ol>
+        <li>Touche une enveloppe pour changer son budget <b>de ce mois seulement</b>.</li>
+        <li><b>+ Enveloppe pour ce mois</b> crée une enveloppe qui n'apparaît que ce mois-là (cadeaux, vacances…).</li>
+        <li>Pour un fixe, touche la ligne et saisis le montant réel du mois.</li></ol></div>
+      <div class="card"><h3>Fin de mois</h3><ol>
+        <li>La <b>clôture</b> calcule ce que tu peux mettre de côté sur ton Livret A.</li>
+        <li>Exporte le bilan du mois en Excel ou en PDF si tu veux le garder.</li>
+        <li>Fais une <b>sauvegarde</b> de temps en temps : un rappel s'affiche après 14 jours.</li></ol></div>
+      <div class="card"><h3>Montrer l'appli à quelqu'un</h3><ol>
+        <li><b>Réglages › Mode démo</b> : l'appli s'affiche avec des données d'exemple.</li>
+        <li>Rien n'est enregistré, tes vrais comptes ne sont pas montrés.</li>
+        <li><b>Quitter la démo</b>, en haut de l'écran, te ramène à tes comptes.</li></ol></div>
+    </div>
+  </section>
+
+  <section id="confidentialite">
+    <h2>Confidentialité et sécurité</h2>
+    <div class="card">
+      <p><b>Aucune donnée n'est collectée.</b> Pas de compte, pas de serveur, pas de statistiques, pas de publicité. Tes comptes sont enregistrés uniquement sur ton appareil, chiffrés (AES-GCM) avec ton code si tu actives le verrouillage.</p>
+      <p><b>Ce qui passe quand même par Internet :</b> au démarrage, l'appli charge ses polices et deux outils de lecture de fichiers Excel et PDF depuis des sites publics. Aucune de tes données n'est envoyée.</p>
+      <p><b>À savoir :</b> l'appli n'est pas ta banque et ne se connecte pas à ton compte : tu recopies ton solde et tu compares avec ton relevé. Ce n'est pas un conseil financier. Ne mets jamais de mot de passe ni de code bancaire dans l'appli.</p>
+    </div>
+  </section>
+
+  <footer>Les comptes en poches · gratuit, sans publicité · version 3.4 · <a href="./">Ouvrir l'appli</a> · <a href="./?demo=1">Voir la démo</a></footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Les comptes en poches · la visite guidée en vidéo</title>
+<meta name="description" content="3 minutes pour découvrir Les comptes en poches : reste à vivre, enveloppes, ajout rapide, pointage, avance, Livret A et poches, comptes en ligne.">
+<meta name="theme-color" content="#0E6B5C">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<meta property="og:type" content="video.other">
+<meta property="og:site_name" content="Les comptes en poches">
+<meta property="og:title" content="Les comptes en poches · la visite guidée en vidéo">
+<meta property="og:description" content="3 minutes pour tout comprendre : reste à vivre, enveloppes, Livret A et poches. Gratuit, sans publicité, sans compte.">
+<meta property="og:image" content="https://dam-cigogne.github.io/comptes/apercu.png">
+<meta property="og:video" content="https://dam-cigogne.github.io/comptes/video/comptes-en-poches-demo.mp4">
+<meta property="og:video:type" content="video/mp4">
+<meta property="og:url" content="https://dam-cigogne.github.io/comptes/video.html">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+:root{--bg:#F2F5F3;--surface:#fff;--text:#15231F;--muted:#5C6C66;--line:#DCE3DF;--accent:#0E6B5C}
+@media(prefers-color-scheme:dark){:root{--bg:#0E1715;--surface:#16221F;--text:#E6EFEB;--muted:#93A59E;--line:#26362F;--accent:#3CC2A6}}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;font-size:17px}
+main{max-width:30rem;margin:0 auto;padding:1.2rem 1rem 2.5rem}
+header{display:flex;gap:.8rem;align-items:center;margin-bottom:1rem}
+header img{width:3rem;height:3rem;border-radius:.8rem}
+h1{font-size:1.35rem;line-height:1.2;margin:0}
+.sub{color:var(--muted);margin:0;font-size:.95rem}
+video{width:100%;border-radius:1.4rem;border:1px solid var(--line);background:#0A4F44;display:block;box-shadow:0 14px 40px rgba(16,24,40,.22)}
+.btns{display:flex;flex-wrap:wrap;gap:.6rem;margin:1rem 0}
+.btn{flex:1 1 auto;text-align:center;padding:.85rem 1rem;border-radius:1rem;font-weight:700;text-decoration:none;border:2px solid var(--accent);color:var(--accent);background:none;font-size:1rem;cursor:pointer;font-family:inherit}
+.btn.p{background:var(--accent);color:#fff}
+@media(prefers-color-scheme:dark){.btn.p{color:#04231C}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:1.1rem;padding:1rem 1.1rem;margin-top:1rem}
+.card h2{font-size:1.05rem;margin:0 0 .4rem}
+.card ol{margin:.2rem 0;padding-left:1.2rem;color:var(--muted);font-size:.95rem}
+#msg{color:var(--muted);font-size:.9rem;min-height:1.2em}
+a{color:var(--accent)}
+</style>
+</head>
+<body>
+<main>
+  <header><img src="icon-192.png" alt=""><div><h1>Les comptes en poches</h1><p class="sub">La visite guidée en vidéo · 3 min · avec le son</p></div></header>
+  <video controls playsinline preload="metadata" poster="video/poster.jpg" src="video/comptes-en-poches-demo.mp4"></video>
+  <div class="btns">
+    <button class="btn p" id="share">Partager cette vidéo</button>
+    <a class="btn" href="./?demo=1">Essayer la démo</a>
+  </div>
+  <div id="msg"></div>
+  <div class="card"><h2>Au programme</h2><ol>
+    <li>Le reste à vivre et les enveloppes</li><li>Ajouter une dépense</li><li>L'ajout rapide (modèles)</li><li>Pointer une opération</li>
+    <li>Un mois pas comme les autres</li><li>Une avance</li><li>Livret A et poches</li><li>Retirer du Livret A</li><li>Les comptes en ligne</li><li>La fin de mois</li></ol></div>
+  <p class="sub" style="margin-top:1rem">Données d'exemple. <a href="presentation.html">Fiche de présentation et installation</a> · <a href="video/comptes-en-poches-demo.mp4" download>Télécharger la vidéo (12 Mo)</a></p>
+</main>
+<script>
+const URL_PAGE = "https://dam-cigogne.github.io/comptes/video.html";
+const TXT = "Les comptes en poches : la visite guidée en vidéo (3 min).";
+document.getElementById("share").addEventListener("click", async () => {
+  const m = document.getElementById("msg");
+  try {
+    if (navigator.share) { await navigator.share({title:"Les comptes en poches", text:TXT, url:URL_PAGE}); return; }
+    await navigator.clipboard.writeText(TXT + "\n" + URL_PAGE); m.textContent = "Lien copié : colle-le dans ton message.";
+  } catch (e) { if (e && e.name !== "AbortError") m.textContent = "Copie ce lien : " + URL_PAGE; }
+});
+</script>
+</body>
+</html>
