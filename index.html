@@ -137,7 +137,7 @@ button{cursor:pointer}
 .sw input:checked + i{background:var(--accent)}.sw input:checked + i::after{transform:translateX(22px)}
 .sw input:focus-visible + i{outline:2px solid var(--accent);outline-offset:2px}
 .banner{background:var(--warn-soft);color:var(--ink);border:1px solid var(--warn);border-radius:12px;padding:10px 12px;font-size:13px}
-.banner.demo{background:var(--accent-soft);border-color:var(--accent);display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.banner.demo{position:sticky;top:calc(env(safe-area-inset-top,0px) + 4px);z-index:30;box-shadow:0 6px 18px rgba(0,0,0,.12);background:var(--accent-soft);border-color:var(--accent);display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
 .rows{display:flex;flex-direction:column}
 .row{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line);min-width:0}
 .row:first-child{border-top:0}
@@ -739,7 +739,7 @@ function splitCard(c){
 function bkpAge(){ return S.lastBackup ? Math.floor((Date.now() - S.lastBackup) / 864e5) : null; }
 function bkpBanner(){ if (S.demo) return ""; const a = bkpAge(); if (a !== null && a < 14) return "";
   return `<div class="banner">${a === null ? "Aucune sauvegarde faite pour l'instant." : "Dernière sauvegarde il y a " + a + " jours."} <button class="btn sm" data-act="exp-json">Sauvegarder</button></div>`; }
-function topbar(){ return `<div class="top"><div class="app tt">Les comptes<br>en poches</div><div class="topr">${monthNav()}<button class="gear" data-act="tab" data-v="set" aria-label="Réglages">${ICON.set}</button></div></div>` + (DEMO ? `<div class="banner demo"><span><b>Mode démo</b> · rien n'est enregistré</span><button class="btn sm" data-act="demo-exit">Quitter la démo</button></div>` : bkpBanner()) + (S.demo && !DEMO ? `<div class="banner">Données d'exemple. Importez votre classeur Excel dans <b>Réglages</b> pour travailler avec vos vrais comptes.</div>` : ""); }
+function topbar(){ return `<div class="top"><div class="app tt">Les comptes<br>en poches</div><div class="topr">${monthNav()}<button class="gear" data-act="tab" data-v="set" aria-label="Réglages">${ICON.set}</button></div></div>` + (DEMO ? "" : bkpBanner()) + (S.demo && !DEMO ? `<div class="banner">Données d'exemple. Importez votre classeur Excel dans <b>Réglages</b> pour travailler avec vos vrais comptes.</div>` : ""); }
 
 function periodInfo(){
   const r = periodRange(V.m, V.y), t = todayIso();
@@ -1251,7 +1251,7 @@ function viewSet(){
   <div class="card"><h2>Guide d'utilisation</h2><div class="small muted">Comment marche chaque partie de l'appli, expliqué simplement. Le bouton ? en haut de chaque écran donne aussi l'aide de l'écran.</div>
     <div class="btns"><button class="btn" data-act="guide">Ouvrir le guide</button><button class="btn ghost" data-act="upd-hist">Historique des mises à jour</button></div></div>
   <div class="card"><h2>Mode démo</h2><div class="small muted">Découvre toutes les fonctions avec des données d'exemple. Tes vraies données ne sont ni touchées ni affichées, et rien n'est enregistré pendant la démo. Pratique aussi pour montrer l'appli à quelqu'un.</div>
-    <div class="btns">${DEMO ? `<button class="btn" data-act="demo-exit">Quitter la démo</button>` : `<button class="btn" data-act="demo">Voir le mode démo</button>`}<button class="btn ghost" data-act="fview">Fiche de présentation</button><button class="btn ghost" data-act="vview">Vidéo (3 min)</button></div>
+    <div class="btns">${DEMO ? `<button class="btn" data-act="demo-exit">Revenir à mes comptes</button>` : `<button class="btn" data-act="demo">Voir le mode démo</button>`}<button class="btn ghost" data-act="fview">Fiche de présentation</button><button class="btn ghost" data-act="vview">Vidéo (3 min)</button></div>
     <div class="small muted">Lien direct à partager : dam-cigogne.github.io/comptes/?demo=1</div></div>
   ${granSetHtml()}
   <div class="card"><h2>Installer l'appli</h2>${installHtml()}</div>
@@ -1370,7 +1370,7 @@ const HELP = {
     "Note le site, l'identifiant, la catégorie et l'état (« À changer », « Changé », « OK »). <b>Ne mets jamais tes mots de passe</b> : ils sont à garder dans un gestionnaire de mots de passe.",
     "<b>Changer les catégories</b> : touche « ✎ Catégories » au bout de la barre des catégories. Tu peux renommer une catégorie (ses comptes suivent), en ajouter une ou en supprimer une (ses comptes passent dans « Autre »)."]},
   set:{t:"Les réglages", p:[
-    "<b>Mode démo</b> : « Voir le mode démo » affiche l'appli avec des données d'exemple pour tout découvrir ou la montrer à quelqu'un. Tes vraies données ne sont pas touchées et rien n'est enregistré pendant la démo. « Quitter la démo » (en haut de l'écran) te ramène à tes comptes. Le lien dam-cigogne.github.io/comptes/?demo=1 ouvre directement la démo. « Vidéo (3 min) » ouvre la visite guidée en vidéo, avec un bouton pour la partager.",
+    "<b>Mode démo</b> : « Voir le mode démo » affiche l'appli avec des données d'exemple pour tout découvrir ou la montrer à quelqu'un. Tes vraies données ne sont pas touchées et rien n'est enregistré pendant la démo. La barre verte « Revenir à mes comptes », en haut de chaque écran, te ramène à tes comptes. Fermer complètement l'appli et la rouvrir fait aussi revenir à tes comptes. Le lien dam-cigogne.github.io/comptes/?demo=1 ouvre directement la démo. « Vidéo (3 min) » ouvre la visite guidée en vidéo, avec un bouton pour la partager.",
     "<b>Suivi des granulés</b> (pour un poêle) : active l'interrupteur, règle le poids d'un sac (15 kg par défaut), ton budget annuel et la période (saison de chauffe septembre → juin, ou année civile). Ensuite, quand tu ajoutes une dépense dont le libellé ou l'enveloppe contient « granulé » (par exemple une enveloppe « Granulés »), l'appli te demande combien de sacs (mets 0 si ce n'est pas un achat de granulés). Le suivi (Accueil › Granulés › Suivi) montre les sacs, les kg, la dépense, le prix moyen, la jauge du budget et la comparaison avec la saison précédente. « Ajouter un achat passé » permet de saisir l'historique des années précédentes : il compte dans le suivi mais pas dans tes enveloppes ni dans Excel.",
     "<b>Fiche de l'appli (à partager)</b> : trois affiches et une carte d'aperçu. Touche une vignette pour la voir en grand et la partager ou l'enregistrer. « Partager avec le descriptif » envoie un court texte et le lien de la fiche de présentation ; en ouvrant une affiche, « Partager avec le texte » envoie l'image avec ce texte (« Copier le texte » si ton appli de messagerie le retire) ; « Voir la fiche » l'ouvre ; « Copier le lien » le copie. Aucune donnée personnelle dans ces images.",
     "<b>Où enregistrer les exports ?</b> Sur PC et Android, choisis un dossier une fois : les exports y sont écrits directement en remplaçant l'ancien fichier. Sur iPhone et iPad, Apple ne le permet pas : dans la feuille de partage, touche « Enregistrer dans Fichiers » (iOS rouvre en général le dernier dossier) et choisis « Remplacer ».",
@@ -1604,6 +1604,7 @@ function render(){
   const keepY = (V.lt === V.tab && V.lm === V.m && V.ly === V.y) ? window.scrollY : 0;
   main.innerHTML = V.tab === "home" ? viewHome() : V.tab === "month" ? viewMonth() : V.tab === "add" ? viewAdd() : V.tab === "fix" ? viewFix() : V.tab === "sav" ? viewSav() : V.tab === "web" ? viewWeb() : V.tab === "bank" ? viewBank() : V.tab === "hist" ? viewHist() : viewSet();
   { const hk = {home:"home",month:"month",add:"add",fix:"fix",sav:"sav",web:"web",set:"set",bank:"bank",hist:"hist"}[V.tab]; const tp = hk && main.querySelector(".top"); if (tp){ const r = tp.querySelector(".app"); (r || tp).insertAdjacentHTML("beforeend", helpBtn(hk)); } }
+  if (DEMO) main.insertAdjacentHTML("afterbegin", `<div class="banner demo" id="demobar"><span><b>Mode démo</b> · rien n'est enregistré</span><button class="btn sm" data-act="demo-exit">Revenir à mes comptes</button></div>`);
   if (V.tab === "add") updateInfo();
   V.lt = V.tab; V.lm = V.m; V.ly = V.y;
   window.scrollTo(0, keepY);
@@ -2259,6 +2260,8 @@ document.addEventListener("change", ev => { if (ev.target.id === "sch-a" || ev.t
 applyTheme();
 /* ===== Historique des mises à jour ===== */
 const CHANGELOG = [
+ {v:"3.5", d:"Octobre 2026", t:"Sortir de la démo plus facilement", i:[
+  "En mode démo, une barre verte reste en haut de chaque écran avec le bouton « Revenir à mes comptes ». Avant, il n'était visible que sur l'Accueil, le Mois et les Réglages. Tes vrais comptes n'ont jamais été touchés pendant la démo."]},
  {v:"3.4", d:"Octobre 2026", t:"Mode démo et fiche de présentation", i:[
   "Réglages › Mode démo : découvre ou montre l'appli avec des données d'exemple, sans toucher à tes vraies données (rien n'est enregistré). Lien direct : dam-cigogne.github.io/comptes/?demo=1.",
   "Nouvelle fiche de présentation et d'installation, avec des captures de l'appli et un bouton pour essayer la démo.",
@@ -2444,7 +2447,7 @@ function sheetExport(){ if (V.xm == null) { V.xm = V.m; V.xy = V.y; }
 function xread(){ const v = ($("#xsel") || {}).value; if (v){ const [m,y] = v.split("-").map(Number); V.xm = m; V.xy = y; } }
 function enterDemo(){ if (!DEMO) REAL = S; DEMO = true; S = demoData(); S.demo = false; S.lastBackup = Date.now(); migrate(); V.wiz = null; V.pending = null; V.tab = "home"; V.m = new Date().getMonth(); V.y = new Date().getFullYear(); closeSheet(); render(); toast("Mode démo : rien n'est enregistré"); }
 function exitDemo(){ DEMO = false; if (/[?&]demo=1/.test(location.search)){ location.replace(location.pathname); return; }
-  S = REAL || load(); REAL = null; if (!S || !S.settings){ S = emptyData(); V.wiz = wizInit(); } migrate(); V.tab = "home"; render(); toast("Démo quittée : tes données sont là"); }
+  S = REAL || load(); REAL = null; if (!S || !S.settings){ S = emptyData(); V.wiz = wizInit(); } migrate(); V.tab = "home"; render(); toast("Te revoilà dans tes comptes"); }
 const DEMO_BLOCK = ["exp-json","exp-journal","ex-csv","ex-pdf","imp-replace","imp-merge","w-import","wipe","wipe-yes","sec-on","sec-off","sec-change","face-on","face-off","bk-open","bk-apply","web-merge","web-replace","yr-save","yr-reset","dirpick"];
 function startApp(){
   if (/[?&]demo=1/.test(location.search)){ S = emptyData(); enterDemo(); return; }
