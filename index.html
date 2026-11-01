@@ -387,7 +387,7 @@ document.addEventListener("visibilitychange", () => {
 function emptyData(){
   return { v:1, demo:false,
     settings:{ solde:null, livretDepart:0, envelopes:[], cats:CATS_EXC.slice() },
-    journal:[], fixRev:[], fixCh:[], epargne:emptyEpargne(), accts:[], acctMv:[], cc:[], web:[], bank:{seen:[]}, rules:{}, undo:null };
+    journal:[], fixRev:[], fixCh:[], epargne:emptyEpargne(), accts:[], acctMv:[], cc:[], ct:[], web:[], bank:{seen:[]}, rules:{}, undo:null };
 }
 function emptyEpargne(){ return {dateDepart:"", envA:"Épargne", envB:"", manuel:[], poches:[], futur:[]}; }
 function demoData(){
@@ -1028,7 +1028,7 @@ function sheetAcct(id){
     <div class="kv"><span>${esc(a.type)}</span><span class="num" style="font-weight:700">${eur(acctSolde(a))}</span></div>
     <div class="small muted">Départ : ${eur(a.depart)}${a.date ? " au " + frFull(a.date) : ""}. Les mouvements s'ajoutent au solde de départ.</div>
     <div class="rows">${mv.length ? mv.map(m => `<div class="row"><button class="rowbtn" data-act="mvedit" data-id="${m.id}"><div class="t">${esc(m.lib || (m.mt >= 0 ? (isCash(a) ? "Revenu" : "Versement") : (isCash(a) ? "Dépense" : "Retrait")))}</div><div class="s">${frFull(m.date)}</div></button><div class="amt num ${m.mt >= 0 ? "pos" : "neg"}">${m.mt >= 0 ? "+ " : "− "}${eur(Math.abs(m.mt))}</div></div>`).join("") : '<div class="empty">Aucun mouvement.</div>'}</div>
-    <div class="btns"><button class="btn" data-act="mvnew" data-id="${a.id}" style="flex:1">${isCash(a) ? "+ Revenu / dépense" : "+ Mouvement"}</button>${isCash(a) ? `<button class="btn ghost" data-act="cagshare" data-id="${a.id}">Envoyer le code</button><button class="btn ghost" data-act="cagcopy" data-id="${a.id}">Copier le code</button><button class="btn ghost" data-act="cagexplain" data-id="${a.id}">Explications</button><button class="btn ghost" data-act="cagsend" data-id="${a.id}">Fichier</button>` : ""}<button class="btn ghost" data-act="acctedit" data-id="${a.id}">Modifier le compte</button><button class="btn ghost" data-act="sheetclose">Fermer</button></div>`);
+    <div class="btns"><button class="btn" data-act="mvnew" data-id="${a.id}" style="flex:1">${isCash(a) ? "+ Revenu / dépense" : "+ Mouvement"}</button>${isCash(a) ? `<button class="btn ghost" data-act="cagsendto" data-id="${a.id}">Envoyer à…</button><button class="btn ghost" data-act="cagcopy" data-id="${a.id}">Copier le code</button><button class="btn ghost" data-act="cagexplain" data-id="${a.id}">Explications</button><button class="btn ghost" data-act="cagsend" data-id="${a.id}">Fichier</button>` : ""}<button class="btn ghost" data-act="acctedit" data-id="${a.id}">Modifier le compte</button><button class="btn ghost" data-act="sheetclose">Fermer</button></div>`);
 }
 function cagPayload(a, indent){ if (!a.sid){ a.sid = uid(); a.upd = Date.now(); persist(); }
   const mv = (S.acctMv || []).filter(m => m.a === a.id).map(m => ({id:m.id, date:m.date, lib:m.lib || "", mt:m.mt, upd:m.upd || 0, del:!!m.del}));
@@ -1111,7 +1111,9 @@ function ccSettle(net){ const cr = [], de = [];
 const ccMe = c => c.me && ccPeople(c).some(p => p.id === c.me) ? c.me : null;
 const ccMineTxt = v => v === null || v === undefined ? "à choisir" : Math.abs(v) < 0.005 ? "à l'équilibre" : v > 0 ? "on te doit " + eur(v) : "tu dois " + eur(-v);
 const CC_COL = ["#2563eb","#dc2626","#16a34a","#d97706","#9333ea","#0891b2","#db2777","#65a30d","#475569","#b45309"];
-const ccCol = (c, id) => { const ids = (c.parts || []).map(p => p.id).sort(), i = ids.indexOf(id); return i < 0 ? "#64748b" : CC_COL[i % CC_COL.length]; };
+const okCol = x => typeof x === "string" && /^#[0-9a-fA-F]{6}$/.test(x);
+const ccCt = p => p && p.ct ? (S.ct || []).find(x => x.id === p.ct) : null;
+const ccCol = (c, id) => { const pp = (c.parts || []).find(x => x.id === id); if (pp && okCol(pp.col)) return pp.col; const ct = ccCt(pp); if (ct && okCol(ct.col)) return ct.col; const ids = (c.parts || []).map(p => p.id).sort(), i = ids.indexOf(id); return i < 0 ? "#64748b" : CC_COL[i % CC_COL.length]; };
 const ccChip = (c, id) => { const n = ccName(c, id) || "?"; return `<span class="cchip" style="background:${ccCol(c, id)}" title="${esc(n)}">${esc(n.trim().charAt(0).toUpperCase())}</span>`; };
 const ccBal = c => r2(ccOps(c).reduce((t, o) => t + (o.k === "e" ? N(o.mt) : o.k === "s" ? -N(o.mt) : 0), 0));
 function ccHash(c){ const ids = ccOps(c).map(o => o.id).sort().join("|"); let h = 5381; for (let i = 0; i < ids.length; i++) h = ((h << 5) + h + ids.charCodeAt(i)) | 0; return (h >>> 0).toString(36); }
@@ -1119,17 +1121,51 @@ function ccPayload(c, delta){ if (!c.sid){ c.sid = uid(); persist(); }
   const since = delta ? N(c.outAt) : -1;
   const ops = (c.ops || []).filter(o => Math.max(N(o.upd), N(o.rcv)) > since).map(o => ({id:o.id, k:o.k, date:o.date, lib:o.lib || "", mt:o.mt, by:o.by, to:o.to, sp:o.sp, cat:o.cat || "", note:o.note || "", au:o.au || "", mod:o.mod || "", upd:o.upd || 0, del:!!o.del}));
   return {json: JSON.stringify({app:"comptes-commun", v:1, sid:c.sid, n:c.n, mode:c.mode === "cpt" ? "cpt" : "tri", caisse:!!c.caisse, parts:(c.parts || []).map(p => ({id:p.id, n:p.n, upd:p.upd || 0, del:!!p.del})), ops, full:!delta, cnt:ccOps(c).length, chk:ccHash(c)}), n:ops.length}; }
-async function ccCode(c, delta){ const pl = ccPayload(c, delta);
+async function ccCode(c, delta, commit){ if (commit === undefined) commit = true; const pl = ccPayload(c, delta);
   if (delta && !pl.n) return null;
   const raw = new TextEncoder().encode(pl.json); let code = null;
   if (window.CompressionStream){ try { code = "CAG1z." + b64u(await pipeBytes(raw, new CompressionStream("deflate-raw"))); } catch(e){} }
   if (!code) code = "CAG1p." + b64u(raw);
-  if (delta){ c.outAt = Date.now(); persist(); } return code; }
+  if (delta && commit){ c.outAt = Date.now(); persist(); } return code; }
 async function ccSend(id, delta, copy){ const c = (S.cc || []).find(x => x.id === id); if (!c) return; if (DEMO) return toast("Quitte d'abord le mode démo");
   const code = await ccCode(c, delta);
   if (!code) return toast("Rien de nouveau depuis le dernier envoi : utilise « Envoyer tout » si besoin");
   if (copy){ copyText(code).then(() => toast("Code copié : colle-le dans ton SMS ou ton message")); return; }
   shareText("Compte commun " + c.n, code, "Code copié : colle-le dans un message"); }
+async function ccSendSheet(id, delta){ const c = (S.cc || []).find(x => x.id === id); if (!c) return; if (DEMO) return toast("Quitte d'abord le mode démo");
+  const ts = Date.now(), code = await ccCode(c, delta, false); if (!code) return toast("Rien de nouveau depuis le dernier envoi : utilise « Envoyer tout » si besoin");
+  const subj = "Compte commun " + c.n, body = "Compte commun « " + c.n + " » (appli Les comptes en poches : https://dam-cigogne.github.io/comptes/ ). Dans l'appli : Épargne › Recevoir un code › Coller le code ci-dessous.\n\n" + code, enc = encodeURIComponent(body), me = ccMe(c);
+  window.__cc = {id, ts, delta, code, body, subj};
+  const okTel = t => /^\+?[\d\s().-]{6,20}$/.test(t || ""), okMail = m => /^[^\s@<>"]+@[^\s@<>"]+$/.test(m || "");
+  const others = ccPeople(c).filter(p => p.id !== me), mails = [];
+  const rows = others.map(p => { const ct = ccCt(p), tel = ct && okTel(ct.tel) ? ct.tel.replace(/[^\d+]/g, "") : "", ml = ct && okMail(ct.mail) ? ct.mail : ""; if (ml) mails.push(ml);
+    return `<div class="row">${ccChip(c, p.id)}<div class="main"><div class="t">${esc(p.n)}</div>${tel || ml ? "" : '<div class="s">Pas de contact lié (Gérer)</div>'}</div>${tel ? `<a class="btn sm" data-act="cccommit" href="sms:${esc(tel)}?&body=${enc}">SMS</a>` : ""}${ml ? `<a class="btn sm ghost" data-act="cccommit" href="mailto:${esc(ml)}?subject=${encodeURIComponent(subj)}&body=${enc}">Mail</a>` : ""}</div>`; }).join("");
+  openSheet(`<h2>Envoyer à qui ?</h2><div class="small muted">${delta ? "Tes ajouts depuis le dernier envoi" : "Tout le compte"}. Le message s'ouvre dans ton application SMS ou Mail, prêt à envoyer.</div>
+  <div class="rows">${rows}</div>
+  ${mails.length > 1 ? `<div class="btns"><a class="btn ghost" data-act="cccommit" href="mailto:${mails.map(esc).join(",")}?subject=${encodeURIComponent(subj)}&body=${enc}">Mail à tous</a></div>` : ""}
+  <div class="btns"><button class="btn ghost" data-act="ccshare">Autre application…</button><button class="btn ghost" data-act="cccopy2">Copier le code</button><button class="btn ghost" data-act="ccopen" data-id="${c.id}">Retour</button></div>`); }
+async function cagSendSheet(id){ const a = (S.accts || []).find(x => x.id === id); if (!a) return; if (DEMO) return toast("Quitte d'abord le mode démo");
+  const code = await cagCode(a), subj = "Cagnotte " + a.n, body = "Cagnotte « " + a.n + " » (appli Les comptes en poches : https://dam-cigogne.github.io/comptes/ ). Dans l'appli : Épargne › Recevoir un code › Coller le code ci-dessous. Tu peux ensuite ajouter ou corriger des mouvements et me renvoyer le code : tout se fusionne.\n\n" + code, enc = encodeURIComponent(body);
+  window.__cg = {id, code, body, subj};
+  const okTel = t => /^\+?[\d\s().-]{6,20}$/.test(t || ""), okMail = m => /^[^\s@<>"]+@[^\s@<>"]+$/.test(m || ""), mails = [];
+  const L = (S.ct || []).filter(x => okTel(x.tel) || okMail(x.mail)).sort((x, y) => (x.n || "").localeCompare(y.n || ""));
+  const rows = L.map(x => { const tel = okTel(x.tel) ? x.tel.replace(/[^\d+]/g, "") : "", ml = okMail(x.mail) ? x.mail : ""; if (ml) mails.push(ml);
+    return `<div class="row"><span class="cchip" style="background:${okCol(x.col) ? x.col : "#64748b"}">${esc((x.n || "?").trim().charAt(0).toUpperCase())}</span><div class="main"><div class="t">${esc(x.n)}</div></div>${tel ? `<a class="btn sm" href="sms:${esc(tel)}?&body=${enc}">SMS</a>` : ""}${ml ? `<a class="btn sm ghost" href="mailto:${esc(ml)}?subject=${encodeURIComponent(subj)}&body=${enc}">Mail</a>` : ""}</div>`; }).join("");
+  openSheet(`<h2>Envoyer « ${esc(a.n)} » à qui ?</h2><div class="small muted">Le message s'ouvre dans ton application SMS ou Mail, prêt à envoyer. La personne peut ajouter ou corriger des mouvements et te renvoyer le code : les deux copies se fusionnent.</div>
+  <div class="rows">${rows || '<div class="empty">Aucun contact avec un téléphone ou un mail. Crée une fiche dans Contacts.</div>'}</div>
+  <div class="btns"><button class="btn ghost sm" data-act="contacts">Mes contacts</button><button class="btn ghost" data-act="cagshare2">Autre application…</button><button class="btn ghost" data-act="cagcopy" data-id="${a.id}">Copier le code</button><button class="btn ghost" data-act="mvback" data-id="${a.id}">Retour</button></div>`); }
+function sheetContacts(){ const L = (S.ct || []).slice().sort((a,b) => (a.n || "").localeCompare(b.n || ""));
+  openSheet(`<h2>Mes contacts</h2><div class="small muted">Nom, couleur, téléphone et mail pour envoyer les comptes communs en un geste. Rangés uniquement sur cet appareil : jamais envoyés aux autres.</div>
+  <div class="rows">${L.length ? L.map(x => `<div class="row"><span class="cchip" style="background:${okCol(x.col) ? x.col : "#64748b"}">${esc((x.n || "?").trim().charAt(0).toUpperCase())}</span><button class="rowbtn" data-act="ctedit" data-id="${x.id}"><div class="t">${esc(x.n)}</div><div class="s">${esc([x.tel, x.mail].filter(Boolean).join(" · ") || "Ni téléphone ni mail")}</div></button></div>`).join("") : '<div class="empty">Aucun contact.</div>'}</div>
+  <div class="btns"><button class="btn" data-act="ctnew" style="flex:1">+ Nouveau contact</button><button class="btn ghost" data-act="sheetclose">Fermer</button></div>`); }
+function sheetContactEdit(id){ const x = id ? (S.ct || []).find(y => y.id === id) : null, col = x && okCol(x.col) ? x.col : CC_COL[(S.ct || []).length % CC_COL.length];
+  openSheet(`<h2>${x ? "Modifier le contact" : "Nouveau contact"}</h2>
+  <label class="f">Nom<input id="ct-n" value="${esc(x ? x.n : "")}"></label>
+  <div class="small"><b>Couleur</b></div>
+  <div class="btns">${CC_COL.map(h => `<button class="btn ghost" data-act="ctcol" data-c="${h}" style="background:${h};width:34px;height:34px;padding:0;border-radius:50%" aria-label="${h}"></button>`).join("")}<input type="color" id="ct-col" value="${col}" style="width:44px;height:34px"></div>
+  <label class="f">Téléphone (pour les SMS)<input id="ct-tel" inputmode="tel" value="${esc(x ? x.tel || "" : "")}" placeholder="06 12 34 56 78"></label>
+  <label class="f">Mail<input id="ct-mail" inputmode="email" value="${esc(x ? x.mail || "" : "")}" placeholder="prenom@exemple.fr"></label>
+  <div class="btns"><button class="btn" data-act="ctsave" data-id="${x ? x.id : ""}" style="flex:1">Enregistrer</button>${x ? `<button class="btn danger" data-act="ctdel" data-id="${x.id}">Supprimer</button>` : ""}<button class="btn ghost" data-act="contacts">Retour</button></div>`); }
 function ccExplain(id){ const c = (S.cc || []).find(x => x.id === id); if (!c) return;
   shareText("Compte commun " + c.n, "Compte commun « " + c.n + " » : je t'envoie le code dans un 2e message. Dans l'appli « Les comptes en poches » (https://dam-cigogne.github.io/comptes/) : Épargne › Recevoir un code › Coller le code copié. Ensuite tu choisis qui tu es dans la liste.", "Explications copiées"); }
 function ccImport(d){ const okId = x => typeof x === "string" && /^[\w-]{1,60}$/.test(x);
@@ -1184,6 +1220,8 @@ function sheetCCNew(){ openSheet(`<h2>Nouveau compte commun</h2>
   <label class="f">Nom<input id="cc-n" placeholder="Ex. Compte famille, Colocation, Vacances"></label>
   <label class="f">Type<select id="cc-mode"><option value="cpt">Compte : entrées, sorties, solde (comme un compte chèque)</option><option value="tri">Partage de frais : qui a payé quoi, qui doit combien</option></select></label>
   <label class="f">Participants (séparés par des virgules, toi en premier)<input id="cc-p" placeholder="Moi, Marie, Paul"></label>
+  ${(S.ct || []).length ? `<div class="small"><b>Ajouter depuis mes contacts</b></div><div class="rows">${S.ct.map(x => `<div class="row"><label style="display:flex;gap:8px;align-items:center;flex:1"><input type="checkbox" data-ctp="${x.id}"> <span class="cchip" style="background:${okCol(x.col) ? x.col : "#64748b"}">${esc((x.n || "?").trim().charAt(0).toUpperCase())}</span> ${esc(x.n)}</label></div>`).join("")}</div>` : ""}
+  <div class="btns"><button class="btn ghost sm" data-act="contacts">Gérer mes contacts</button></div>
   <label class="f">Solde de départ (compte seulement, facultatif)<input id="cc-start" inputmode="decimal" placeholder="0"></label>
   <label class="f"><span><input type="checkbox" id="cc-caisse"> Partage de frais seulement : avec une caisse commune où chacun verse de l'argent</span></label>
   <div class="small muted">Chaque participant aura sa couleur. Chaque opération indique qui l'a saisie.</div>
@@ -1205,8 +1243,8 @@ function sheetCCOp(cid, oid, kind){ const c = (S.cc || []).find(x => x.id === ci
 function sheetCCParts(id, confirm){ const c = (S.cc || []).find(x => x.id === id); if (!c) return; const me = ccMe(c);
   openSheet(`<h2>Gérer · ${esc(c.n)}</h2>
   <label class="f">Nom du compte<input id="ccg-n" value="${esc(c.n)}"></label>
-  <div class="small"><b>Participants</b> (coche « moi » pour toi)</div>
-  <div class="rows">${ccPeople(c).map(p => `<div class="row" style="gap:8px"><input type="radio" name="ccg-me" value="${p.id}" ${p.id === me ? "checked" : ""} aria-label="C'est moi"><input data-ccp="${p.id}" value="${esc(p.n)}" style="flex:1"><button class="btn danger sm" data-act="ccpdel" data-id="${c.id}" data-p="${p.id}" aria-label="Retirer">✕</button></div>`).join("")}</div>
+  <div class="small"><b>Participants</b> (coche « moi » pour toi ; couleur et contact à droite)</div><div class="btns"><button class="btn ghost sm" data-act="contacts">Mes contacts</button></div>
+  <div class="rows">${ccPeople(c).map(p => `<div class="row" style="gap:8px"><input type="radio" name="ccg-me" value="${p.id}" ${p.id === me ? "checked" : ""} aria-label="C'est moi"><input data-ccp="${p.id}" value="${esc(p.n)}" style="flex:1;min-width:0"><input type="color" data-ccc="${p.id}" value="${ccCol(c, p.id)}" style="width:36px;height:32px;padding:0" aria-label="Couleur"><select data-cct="${p.id}" style="max-width:96px" aria-label="Contact"><option value="">Contact</option>${(S.ct || []).map(x => `<option value="${x.id}" ${p.ct === x.id ? "selected" : ""}>${esc(x.n)}</option>`).join("")}</select><button class="btn danger sm" data-act="ccpdel" data-id="${c.id}" data-p="${p.id}" aria-label="Retirer">✕</button></div>`).join("")}</div>
   <label class="f">Ajouter un participant<input id="ccg-new" placeholder="Prénom"></label>
   <div class="btns"><button class="btn" data-act="ccparts-save" data-id="${c.id}" style="flex:1">Enregistrer</button><button class="btn ghost" data-act="ccopen" data-id="${c.id}">Retour</button></div>
   <div class="btns">${confirm ? `<button class="btn danger" data-act="ccdel2" data-id="${c.id}">Oui, supprimer ce compte commun ici</button>` : `<button class="btn ghost sm" data-act="ccdel1" data-id="${c.id}">Supprimer ce compte commun</button>`}</div>
@@ -1214,7 +1252,7 @@ function sheetCCParts(id, confirm){ const c = (S.cc || []).find(x => x.id === id
 function ccSavCard(){ const L = ccAll();
   return `<div class="card" id="sav-cc" style="border:1.5px dashed var(--line)"><div class="top"><h2>Comptes communs</h2><button class="btn sm" data-act="ccnew">Nouveau</button></div>
   <div class="rows">${L.length ? L.map(c => { const cpt = c.mode === "cpt", v = cpt ? ccBal(c) : (ccMe(c) ? ccNets(c)[ccMe(c)] : null); return `<div class="row">${dotHtml(c.n)}<button class="rowbtn" data-act="ccopen" data-id="${c.id}"><div class="t">${esc(c.n)}</div><div class="s">${cpt ? "Compte" : "Partage de frais"} · ${ccPeople(c).length} participants${c.caisse ? " · caisse " + eur(-ccNets(c).pot) : ""}</div></button><div class="amt num ${!cpt && v > 0.004 ? "pos" : !cpt && v < -0.004 ? "neg" : ""}" style="font-size:13px;text-align:right">${cpt ? eur(v) : esc(ccMineTxt(v))}</div></div>`; }).join("") : '<div class="empty">Aucun compte commun. Crée-en un (vacances, colocation, famille…) : on note qui a payé quoi, l\'appli calcule qui doit combien.</div>'}</div>
-  <div class="btns" style="margin-top:8px"><button class="btn ghost sm" data-act="cagrecv">Recevoir un code</button></div>
+  <div class="btns" style="margin-top:8px"><button class="btn ghost sm" data-act="cagrecv">Recevoir un code</button><button class="btn ghost sm" data-act="contacts">Contacts</button></div>
   <div class="small muted">Hors de ton épargne et de ton budget. Tu peux partager chaque compte avec les autres participants par code, comme une cagnotte.</div></div>`; }
 const FUT_ARCH_DAYS = 30;
 function futArch(f){ if (f.fait !== "x") return false; if (f.arch) return true; if (!f.doneAt) return false; return (new Date(todayIso() + "T12:00:00") - new Date(f.doneAt + "T12:00:00")) / 864e5 >= FUT_ARCH_DAYS; }
@@ -1569,7 +1607,7 @@ const HELP = {
     "<b>C'est quoi ?</b> Ton Livret A et tes autres comptes d'épargne.",
     "<b>Réglages en onglets</b> : Compte (solde, jour de paie, enveloppes, granulés, rapprochement), Données (Excel, sauvegarde, sécurité, tout effacer), Aspect (couleurs, taille, onglets) et Aide (guide, démo, installation, fiche à partager). Dans Aspect › Onglets, tu peux mettre les onglets en haut ou sur le côté.",
     "<b>Envoyer / recevoir une cagnotte</b> : ouvre la cagnotte (ou le liquide) puis « Envoyer le code » : le code part seul dans un message (SMS, WhatsApp, mail), il ne contient que cette cagnotte. « Copier le code » le met dans le presse-papier pour le coller où tu veux. « Explications » envoie à part la marche à suivre et le lien de l'appli. L'autre personne appuie longuement sur le message du code, « Copier », puis dans l'appli Épargne › « Recevoir une cagnotte » › « Coller le code copié ». Les mouvements s'ajoutent sans doublon ; vous pouvez tous les deux ajouter des revenus et des dépenses puis vous renvoyer un code. Ce n'est pas du direct. Le bouton « Fichier » fait la même chose avec un fichier.",
-    "<b>Comptes communs</b> : crée-en un (« Nouveau »), indique les participants, toi en premier, et choisis le type. <b>Compte</b> : un solde avec « + Entrée » et « − Sortie », comme un compte chèque ; chaque personne a sa couleur, on voit qui a saisi quoi, ce que chacun a mis et retiré, et on peut filtrer sur une personne. <b>Partage de frais</b> : « + Dépense » : montant, payé par qui, réparti entre qui (coche les personnes, mets 2 pour une part double). « + Virement / apport » : remboursement entre deux personnes, ou apport à la caisse commune si tu en as une. Chaque opération indique qui l'a saisie et qui l'a modifiée en dernier. Tu vois le solde de chacun (« + » = a avancé plus que sa part, « − » = doit) et « Pour tout régler ». Partage : « Envoyer mes ajouts » (nouveautés depuis le dernier envoi) ou « Envoyer tout » ; l'autre personne colle le code dans Épargne › Recevoir un code et choisit qui elle est. Chacun peut ajouter des opérations ; les copies se fusionnent sans doublon, mais ce n'est pas du direct : renvoyez-vous un code de temps en temps. Si un message dit qu'il manque des opérations, demande « Envoyer tout ».",
+    "<b>Comptes communs</b> : crée-en un (« Nouveau »), indique les participants, toi en premier, et choisis le type. <b>Compte</b> : un solde avec « + Entrée » et « − Sortie », comme un compte chèque ; chaque personne a sa couleur, on voit qui a saisi quoi, ce que chacun a mis et retiré, et on peut filtrer sur une personne. <b>Partage de frais</b> : « + Dépense » : montant, payé par qui, réparti entre qui (coche les personnes, mets 2 pour une part double). « + Virement / apport » : remboursement entre deux personnes, ou apport à la caisse commune si tu en as une. Chaque opération indique qui l'a saisie et qui l'a modifiée en dernier. Tu vois le solde de chacun (« + » = a avancé plus que sa part, « − » = doit) et « Pour tout régler ». Contacts : fiches avec couleur, téléphone et mail, gardées sur ton appareil seulement ; liées aux participants (Gérer). Partage : « Envoyer mes ajouts » (nouveautés depuis le dernier envoi), puis tu choisis la personne et SMS ou Mail ou « Envoyer tout » ; l'autre personne colle le code dans Épargne › Recevoir un code et choisit qui elle est. Chacun peut ajouter des opérations ; les copies se fusionnent sans doublon, mais ce n'est pas du direct : renvoyez-vous un code de temps en temps. Si un message dit qu'il manque des opérations, demande « Envoyer tout ».",
     "<b>Raccourcis de l'Accueil</b> : touche « Fixes à payer », « Dépenses non pointées », « Enveloppes restantes » ou une ligne de la carte Épargne (Livret A, autres comptes, épargne du mois, résultat prévu) pour aller directement à l'endroit correspondant.",
     "<b>Livret A vraiment à moi</b> : le solde du Livret moins l'argent déjà réservé dans les poches. C'est ce dont tu peux disposer librement.",
     "<b>Poche</b> : une réserve à l'intérieur du Livret pour un projet ou une facture à venir (taxe foncière, travaux…). L'argent est dans ton Livret mais « mis de côté » pour ça.",
@@ -2005,7 +2043,7 @@ function sheetDiff(){
 }
 function commitImport(replace){
   const p = V.pending; if (!p) return;
- const keepCC = S.cc || [], keepWeb = S.web || [], keepSeen = S.webSeen, keepCats = S.webCatList, keepBank = S.bank, keepRules = S.rules, keepLB = S.lastBackup, keepAc = S.accts, keepMvv = S.acctMv, keepArch = S.archives, keepYR = S.yearRecap, keepFY = S.fixYear, keepCuts = S.cuts, keepLC = S.lastClose;
+ const keepCT = S.ct || [], keepCC = S.cc || [], keepWeb = S.web || [], keepSeen = S.webSeen, keepCats = S.webCatList, keepBank = S.bank, keepRules = S.rules, keepLB = S.lastBackup, keepAc = S.accts, keepMvv = S.acctMv, keepArch = S.archives, keepYR = S.yearRecap, keepFY = S.fixYear, keepCuts = S.cuts, keepLC = S.lastClose;
   const prevPay = S.settings.payday, oldEnv = S.settings.envelopes, oldObj = S.objectifs, oldGran = S.gran; if (replace && p.kind === "classeur"){ const prevCats = S.settings.cats; S = p.data; S.demo = false; keepX(oldEnv, oldObj, oldGran); if (!S.settings.cats.length) S.settings.cats = prevCats; V.msg = "Données remplacées par le classeur."; }
   else if (replace && p.kind === "echange"){ const f = p.full; const base = emptyData();
     S = Object.assign(base,{journal:p.rows}); if (f.settings) S.settings = f.settings; if (f.fixRev) S.fixRev = f.fixRev; if (f.fixCh) S.fixCh = f.fixCh; if (f.epargne) S.epargne = f.epargne; if (f.accts){ S.accts = f.accts; S.acctMv = f.acctMv; }
@@ -2032,7 +2070,7 @@ function commitImport(replace){
       S.seen = seenOf(p); }
   }
   if (replace && S.settings && S.settings.payday === undefined && prevPay !== undefined) S.settings.payday = prevPay;
-  if (replace && p.kind !== "json"){ S.cc = keepCC; S.web = keepWeb; S.webSeen = keepSeen; S.webCatList = keepCats; S.bank = keepBank; S.rules = keepRules; S.lastBackup = keepLB; S.archives = keepArch; S.yearRecap = keepYR; if (keepFY !== undefined) S.fixYear = keepFY; if (keepCuts) S.cuts = keepCuts; if (keepLC) S.lastClose = keepLC; if (!(p.kind === "echange" && p.full.accts)){ S.accts = keepAc || []; S.acctMv = keepMvv || []; } }
+  if (replace && p.kind !== "json"){ S.cc = keepCC; S.ct = keepCT; S.web = keepWeb; S.webSeen = keepSeen; S.webCatList = keepCats; S.bank = keepBank; S.rules = keepRules; S.lastBackup = keepLB; S.archives = keepArch; S.yearRecap = keepYR; if (keepFY !== undefined) S.fixYear = keepFY; if (keepCuts) S.cuts = keepCuts; if (keepLC) S.lastClose = keepLC; if (!(p.kind === "echange" && p.full.accts)){ S.accts = keepAc || []; S.acctMv = keepMvv || []; } }
   V.diff = (!replace && p.kind === "echange") ? diffRef(p) : null;
   V.pending = null; migrate(); persist(); render();
   if (V.diff && V.diff.length) sheetDiff();
@@ -2115,8 +2153,8 @@ document.addEventListener("click", ev => {
     case "ttabs": lsSet("mc-tabs", b.dataset.v); render(); break;
     case "ccnew": if (DEMO) return toast("Quitte d'abord le mode démo"); sheetCCNew(); break;
     case "ccnew-save": { const n = $("#cc-n").value.trim(), names = $("#cc-p").value.split(/[,;\n]+/).map(x => x.trim()).filter(Boolean).slice(0,12);
-      if (!n) return toast("Donne un nom au compte commun"); if (names.length < 2) return toast("Écris au moins deux participants, séparés par des virgules");
-      const parts = names.map(x => ({id:uid(), n:x.slice(0,40), upd:Date.now()})), mode = $("#cc-mode").value === "cpt" ? "cpt" : "tri"; const c = {id:uid(), sid:uid(), n:n.slice(0,60), mode, caisse:mode === "tri" && $("#cc-caisse").checked, parts, ops:[], me:parts[0].id, outAt:0, upd:Date.now()};
+      if (!n) return toast("Donne un nom au compte commun"); const ctc = [...document.querySelectorAll("[data-ctp]")].filter(cb => cb.checked).map(cb => (S.ct || []).find(x => x.id === cb.dataset.ctp)).filter(Boolean); if (names.length + ctc.length < 2) return toast("Écris ou coche au moins deux participants");
+      const parts = names.map(x => { const m = (S.ct || []).find(y => (y.n || "").trim().toLowerCase() === x.trim().toLowerCase()); return Object.assign({id:uid(), n:x.slice(0,40), upd:Date.now()}, m ? {ct:m.id} : {}); }); ctc.forEach(x => { if (!parts.some(q => q.ct === x.id)) parts.push({id:uid(), n:String(x.n).slice(0,40), upd:Date.now(), ct:x.id}); }); const mode = $("#cc-mode").value === "cpt" ? "cpt" : "tri"; const c = {id:uid(), sid:uid(), n:n.slice(0,60), mode, caisse:mode === "tri" && $("#cc-caisse").checked, parts, ops:[], me:parts[0].id, outAt:0, upd:Date.now()};
       const st0 = parseNum($("#cc-start").value); if (mode === "cpt" && st0 > 0) c.ops.push({id:uid(), k:"e", date:todayIso(), lib:"Solde de départ", mt:r2(st0), by:parts[0].id, to:"", sp:[], cat:"", note:"", au:parts[0].id, mod:parts[0].id, upd:Date.now()});
       S.cc.push(c); persist(); render(); window.CCF = ""; sheetCC(c.id); break; }
     case "ccopen": window.CCF = ""; sheetCC(id); break;
@@ -2134,13 +2172,28 @@ document.addEventListener("click", ev => {
       const ex = b.dataset.o ? c.ops.find(x => x.id === b.dataset.o) : null; if (ex){ Object.assign(ex, row); ex.au = ex.au || ccMe(c) || ""; ex.mod = ccMe(c) || ""; } else c.ops.push(Object.assign({id:uid(), au:ccMe(c) || "", mod:ccMe(c) || ""}, row));
       c.upd = Date.now(); persist(); render(); sheetCC(c.id); break; }
     case "ccop-del": { const c = S.cc.find(x => x.id === id), o = c && c.ops.find(x => x.id === b.dataset.o); if (o){ o.del = true; o.mod = ccMe(c) || ""; o.upd = Date.now(); persist(); render(); } sheetCC(id); break; }
-    case "ccsend": ccSend(id, b.dataset.m === "d", false); break;
+    case "ccsend": ccSendSheet(id, b.dataset.m === "d"); break;
+    case "cccommit": if (window.__cc && window.__cc.delta){ const c = S.cc.find(x => x.id === window.__cc.id); if (c){ c.outAt = window.__cc.ts; persist(); } } break;
+    case "ccshare": if (window.__cc){ const w = window.__cc; shareText(w.subj, w.body, "Message copié : colle-le dans une application"); if (w.delta){ const c = S.cc.find(x => x.id === w.id); if (c){ c.outAt = w.ts; persist(); } } } break;
+    case "cccopy2": if (window.__cc){ const w = window.__cc; copyText(w.code).then(() => toast("Code copié")); if (w.delta){ const c = S.cc.find(x => x.id === w.id); if (c){ c.outAt = w.ts; persist(); } } } break;
+    case "cagsendto": cagSendSheet(id); break;
+    case "cagshare2": if (window.__cg) shareText(window.__cg.subj, window.__cg.body, "Message copié : colle-le dans une application"); break;
+    case "mvback": sheetAcct(id); break;
+    case "contacts": sheetContacts(); break;
+    case "ctnew": if (DEMO) return toast("Quitte d'abord le mode démo"); sheetContactEdit(""); break;
+    case "ctedit": sheetContactEdit(id); break;
+    case "ctcol": { $("#ct-col").value = b.dataset.c; break; }
+    case "ctsave": { const n = $("#ct-n").value.trim().slice(0,40); if (!n) return toast("Donne un nom au contact"); const row = {n, col:okCol($("#ct-col").value) ? $("#ct-col").value : CC_COL[0], tel:$("#ct-tel").value.trim().slice(0,25), mail:$("#ct-mail").value.trim().slice(0,100)};
+      if (id){ const x = S.ct.find(y => y.id === id); if (x) Object.assign(x, row); } else S.ct.push(Object.assign({id:uid()}, row)); persist(); render(); sheetContacts(); break; }
+    case "ctdel": S.ct = S.ct.filter(x => x.id !== id); persist(); render(); sheetContacts(); break;
     case "cccopy": ccSend(id, b.dataset.m === "d", true); break;
     case "ccexplain": ccExplain(id); break;
     case "ccme": { const c = S.cc.find(x => x.id === id); if (c){ c.me = b.dataset.p; persist(); render(); sheetCC(id); } break; }
     case "ccparts": sheetCCParts(id, false); break;
     case "ccparts-save": { const c = S.cc.find(x => x.id === id); if (!c) return; const nn = $("#ccg-n").value.trim(); if (nn && nn !== c.n){ c.n = nn.slice(0,60); }
       document.querySelectorAll("[data-ccp]").forEach(inp => { const p = c.parts.find(x => x.id === inp.dataset.ccp), v = inp.value.trim().slice(0,40); if (p && v && v !== p.n){ p.n = v; p.upd = Date.now(); } });
+      document.querySelectorAll("[data-cct]").forEach(sel => { const p = c.parts.find(x => x.id === sel.dataset.cct); if (p){ if (sel.value) p.ct = sel.value; else delete p.ct; } });
+      document.querySelectorAll("[data-ccc]").forEach(inp => { const p = c.parts.find(x => x.id === inp.dataset.ccc); if (p && okCol(inp.value) && inp.value.toLowerCase() !== ccCol(c, p.id).toLowerCase()) p.col = inp.value; });
       const meR = document.querySelector('input[name="ccg-me"]:checked'); if (meR) c.me = meR.value;
       const add = $("#ccg-new").value.trim(); if (add) c.parts.push({id:uid(), n:add.slice(0,40), upd:Date.now()});
       c.upd = Date.now(); persist(); render(); sheetCC(id); break; }
@@ -2496,7 +2549,7 @@ function viewBank(){
 }
 
 /* ============ Démarrage ============ */
-const migrate = () => { if (!Array.isArray(S.objectifs)) S.objectifs = []; if (!Array.isArray(S.cc)) S.cc = []; if (!S.epargne) S.epargne = emptyEpargne(); if (Array.isArray(S.epargne.futur)){ const t0 = todayIso(); for (const f of S.epargne.futur) if (f.fait === "x" && !f.doneAt) f.doneAt = (f.date && f.date < t0) ? f.date : t0; } if (!Array.isArray(S.accts)) S.accts = []; if (!Array.isArray(S.acctMv)) S.acctMv = []; if (!Array.isArray(S.web)) S.web = []; if (!S.bank) S.bank = {seen:[]}; if (!S.rules) S.rules = {}; if (!V.pinit){ const cp = curPeriod(); V.m = cp.m; V.y = cp.y; V.pinit = true; } };
+const migrate = () => { if (!Array.isArray(S.objectifs)) S.objectifs = []; if (!Array.isArray(S.cc)) S.cc = []; if (!Array.isArray(S.ct)) S.ct = []; if (!S.epargne) S.epargne = emptyEpargne(); if (Array.isArray(S.epargne.futur)){ const t0 = todayIso(); for (const f of S.epargne.futur) if (f.fait === "x" && !f.doneAt) f.doneAt = (f.date && f.date < t0) ? f.date : t0; } if (!Array.isArray(S.accts)) S.accts = []; if (!Array.isArray(S.acctMv)) S.acctMv = []; if (!Array.isArray(S.web)) S.web = []; if (!S.bank) S.bank = {seen:[]}; if (!S.rules) S.rules = {}; if (!V.pinit){ const cp = curPeriod(); V.m = cp.m; V.y = cp.y; V.pinit = true; } };
 const PALS = {emeraude:{n:"Émeraude"}, ocean:{n:"Océan", l:["#1769C2","#FFFFFF","#DCE9F8"], d:["#5AA9FF","#04162B","#172B45"]},
   violet:{n:"Violet", l:["#6D3FD1","#FFFFFF","#E9E0F8"], d:["#A98BFF","#1A0B3D","#2B2147"]},
   sunset:{n:"Coucher de soleil", l:["#C2410C","#FFFFFF","#FBE5DA"], d:["#FF9A62","#3A1300","#3F2418"]},
@@ -2524,6 +2577,11 @@ document.addEventListener("change", ev => { if (ev.target.id === "sch-a" || ev.t
 applyTheme();
 /* ===== Historique des mises à jour ===== */
 const CHANGELOG = [
+ {v:"4.4", d:"Novembre 2026", t:"Contacts et couleurs", i:[
+  "Cagnottes : « Envoyer à… » propose tes contacts avec SMS ou Mail directement. La personne peut ajouter ou corriger des mouvements et te renvoyer le code : les deux copies se fusionnent.",
+  "Fiches contact (nom, couleur, téléphone, mail) : Épargne › Comptes communs › Contacts. Elles restent sur ton appareil, jamais envoyées aux autres. Tu les coches à la création d'un compte commun.",
+  "Couleur au choix pour chaque participant (Gérer, à droite du nom), et contact lié.",
+  "« Envoyer mes ajouts » / « Envoyer tout » : choix de la personne, puis SMS ou Mail directement, message et code déjà prêts."]},
  {v:"4.3", d:"Novembre 2026", t:"Comptes communs : vrai compte partagé", i:[
   "Nouveau type « Compte » : un solde, des entrées et des sorties que chaque participant ajoute, comme un compte chèque (solde de départ possible). Le type « Partage de frais » reste disponible.",
   "Chaque participant a sa couleur : pastille, trait et fond des lignes. On voit qui a saisi, modifié ou supprimé chaque opération (« Voir les supprimées »), le total mis et retiré par personne, et on peut filtrer sur une personne.",
