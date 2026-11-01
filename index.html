@@ -985,7 +985,7 @@ function viewAdd(){
   const modHtml = ed ? "" : `<div class="card"><div class="top"><h2>⚡ Ajout rapide</h2>${mods.length ? `<button class="btn ghost sm" data-act="modedit">${V.modEdit ? "Terminé" : "Gérer"}</button>` : ""}</div>
     ${mods.length ? `<div class="pills">${mods.map(m => `<button data-act="${V.modEdit ? "moddel" : "modpick"}" data-id="${m.id}">${V.modEdit ? "✕ " : ""}${esc(m.lib)} · ${eur(m.mont)}</button>`).join("")}</div><div class="small muted" style="margin-top:6px">${V.modEdit ? "Touche un modèle pour le supprimer." : "Touche un modèle : le formulaire se remplit, tu n'as plus qu'à enregistrer."}</div>`
       : `<div class="small muted">Pour tes opérations qui reviennent souvent (abonnement, courses, cantine…) : remplis le formulaire puis touche « ☆ Garder comme modèle ». Il apparaîtra ici.</div>`}</div>`;
-  return `<div class="top"><button class="btn ghost sm" data-act="tab" data-v="${ed ? "month" : "home"}">‹ ${ed ? "Mois" : "Accueil"}</button><div class="app">${ed ? "Modifier l'opération" : "Nouvelle opération"}</div></div>
+  return `<div class="top"><button class="btn ghost sm" data-act="tab" data-v="${ed ? "month" : "home"}">‹ ${ed ? "Mois" : "Accueil"}</button><div class="app">${ed ? "Modifier l'opération" : "Nouvelle opération"}</div><div class="topr"><button class="gear" data-act="tab" data-v="set" aria-label="Réglages">${ICON.set}</button></div></div>
   ${modHtml}
   <div class="card">
     <div class="seg" id="types">${TYPES.map(t => `<button data-act="type" data-v="${esc(t)}" class="${d.type===t?"on":""}">${esc(TYPE_SHORT[t])}</button>`).join("")}</div>
@@ -1312,7 +1312,7 @@ function viewSav(){
   const L = livretCalc(), e = S.epargne;
   const moves = L.moves.slice().sort((a,b) => b.date.localeCompare(a.date)).slice(0,30);
   const cur = ["acc","cc","lv","poc","fut"].includes(V.sav) ? V.sav : (lsGet("mc-sav") || "acc");
-  const head = `<div class="top"><button class="btn ghost sm" data-act="tab" data-v="home">‹ Accueil</button><div class="app">Épargne</div></div>
+  const head = `<div class="top"><button class="btn ghost sm" data-act="tab" data-v="home">‹ Accueil</button><div class="app">Épargne</div><div class="topr"><button class="gear" data-act="tab" data-v="set" aria-label="Réglages">${ICON.set}</button></div></div>
   <div class="card hero"><div class="lbl">Livret A vraiment à moi</div><div class="big num">${eur(L.aMoi)}</div>
     <div class="sub">Livret A ${eur(L.solde)} moins poches réservées ${eur(L.pochesReste)}</div>
     <div class="sub">Après les mouvements prévus (FUTUR) : <b class="num">${eur(L.prevu)}</b></div></div>`;
@@ -1395,14 +1395,14 @@ function viewFix(){
   const list = (kind,rows,title) => `<div class="card"><div class="top"><h2>${title}</h2><button class="btn sm" data-act="fixnew" data-k="${kind}">Ajouter</button></div>
     <div class="rows">${rows.length ? rows.map(r => `<div class="row"><span class="dt num" title="Jour du mois">${r.jour ? pad(r.jour) : "—"}</span><button class="rowbtn" data-act="fixedit" data-k="${kind}" data-id="${r.id}"><div class="t">${esc(r.n)}</div><div class="s">${esc(r.t || (r.jour ? "le " + r.jour + " du mois" : "sans date"))}</div></button><div class="amt num">${eur(r.montant)}</div></div>`).join("") : '<div class="empty">Aucune ligne.</div>'}</div>
     <div class="kv tot"><span>Total prévu par mois</span><span class="num">${eur(rows.reduce((a,r) => a + N(r.montant),0))}</span></div></div>`;
-  return `<div class="top"><div class="app">Revenus et charges fixes</div></div>` + list("rev",S.fixRev,"Revenus fixes") + list("ch",S.fixCh,"Charges fixes");
+  return `<div class="top"><div class="app">Revenus et charges fixes</div><div class="topr"><button class="gear" data-act="tab" data-v="set" aria-label="Réglages">${ICON.set}</button></div></div>` + list("rev",S.fixRev,"Revenus fixes") + list("ch",S.fixCh,"Charges fixes");
 }
 
 const WEB_CATS = ["Banque","Achats","Administratif","Réseaux sociaux","Domotique","Travail","Autre"], WEB_ST = ["À changer","Changé","OK"];
 function webUrl(u){ u = String(u||"").trim(); if (!u) return ""; return /^https?:\/\//i.test(u) ? u : "https://" + u; }
 function viewWeb(){
   const all = (S.web || []).filter(x => !x.del), f = V.wf || "Tous", cnt = st => all.filter(x => x.st === st).length;
-  return `<div class="top"><div class="app">Comptes en ligne</div><div class="topr"><label class="btn sm ghost" style="cursor:pointer">Importer<input id="webfile" type="file" accept=".xlsx,.xlsm,.xls,.csv" hidden></label><button class="btn sm" data-act="webnew">Ajouter</button></div></div>${V.webMsg ? `<div class="info">${esc(V.webMsg)}</div>` : ""}
+  return `<div class="top"><div class="app">Comptes en ligne</div><div class="topr"><label class="btn sm ghost" style="cursor:pointer">Importer<input id="webfile" type="file" accept=".xlsx,.xlsm,.xls,.csv" hidden></label><button class="btn sm" data-act="webnew">Ajouter</button><button class="gear" data-act="tab" data-v="set" aria-label="Réglages">${ICON.set}</button></div></div>${V.webMsg ? `<div class="info">${esc(V.webMsg)}</div>` : ""}
   <div class="info">Ne notez jamais de mot de passe ici : les données restent en clair sur le téléphone. Gardez-les dans Mots de passe Apple. Ici : le site, l'identifiant et l'état.</div>
   <input class="search" id="web-q" placeholder="Rechercher un site, un identifiant…" value="${esc(V.wq || "")}" enterkeyhint="search">
   <div class="seg rail">${["Tous"].concat(WEB_ST).map(x => `<button class="${f === x ? "on" : ""}" data-act="webf" data-v="${x}">${x}${x === "Tous" ? " (" + all.length + ")" : " (" + cnt(x) + ")"}</button>`).join("")}</div>
@@ -1510,7 +1510,7 @@ function viewSet(){
       : `${p.rows.length} ligne(s) de journal.`}</div>
     <div class="btns">${p.kind === "json" ? `<button class="btn" data-act="imp-replace">Restaurer cette sauvegarde</button><button class="btn ghost" data-act="imp-merge">Fusionner le journal seulement</button>` : p.kind === "classeur" || (p.kind === "echange" && (p.full.settings || p.full.fixRev || p.full.epargne)) ? `<button class="btn" data-act="imp-replace">Remplacer mes données</button><button class="btn ghost" data-act="imp-merge">Fusionner (avec choix des différences)</button>` : `<button class="btn" data-act="imp-merge">Fusionner</button>`}
     <button class="btn ghost" data-act="imp-cancel">Annuler</button></div></div>` : "";
-  const raw = `<div class="top"><div class="app">Réglages</div></div>${V.msg ? `<div class="info">${esc(V.msg)}</div>` : ""}${pend}
+  const raw = `<div class="top"><div class="app">Réglages <span style="font-family:var(--font-body);font-weight:600;font-size:13px;color:var(--muted);margin:0 8px 0 6px">version ${CHANGELOG[0].v}</span></div></div>${V.msg ? `<div class="info">${esc(V.msg)}</div>` : ""}${pend}
 
 ${MK("guide")}  <div class="card"><h2>Guide d'utilisation</h2><div class="small muted">Comment marche chaque partie de l'appli, expliqué simplement. Le bouton ? en haut de chaque écran donne aussi l'aide de l'écran.</div>
     <div class="btns"><button class="btn" data-act="guide">Ouvrir le guide</button><button class="btn ghost" data-act="upd-hist">Historique des mises à jour</button></div></div>
@@ -1522,6 +1522,8 @@ ${MK("demo")}  <div class="card"><h2>Mode démo</h2><div class="small muted">Dé
 ${MK("gran")}  ${granSetHtml()}
 
 ${MK("install")}  <div class="card"><h2>Installer l'appli</h2>${installHtml()}</div>
+
+${MK("maj")}  <div class="card"><h2>Mises à jour</h2><div class="small muted">Version installée sur cet appareil : <b>${CHANGELOG[0].v}</b>. Si une nouveauté n'apparaît pas, touche « Vérifier » : un bandeau « Recharger » s'affiche quand une nouvelle version est prête. Tes données ne sont jamais touchées.</div><div class="btns"><button class="btn ghost" data-act="updchk">Vérifier les mises à jour</button><button class="btn ghost" data-act="updforce">Forcer la mise à jour</button></div></div>
 
 ${MK("multi")}  <div class="card"><h2>Utiliser plusieurs appareils</h2><div class="small muted">${MULTI_WARN}</div><div class="btns"><button class="btn ghost" data-act="multi-open">Voir comment faire</button><button class="btn ghost" data-act="exp-json">Sauvegarder maintenant</button></div></div>
 
@@ -1600,7 +1602,7 @@ ${MK("data")}  <div class="card"><h2>Données</h2>
   for (let i = 1; i < parts.length; i += 2) C[parts[i]] = parts[i+1];
   C.tabs = `<div class="card"><h2>Onglets</h2><div class="small muted">Place les onglets de filtre (Réglages, Mois, Comptes en ligne, Historique) en haut de l'écran ou sur le côté droit, comme dans AgenDam. Le choix est retenu sur cet appareil.</div>
     <div class="seg" style="margin-top:6px">${[["top","En haut"],["side","Sur le côté"]].map(([k,l]) => `<button class="${(lsGet("mc-tabs") || "top") === k ? "on" : ""}" data-act="ttabs" data-v="${k}">${l}</button>`).join("")}</div></div>`;
-  const SET_TABS = [["compte","Compte",["compte","env","gran","remind","bank"]],["data","Données",["sync","dir","sec","data"]],["look","Aspect",["look","zoom","start","tabs"]],["aide","Aide",["guide","demo","install","multi","fiche"]]];
+  const SET_TABS = [["compte","Compte",["compte","env","gran","remind","bank"]],["data","Données",["sync","dir","sec","data"]],["look","Aspect",["look","zoom","start","tabs"]],["aide","Aide",["guide","demo","install","maj","multi","fiche"]]];
   const cur = SET_TABS.find(x => x[0] === V.sset) ? V.sset : "compte";
   return head + `<div class="seg rail">${SET_TABS.map(([k,l]) => `<button class="${cur === k ? "on" : ""}" data-act="sset" data-v="${k}">${l}</button>`).join("")}</div>` + SET_TABS.find(x => x[0] === cur)[2].map(k => C[k] || "").join("");
 }
@@ -2224,6 +2226,9 @@ document.addEventListener("click", ev => {
     case "cagshare2": if (window.__cg){ const w = window.__cg; shareText(w.subj, w.body, "Message copié : colle-le dans une application").then(() => { if (w.ex === true) cagSendSheet(w.id, false); }); } break;
     case "cagstep": if (window.__cg && window.__cg.ex === true){ const w = window.__cg; setTimeout(() => cagSendSheet(w.id, false), 700); } break;
     case "mvback": sheetAcct(id); break;
+    case "updchk": { toast("Recherche d'une nouvelle version…"); try { navigator.serviceWorker.getRegistration().then(r => r ? r.update() : null).then(() => setTimeout(() => { if (!document.getElementById("updbar")) toast("Version " + CHANGELOG[0].v + " : à jour, ou pas encore disponible. Réessaie dans 1 minute."); }, 2500)); } catch(e){ toast("Mise à jour impossible ici"); } break; }
+    case "updforce": { toast("Mise à jour en cours…"); (async () => { try { const ks = await caches.keys(); await Promise.all(ks.filter(x => x.startsWith("comptes-")).map(x => caches.delete(x))); const rs = await navigator.serviceWorker.getRegistrations(); await Promise.all(rs.map(r => r.unregister())); } catch(e){} location.reload(); })(); break; }
+    case "updgo": location.reload(); break;
     case "contacts": window.__ctRet = null; sheetContacts(); break;
     case "ccmkct": { const c = S.cc.find(x => x.id === id), pp = c && c.parts.find(x => x.id === b.dataset.p); if (!pp) return; if (DEMO) return toast("Quitte d'abord le mode démo");
       const x = {id:uid(), n:pp.n, col:ccCol(c, pp.id), tel:"", mail:""}; S.ct.push(x); pp.ct = x.id; persist(); render();
@@ -2625,6 +2630,10 @@ document.addEventListener("change", ev => { if (ev.target.id === "sch-a" || ev.t
 applyTheme();
 /* ===== Historique des mises à jour ===== */
 const CHANGELOG = [
+ {v:"4.9", d:"Novembre 2026", t:"Mises à jour plus simples", i:[
+  "Le bouton Réglages (engrenage) est maintenant en haut à droite de tous les écrans, et le numéro de version s'affiche à côté du titre « Réglages ».",
+  "Quand une nouvelle version est prête, un bandeau « Recharger » apparaît : plus besoin de fermer et rouvrir l'appli deux fois.",
+  "Réglages › Aide › Mises à jour : la version installée sur l'appareil, « Vérifier les mises à jour » et « Forcer la mise à jour » (si une nouveauté n'apparaît pas). Tes données ne sont jamais touchées."]},
  {v:"4.8", d:"Novembre 2026", t:"Messages d'envoi plus clairs", i:[
   "Envoi par SMS ou mail : un seul message qui explique ce qui a changé (« Dam a ajouté 2 opérations sur le compte commun … avec toi : … ») avec le code à la fin ; l'appli retrouve le code dans le message collé en entier. Ou, au choix dans Options, deux messages : l'explication puis le code seul. Ton choix est retenu."]},
  {v:"4.7", d:"Novembre 2026", t:"Onglets Épargne et corrections", i:[
@@ -2859,7 +2868,9 @@ function startApp(){
   if (!S || !S.settings){ S = emptyData(); V.wiz = wizInit(); }
   migrate(); bootStart(hadData); render(); bootAfter(hadData);
 }
-if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) { try { navigator.serviceWorker.register("sw.js").catch(() => {}); } catch(e){} }
+if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) { try { const hadCtl = !!navigator.serviceWorker.controller; navigator.serviceWorker.register("sw.js").catch(() => {});
+  navigator.serviceWorker.addEventListener("controllerchange", () => { if (!hadCtl || document.getElementById("updbar")) return; const d = document.createElement("div"); d.id = "updbar"; d.style.cssText = "position:fixed;left:12px;right:12px;bottom:calc(96px + env(safe-area-inset-bottom,0px));z-index:9999;background:var(--accent);color:var(--accent-ink);border-radius:16px;padding:10px 12px 10px 16px;display:flex;gap:10px;align-items:center;box-shadow:0 8px 24px rgba(0,0,0,.28)"; d.innerHTML = '<span style="flex:1;font-weight:600">Nouvelle version prête</span><button class="btn sm ghost" data-act="updgo">Recharger</button>'; document.body.appendChild(d); });
+  } catch(e){} }
 secCfgLoad();
 faceOK().then(v => { V.faceOK = v; });
 if (secAvailable() && lsGet(ENC) && !/[?&]demo=1/.test(location.search)){ SEC.on = true; showLock(); } else startApp();
