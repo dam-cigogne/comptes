@@ -821,8 +821,8 @@ function viewHome(){
   <div class="card"><div class="top"><h2>Épargne</h2><button class="btn sm" data-act="gosav">Détail</button></div>
     <div class="kv lnk" data-act="go" data-v="sav" role="button" tabindex="0"><span>Livret A ›</span><span class="num">${eur(L.solde)}</span></div>
     <div class="kv lnk" data-act="go" data-v="sav" role="button" tabindex="0"><span>Livret A vraiment à moi ›</span><span class="num">${eur(L.aMoi)}</span></div>
-    ${acctLive().filter(a => !isCag(a)).length ? `<div class="kv lnk" data-act="go" data-v="sav" data-s="sav-accts" role="button" tabindex="0"><span>Autres comptes d'épargne ›</span><span class="num">${eur(acctTotal())}</span></div>` : ""}
-    ${acctLive().filter(isCag).length ? `<div class="kv lnk" data-act="go" data-v="sav" data-s="sav-accts" role="button" tabindex="0"><span>Cagnottes (pas à moi) ›</span><span class="num">${eur(cagTotal())}</span></div>` : ""}
+    ${acctLive().filter(a => !isHors(a)).length ? `<div class="kv lnk" data-act="go" data-v="sav" data-s="sav-accts" role="button" tabindex="0"><span>Autres comptes d'épargne ›</span><span class="num">${eur(acctTotal())}</span></div>` : ""}
+    ${acctLive().filter(isHors).length ? `<div class="kv lnk" data-act="go" data-v="sav" data-s="sav-accts" role="button" tabindex="0" style="border:1.5px dashed var(--line);border-radius:12px;padding:6px 10px;margin:4px 0"><span>Hors total : cagnottes, liquide… ›</span><span class="num">${eur(cagTotal())}</span></div>` : ""}
     <div class="kv lnk" data-act="go" data-v="month" data-mv="ops" data-s="m-ops" role="button" tabindex="0"><span>Épargne du mois ›</span><span class="num">${eur(c.epargne)}</span></div>
     <div class="kv lnk" data-act="go" data-v="home" data-s="home-calc" role="button" tabindex="0"><span>Résultat prévu du mois ›</span><span class="num ${c.resultat<0?"neg":"pos"}">${eur(c.resultat)}</span></div>
     <div class="small muted">Revenus moins dépenses et épargne déjà notées. Ne dépend pas du solde du compte.</div></div>
@@ -1010,13 +1010,13 @@ function updateInfo(){
 }
 
 const ACCT_TYPES = ["Livret","Assurance vie","Bourse / PEA","Compte courant","Liquide","Cagnotte","Autre"];
-const isCag = a => a.type === "Cagnotte", isCash = a => a && (a.type === "Liquide" || a.type === "Cagnotte");
+const isCag = a => a.type === "Cagnotte", isHors = a => a.hors === true || (a.hors === undefined && a.type === "Cagnotte"), isCash = a => a && (a.type === "Liquide" || a.type === "Cagnotte");
 const frFull = iso => iso ? iso.slice(8,10) + "/" + iso.slice(5,7) + "/" + iso.slice(0,4) : "";
 const acctLive = () => (S.accts || []).filter(a => !a.del);
 const acctMvs = id => (S.acctMv || []).filter(m => !m.del && m.a === id).sort((x,y) => (y.date || "").localeCompare(x.date || "") || (y.upd || 0) - (x.upd || 0));
 const acctSolde = a => N(a.depart) + (S.acctMv || []).filter(m => !m.del && m.a === a.id).reduce((t,m) => t + N(m.mt), 0);
-const acctTotal = () => acctLive().filter(a => !isCag(a)).reduce((t,a) => t + acctSolde(a), 0);
-const cagTotal = () => acctLive().filter(isCag).reduce((t,a) => t + acctSolde(a), 0);
+const acctTotal = () => acctLive().filter(a => !isHors(a)).reduce((t,a) => t + acctSolde(a), 0);
+const cagTotal = () => acctLive().filter(isHors).reduce((t,a) => t + acctSolde(a), 0);
 function sheetAcct(id){
   const a = (S.accts || []).find(x => x.id === id); if (!a || a.del) return;
   const mv = acctMvs(id).slice(0,12);
@@ -1024,13 +1024,35 @@ function sheetAcct(id){
     <div class="kv"><span>${esc(a.type)}</span><span class="num" style="font-weight:700">${eur(acctSolde(a))}</span></div>
     <div class="small muted">Départ : ${eur(a.depart)}${a.date ? " au " + frFull(a.date) : ""}. Les mouvements s'ajoutent au solde de départ.</div>
     <div class="rows">${mv.length ? mv.map(m => `<div class="row"><button class="rowbtn" data-act="mvedit" data-id="${m.id}"><div class="t">${esc(m.lib || (m.mt >= 0 ? (isCash(a) ? "Revenu" : "Versement") : (isCash(a) ? "Dépense" : "Retrait")))}</div><div class="s">${frFull(m.date)}</div></button><div class="amt num ${m.mt >= 0 ? "pos" : "neg"}">${m.mt >= 0 ? "+ " : "− "}${eur(Math.abs(m.mt))}</div></div>`).join("") : '<div class="empty">Aucun mouvement.</div>'}</div>
-    <div class="btns"><button class="btn" data-act="mvnew" data-id="${a.id}" style="flex:1">${isCash(a) ? "+ Revenu / dépense" : "+ Mouvement"}</button><button class="btn ghost" data-act="acctedit" data-id="${a.id}">Modifier le compte</button><button class="btn ghost" data-act="sheetclose">Fermer</button></div>`);
+    <div class="btns"><button class="btn" data-act="mvnew" data-id="${a.id}" style="flex:1">${isCash(a) ? "+ Revenu / dépense" : "+ Mouvement"}</button>${isCash(a) ? `<button class="btn ghost" data-act="cagsend" data-id="${a.id}">Envoyer</button>` : ""}<button class="btn ghost" data-act="acctedit" data-id="${a.id}">Modifier le compte</button><button class="btn ghost" data-act="sheetclose">Fermer</button></div>`);
 }
+function cagExport(id){ const a = (S.accts || []).find(x => x.id === id); if (!a) return;
+  if (DEMO) return toast("Quitte d'abord le mode démo");
+  if (!a.sid){ a.sid = uid(); a.upd = Date.now(); persist(); }
+  const mv = (S.acctMv || []).filter(m => m.a === id).map(m => ({id:m.id, date:m.date, lib:m.lib || "", mt:m.mt, upd:m.upd || 0, del:!!m.del}));
+  const data = JSON.stringify({app:"comptes-cagnotte", v:1, sid:a.sid, n:a.n, type:a.type, depart:a.depart, date:a.date, mv}, null, 1);
+  const slug = (a.n || "cagnotte").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "").toLowerCase() || "cagnotte";
+  saveFile("cagnotte-" + slug + ".json", data, "application/json"); }
+function cagImport(text){ let d; try { d = JSON.parse(text); } catch(e){ return toast("Fichier illisible"); }
+  if (!d || d.app !== "comptes-cagnotte" || typeof d.sid !== "string" || !/^[\w-]{3,60}$/.test(d.sid) || !Array.isArray(d.mv) || d.mv.length > 5000) return toast("Ce n'est pas un fichier de cagnotte");
+  let a = S.accts.find(x => x.sid === d.sid && !x.del), created = false;
+  if (!a){ a = {id:uid(), sid:d.sid, n:String(d.n || "Cagnotte").slice(0,60), type:ACCT_TYPES.indexOf(d.type) >= 0 ? d.type : "Cagnotte", depart:isNum(d.depart) ? Math.round(d.depart * 100) / 100 : 0, date:/^\d{4}-\d{2}-\d{2}$/.test(d.date || "") ? d.date : todayIso(), upd:Date.now(), hors:true}; S.accts.push(a); created = true; }
+  let add = 0, upd = 0;
+  for (const r of d.mv){ if (!r || typeof r.id !== "string" || !/^[\w-]{3,60}$/.test(r.id) || !/^\d{4}-\d{2}-\d{2}$/.test(r.date || "") || !isNum(r.mt)) continue;
+    const row = {date:r.date, lib:String(r.lib || "").slice(0,120), mt:Math.round(r.mt * 100) / 100, upd:isNum(r.upd) ? r.upd : Date.now()}, ex = S.acctMv.find(m => m.id === r.id);
+    if (!ex){ S.acctMv.push(Object.assign({id:r.id, a:a.id}, row, r.del ? {del:true} : {})); if (!r.del) add++; }
+    else if (row.upd > (ex.upd || 0)){ Object.assign(ex, row, {del:!!r.del}); upd++; } }
+  persist(); render(); toast((created ? "Cagnotte « " + a.n + " » ajoutée" : "Cagnotte « " + a.n + " » mise à jour") + " : " + add + " nouveau(x), " + upd + " modifié(s)"); }
+function sheetCagRecv(){ openSheet(`<h2>Recevoir une cagnotte</h2>
+  <div class="small muted">Choisis le fichier reçu (il s'appelle « cagnotte-….json »). Ses mouvements s'ajoutent sans doublon. Si tu as déjà cette cagnotte, elle est simplement mise à jour. Les deux personnes peuvent noter des revenus et des dépenses, puis s'envoyer le fichier de temps en temps pour rester à jour.</div>
+  <label class="f"><b>Fichier de cagnotte</b><input id="cg-file" type="file" accept=".json,application/json"></label>
+  <div class="btns"><button class="btn ghost" data-act="sheetclose">Fermer</button></div>`); }
 function sheetAcctEdit(id){
   const a = id ? S.accts.find(x => x.id === id) : {n:"", type:"Livret", depart:"", date:todayIso()};
   openSheet(`<h2>${id ? "Modifier le compte" : "Nouveau compte d'épargne"}</h2>
     <label class="f">Nom<input id="ac-n" placeholder="LDDS, Liquide, Cagnotte de ma fille…" value="${esc(a.n)}"></label>
     <label class="f">Type<select id="ac-t">${ACCT_TYPES.map(t => `<option ${t === a.type ? "selected" : ""}>${esc(t)}</option>`).join("")}</select></label>
+    <label class="f">Compter dans mon total d'épargne ?<select id="ac-c"><option value="auto" ${a.hors === undefined ? "selected" : ""}>Automatique (non pour une cagnotte, oui sinon)</option><option value="oui" ${a.hors === false ? "selected" : ""}>Oui, dans le total</option><option value="non" ${a.hors === true ? "selected" : ""}>Non, à part (encadré)</option></select></label>
     <div class="grid2"><label class="f">Solde de départ (€)<input id="ac-d" inputmode="decimal" value="${a.depart === "" ? "" : String(a.depart).replace(".",",")}"></label>
     <label class="f">À la date du<input id="ac-dt" type="date" value="${esc(a.date)}"></label></div>
     <div class="btns"><button class="btn" data-act="ac-save" data-id="${id || ""}" style="flex:1">Enregistrer</button>${id ? `<button class="btn danger" data-act="ac-del" data-id="${id}">Supprimer</button>` : ""}<button class="btn ghost" data-act="sheetclose">Fermer</button></div>`);
@@ -1074,8 +1096,11 @@ function viewSav(){
     <div class="sub">Après les mouvements prévus (FUTUR) : <b class="num">${eur(L.prevu)}</b></div></div>
   <div class="card" id="sav-accts"><div class="top"><h2>Mes comptes d'épargne</h2><button class="btn sm" data-act="acctnew">Ajouter un compte</button></div>
     <div class="rows"><div class="row">${dotHtml("Livret A")}<div class="main"><div class="t">Livret A</div><div class="s">détail plus bas</div></div><div class="amt num">${eur(L.solde)}</div></div>
-    ${acctLive().map(a => `<div class="row">${dotHtml(a.n)}<button class="rowbtn" data-act="acctopen" data-id="${a.id}"><div class="t">${esc(a.n)}</div><div class="s">${esc(a.type)}${a.date ? " · départ " + frFull(a.date) : ""}</div></button><div class="amt num">${eur(acctSolde(a))}</div></div>`).join("")}</div>
-    <div class="kv tot"><span>Total de l'épargne</span><span class="num">${eur(L.solde + acctTotal())}</span></div>${acctLive().some(isCag) ? `<div class="kv"><span>Cagnottes (pas comptées dans l'épargne)</span><span class="num">${eur(cagTotal())}</span></div>` : ""}<div class="small muted">Liquide, cagnotte de ta fille, tirelire… : « Ajouter un compte », type « Liquide » ou « Cagnotte », puis note les revenus et les dépenses. Une cagnotte n'est pas comptée dans ton total d'épargne (ce n'est pas ton argent).</div></div>
+    ${acctLive().filter(a => !isHors(a)).map(a => `<div class="row">${dotHtml(a.n)}<button class="rowbtn" data-act="acctopen" data-id="${a.id}"><div class="t">${esc(a.n)}</div><div class="s">${esc(a.type)}${a.date ? " · départ " + frFull(a.date) : ""}</div></button><div class="amt num">${eur(acctSolde(a))}</div></div>`).join("")}</div>
+    <div class="kv tot"><span>Total de l'épargne</span><span class="num">${eur(L.solde + acctTotal())}</span></div>
+    ${acctLive().some(isHors) ? `<div style="border:1.5px dashed var(--line);border-radius:16px;padding:8px 12px;margin-top:12px"><div class="small muted" style="margin-bottom:4px"><b>Hors total</b> : pas comptés dans ton épargne (cagnotte d'un proche, liquide à part…)</div><div class="rows">${acctLive().filter(isHors).map(a => `<div class="row">${dotHtml(a.n)}<button class="rowbtn" data-act="acctopen" data-id="${a.id}"><div class="t">${esc(a.n)}</div><div class="s">${esc(a.type)}${a.date ? " · départ " + frFull(a.date) : ""}</div></button><div class="amt num">${eur(acctSolde(a))}</div></div>`).join("")}</div><div class="kv"><span>Total hors épargne</span><span class="num">${eur(cagTotal())}</span></div></div>` : ""}
+    <div class="btns" style="margin-top:8px"><button class="btn ghost sm" data-act="cagrecv">Recevoir une cagnotte</button></div>
+    <div class="small muted" style="margin-top:8px">Liquide, cagnotte de ta fille, tirelire… : « Ajouter un compte », puis note les revenus et les dépenses. Pour chaque compte tu choisis s'il compte ou non dans ton total d'épargne : s'il ne compte pas, il est encadré à part.</div></div>
   <div class="card"><div class="kv"><span>Épargne prévue (après FUTUR)</span><span class="num">${eur(L.prevu)}</span></div>
     <div class="small muted">« Livret A vraiment à moi » ne bouge que quand une ligne FUTUR est cochée « fait ». Tant qu'elle ne l'est pas, elle ne change que « Épargne prévue ». Départ : ${eur(S.settings.livretDepart)}${e.dateDepart ? " au " + e.dateDepart.slice(8,10) + "/" + e.dateDepart.slice(5,7) + "/" + e.dateDepart.slice(0,4) : ""}. Les mouvements pointés du journal après cette date s'ajoutent automatiquement.</div></div>
   <div class="card"><div class="top"><h2>Mouvements du Livret A</h2><button class="btn sm" data-act="lvnew">Ajouter</button></div>
@@ -1393,11 +1418,12 @@ const HELP = {
     "<b>Réajuster le Livret A</b> : avec le temps (intérêts, centimes), le total de l'appli peut s'écarter du vrai solde. Bouton « Réajuster avec le solde réel » dans les mouvements : tu saisis le solde de ta banque, l'appli ajoute une ligne « Ajustement » pour la différence (poches et historique intacts).",
     "<b>C'est quoi ?</b> Ton Livret A et tes autres comptes d'épargne.",
     "<b>Réglages en onglets</b> : Compte (solde, jour de paie, enveloppes, granulés, rapprochement), Données (Excel, sauvegarde, sécurité, tout effacer), Aspect (couleurs, taille, onglets) et Aide (guide, démo, installation, fiche à partager). Dans Aspect › Onglets, tu peux mettre les onglets en haut ou sur le côté.",
+    "<b>Envoyer / recevoir une cagnotte</b> : ouvre la cagnotte (ou le liquide) puis « Envoyer » : un petit fichier avec ses mouvements est partagé (rien d'autre de tes comptes). L'autre personne va dans Épargne › « Recevoir une cagnotte » et choisit le fichier. Les mouvements s'ajoutent sans doublon ; vous pouvez tous les deux ajouter des revenus et des dépenses puis vous renvoyer le fichier. Ce n'est pas du direct, c'est à jour au moment de l'échange.",
     "<b>Raccourcis de l'Accueil</b> : touche « Fixes à payer », « Dépenses non pointées », « Enveloppes restantes » ou une ligne de la carte Épargne (Livret A, autres comptes, épargne du mois, résultat prévu) pour aller directement à l'endroit correspondant.",
     "<b>Livret A vraiment à moi</b> : le solde du Livret moins l'argent déjà réservé dans les poches. C'est ce dont tu peux disposer librement.",
     "<b>Poche</b> : une réserve à l'intérieur du Livret pour un projet ou une facture à venir (taxe foncière, travaux…). L'argent est dans ton Livret mais « mis de côté » pour ça.",
     "<b>FUTUR</b> : les mouvements prévus (un impôt en novembre, une rentrée d'argent…). Tant que la ligne n'est pas cochée « fait », elle ne change que l'épargne <b>prévue</b>. Une fois cochée, elle compte vraiment dans ton Livret.",
-    "<b>Autres comptes</b> : LDDS, LEP, PEL, assurance vie, bourse… et aussi du <b>liquide</b> ou la <b>cagnotte de ta fille</b> (types « Liquide » et « Cagnotte », autant que tu veux, avec des revenus et des dépenses ; une cagnotte n'est pas comptée dans ton épargne). Saisis un solde de départ, puis note les mouvements. Le total de l'épargne s'affiche en haut."]},
+    "<b>Autres comptes</b> : LDDS, LEP, PEL, assurance vie, bourse… et aussi du <b>liquide</b> ou la <b>cagnotte de ta fille</b> (types « Liquide » et « Cagnotte », autant que tu veux, avec des revenus et des dépenses ; chaque compte a l'option « Compter dans mon total d'épargne ? » : s'il ne compte pas, il est encadré à part dans « Hors total »). Saisis un solde de départ, puis note les mouvements. Le total de l'épargne s'affiche en haut."]},
   fix:{t:"Revenus et charges fixes", p:[
     "<b>C'est quoi ?</b> Tout ce qui revient chaque mois : salaire, loyer, assurances, abonnements…",
     "Pour chaque ligne : un <b>libellé</b>, un <b>montant habituel</b> et le <b>jour du mois</b>. L'appli s'en sert pour prévoir ton reste à vivre.",
@@ -1936,13 +1962,15 @@ document.addEventListener("click", ev => {
     case "fx-del": { const arr = k === "rev" ? S.fixRev : S.fixCh; arr.splice(arr.findIndex(r => r.id === id),1); persist(); closeSheet(); render(); break; }
     case "sset": V.sset = b.dataset.v; render(); window.scrollTo(0,0); break;
     case "ttabs": lsSet("mc-tabs", b.dataset.v); render(); break;
+    case "cagsend": cagExport(id); break;
+    case "cagrecv": if (DEMO) return toast("Quitte d'abord le mode démo"); sheetCagRecv(); break;
     case "gosav": V.tab = "sav"; render(); break;
     case "go": { if (b.dataset.mv){ V.mv = b.dataset.mv; lsSet("mc-mview", V.mv); } V.tab = b.dataset.v; render(); const sid = b.dataset.s; setTimeout(() => { if (sid){ const t = document.getElementById(sid); if (t){ if (t.tagName === "DETAILS") t.open = true; t.scrollIntoView({behavior:"smooth", block:"start"}); } } else window.scrollTo(0,0); }, 60); break; }
     case "acctnew": sheetAcctEdit(""); break; case "acctedit": sheetAcctEdit(id); break; case "acctopen": sheetAcct(id); break;
     case "mvnew": sheetMv("", id); break; case "mvedit": sheetMv(id, ""); break;
     case "mvsens": { document.querySelectorAll('[data-act=mvsens]').forEach(x => x.classList.toggle("on", x === b)); break; }
     case "ac-save": { const n = $("#ac-n").value.trim(); if (!n) return toast("Donnez un nom au compte");
-      const o = {n, type:$("#ac-t").value, depart:parseNum($("#ac-d").value) || 0, date:$("#ac-dt").value, upd:Date.now()};
+      const cv = $("#ac-c") ? $("#ac-c").value : "auto", o = {n, type:$("#ac-t").value, depart:parseNum($("#ac-d").value) || 0, date:$("#ac-dt").value, upd:Date.now(), hors: cv === "non" ? true : cv === "oui" ? false : undefined};
       if (id) Object.assign(S.accts.find(x => x.id === id), o); else S.accts.push(Object.assign({id:uid()}, o));
       persist(); closeSheet(); render(); break; }
     case "ac-del": { const a = S.accts.find(x => x.id === id), now = Date.now(); a.del = true; a.upd = now; S.acctMv.forEach(m => { if (m.a === id && !m.del){ m.del = true; m.upd = now; } }); persist(); closeSheet(); render(); break; }
@@ -2081,6 +2109,7 @@ document.addEventListener("change", ev => {
   const t = ev.target;
   if (V.wiz && t.dataset.w !== undefined){ collectWiz(); if (t.dataset.w === "livret.on") render(); return; }
   if (t.id === "file" && t.files[0]) { if (DEMO){ t.value = ""; return toast("Quitte d'abord le mode démo"); } onFile(t.files[0]); t.value = ""; return; }
+  if (t.id === "cg-file" && t.files[0]){ const f = t.files[0]; t.value = ""; if (DEMO) return toast("Quitte d'abord le mode démo"); closeSheet(); f.text().then(cagImport).catch(() => toast("Fichier illisible")); return; }
   if (t.id === "solde" || t.id === "s-solde"){ const v = parseNum(t.value); S.settings.solde = t.value.trim() === "" ? null : v; persist(); if (V.tab === "home") render(); return; }
   if (t.id === "webfile" && t.files[0]){ const f = t.files[0]; t.value = "";
     f.arrayBuffer().then(buf => { const wb = XLSX.read(buf,{type:"array"}); V.webPending = parseWeb(wb); if (!V.webPending.rows.length) throw new Error("Aucun compte trouvé."); sheetWebImport(); })
@@ -2302,6 +2331,10 @@ document.addEventListener("change", ev => { if (ev.target.id === "sch-a" || ev.t
 applyTheme();
 /* ===== Historique des mises à jour ===== */
 const CHANGELOG = [
+ {v:"3.9", d:"Novembre 2026", t:"Envoyer et recevoir une cagnotte", i:[
+  "Cagnotte ou liquide : le bouton « Envoyer » partage un petit fichier avec les mouvements de ce compte seulement (WhatsApp, SMS, AirDrop…). Chez l'autre personne, Épargne › « Recevoir une cagnotte » l'ajoute ou la met à jour, sans doublon. Vous pouvez tous les deux noter des revenus et des dépenses, puis vous renvoyer le fichier de temps en temps. Ce n'est pas du direct : rien ne passe par un serveur."]},
+ {v:"3.8", d:"Novembre 2026", t:"Comptes hors total encadrés", i:[
+  "Épargne : chaque compte a maintenant l'option « Compter dans mon total d'épargne ? » (Automatique, Oui, Non). Un compte qui ne compte pas (cagnotte d'un proche, liquide à part…) est rangé dans un cadre en pointillés « Hors total », avec son propre total, et la ligne correspondante de l'Accueil est encadrée aussi."]},
  {v:"3.7", d:"Novembre 2026", t:"Réglages en onglets, onglets sur le côté", i:[
   "Réglages rangés en 4 onglets courts : Compte, Données, Aspect, Aide. Plus besoin de faire défiler une longue page.",
   "Nouvelle option Réglages › Aspect › Onglets : en haut (comme avant) ou sur le côté droit, avec le texte à la verticale, comme dans AgenDam. Elle s'applique aux onglets de Mois (Tout / Fixes / Opérations), des Réglages, des Comptes en ligne et de l'Historique."]},
