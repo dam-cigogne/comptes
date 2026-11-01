@@ -841,9 +841,9 @@ function viewHome(){
   <div class="card"><div class="top"><h2>Épargne</h2><button class="btn sm" data-act="gosav">Détail</button></div>
     <div class="kv lnk" data-act="go" data-v="sav" role="button" tabindex="0"><span>Livret A ›</span><span class="num">${eur(L.solde)}</span></div>
     <div class="kv lnk" data-act="go" data-v="sav" role="button" tabindex="0"><span>Livret A vraiment à moi ›</span><span class="num">${eur(L.aMoi)}</span></div>
-    ${acctLive().filter(a => !isHors(a)).length ? `<div class="kv lnk" data-act="go" data-v="sav" data-s="sav-accts" role="button" tabindex="0"><span>Autres comptes d'épargne ›</span><span class="num">${eur(acctTotal())}</span></div>` : ""}
-    ${acctLive().filter(isHors).length ? `<div class="kv lnk" data-act="go" data-v="sav" data-s="sav-accts" role="button" tabindex="0" style="border:1.5px dashed var(--line);border-radius:12px;padding:6px 10px;margin:4px 0"><span>Hors total : cagnottes, liquide… ›</span><span class="num">${eur(cagTotal())}</span></div>` : ""}
-    ${ccAll().length ? `<div class="kv lnk" data-act="go" data-v="sav" data-s="sav-cc" role="button" tabindex="0"><span>Comptes communs ›</span><span class="num">${ccAll().length}</span></div>` : ""}
+    ${acctLive().filter(a => !isHors(a)).length ? `<div class="kv lnk" data-act="go" data-v="sav" data-sv="acc" data-s="sav-accts" role="button" tabindex="0"><span>Autres comptes d'épargne ›</span><span class="num">${eur(acctTotal())}</span></div>` : ""}
+    ${acctLive().filter(isHors).length ? `<div class="kv lnk" data-act="go" data-v="sav" data-sv="acc" data-s="sav-accts" role="button" tabindex="0" style="border:1.5px dashed var(--line);border-radius:12px;padding:6px 10px;margin:4px 0"><span>Hors total : cagnottes, liquide… ›</span><span class="num">${eur(cagTotal())}</span></div>` : ""}
+    ${ccAll().length ? `<div class="kv lnk" data-act="go" data-v="sav" data-sv="cc" data-s="sav-cc" role="button" tabindex="0"><span>Comptes communs ›</span><span class="num">${ccAll().length}</span></div>` : ""}
     <div class="kv lnk" data-act="go" data-v="month" data-mv="ops" data-s="m-ops" role="button" tabindex="0"><span>Épargne du mois ›</span><span class="num">${eur(c.epargne)}</span></div>
     <div class="kv lnk" data-act="go" data-v="home" data-s="home-calc" role="button" tabindex="0"><span>Résultat prévu du mois ›</span><span class="num ${c.resultat<0?"neg":"pos"}">${eur(c.resultat)}</span></div>
     <div class="small muted">Revenus moins dépenses et épargne déjà notées. Ne dépend pas du solde du compte.</div></div>
@@ -1156,7 +1156,7 @@ async function ccSendSheet(id, delta, ex){ const c = (S.cc || []).find(x => x.id
   const okTel = t => /^\+?[\d\s().-]{6,20}$/.test(t || ""), okMail = m => /^[^\s@<>"]+@[^\s@<>"]+$/.test(m || "");
   const others = ccPeople(c).filter(p => p.id !== me), mails = [];
   const rows = others.map(p => { const ct = ccCt(p), tel = ct && okTel(ct.tel) ? ct.tel.replace(/[^\d+]/g, "") : "", ml = ct && okMail(ct.mail) ? ct.mail : ""; if (ml) mails.push(ml);
-    return `<div class="row">${ccChip(c, p.id)}<div class="main"><div class="t">${esc(p.n)}</div>${tel || ml ? "" : '<div class="s">Pas de contact lié (Gérer)</div>'}</div>${tel ? `<a class="btn sm" data-act="cccommit" href="sms:${esc(tel)}?&body=${enc}">SMS</a>` : ""}${ml ? `<a class="btn sm ghost" data-act="cccommit" href="mailto:${esc(ml)}?subject=${encodeURIComponent(subj)}&body=${enc}">Mail</a>` : ""}</div>`; }).join("");
+    return `<div class="row">${ccChip(c, p.id)}<div class="main"><div class="t">${esc(p.n)}</div>${tel || ml ? "" : (ct ? `<button class="btn ghost sm" data-act="ctedit" data-id="${ct.id}" data-from="send" style="margin-top:4px">Ajouter son téléphone / mail</button>` : `<button class="btn ghost sm" data-act="ccmkct" data-id="${c.id}" data-p="${p.id}" data-from="send" style="margin-top:4px">Créer son contact</button>`)}</div>${tel ? `<a class="btn sm" data-act="cccommit" href="sms:${esc(tel)}?&body=${enc}">SMS</a>` : ""}${ml ? `<a class="btn sm ghost" data-act="cccommit" href="mailto:${esc(ml)}?subject=${encodeURIComponent(subj)}&body=${enc}">Mail</a>` : ""}</div>`; }).join("");
   openSheet(`<h2>Envoyer à qui ?</h2><div class="small muted">${ex ? "<b>Message 1 : les explications</b> (sans le code)." : "<b>Message 2 : le code seul</b>, dans un message à part pour pouvoir le copier proprement."} ${delta ? "Tes ajouts depuis le dernier envoi." : "Tout le compte."} Le message s'ouvre dans ton application SMS ou Mail, prêt à envoyer.</div>
   <div class="rows">${rows}</div>
   ${mails.length > 1 ? `<div class="btns"><a class="btn ghost" data-act="cccommit" href="mailto:${mails.map(esc).join(",")}?subject=${encodeURIComponent(subj)}&body=${enc}">Mail à tous</a></div>` : ""}
@@ -1193,13 +1193,14 @@ function ccImport(d){ const okId = x => typeof x === "string" && /^[\w-]{1,60}$/
   if (!c){ c = {id:uid(), sid:d.sid, n:String(d.n || "Compte commun").slice(0,60), caisse:!!d.caisse, mode:d.mode === "cpt" ? "cpt" : "tri", parts:[], ops:[], me:null, outAt:0, upd:Date.now()}; S.cc.push(c); created = true; }
   for (const p of d.parts){ if (!p || !okId(p.id)) continue; const ex = c.parts.find(x => x.id === p.id), row = {n:String(p.n || "?").slice(0,40), upd:isNum(p.upd) ? p.upd : 0, del:!!p.del};
     if (!ex) c.parts.push(Object.assign({id:p.id}, row)); else if (row.upd > N(ex.upd)) Object.assign(ex, row); }
+  if (created) c.parts.forEach(p => { const m = (S.ct || []).find(y => (y.n || "").trim().toLowerCase() === (p.n || "").trim().toLowerCase()); if (m) p.ct = m.id; });
   const valid = new Set(c.parts.map(p => p.id)); if (c.caisse) valid.add("pot"); let add = 0, upd = 0;
   for (const r of d.ops){ if (!r || !okId(r.id) || (r.k !== "d" && r.k !== "v" && r.k !== "e" && r.k !== "s") || !/^\d{4}-\d{2}-\d{2}$/.test(r.date || "") || !isNum(r.mt) || r.mt <= 0 || r.mt > 1e7 || !valid.has(r.by)) continue;
     let sp = [], to = ""; if (r.k === "e" || r.k === "s"){ if (r.by === "pot") continue; } else if (r.k === "v"){ if (!valid.has(r.to) || r.to === r.by) continue; to = r.to; } else if (r.k === "d"){ sp = (Array.isArray(r.sp) ? r.sp : []).filter(x => x && valid.has(x.p) && x.p !== "pot" && isNum(x.w) && x.w > 0).slice(0,30).map(x => ({p:x.p, w:x.w})); if (!sp.length) continue; }
     const row = {k:r.k, date:r.date, lib:String(r.lib || "").slice(0,120), mt:r2(r.mt), by:r.by, to, sp, cat:String(r.cat || "").slice(0,40), note:String(r.note || "").slice(0,300), au:valid.has(r.au) ? r.au : "", mod:valid.has(r.mod) ? r.mod : "", upd:isNum(r.upd) ? r.upd : Date.now()}, ex = c.ops.find(o => o.id === r.id);
     if (!ex){ c.ops.push(Object.assign({id:r.id, rcv:Date.now()}, row, r.del ? {del:true} : {})); if (!r.del) add++; }
     else if (row.upd > N(ex.upd)){ Object.assign(ex, row, {del:!!r.del, rcv:Date.now()}); upd++; } }
-  persist(); render();
+  c.rcvAt = Date.now(); persist(); render();
   const warn = !d.full && d.chk && ccHash(c) !== d.chk ? " Attention : il manque peut-être des opérations, demande « Envoyer tout »." : "";
   if (!ccMe(c)){ sheetCCMe(c.id); toast("Compte commun « " + c.n + " » reçu"); } else toast("« " + c.n + " » : " + add + " nouvelle(s), " + upd + " modifiée(s)." + warn); }
 function sheetCCMe(id){ const c = (S.cc || []).find(x => x.id === id); if (!c) return;
@@ -1214,7 +1215,7 @@ function ccRow(c, o){ const cpt = c.mode === "cpt", who = o.au || o.by, col = cc
   const t = o.lib || (o.k === "e" ? "Entrée" : o.k === "s" ? "Sortie" : o.k === "v" ? "Virement" : "Dépense");
   return `<div class="ccop" style="${o.del ? "opacity:.5;" : ""}">${ccChip(c, who)}<button class="rowbtn" ${o.del ? "disabled" : ""} data-act="ccopedit" data-id="${c.id}" data-o="${o.id}" style="${o.del ? "text-decoration:line-through" : ""}"><div class="t">${esc(t)}</div><div class="s">${sub}</div></button><div class="num ${cls}" style="font-weight:700;white-space:nowrap">${amt}</div></div>`; }
 function sheetCC(id){ const c = (S.cc || []).find(x => x.id === id); if (!c || c.del) return; const cpt = c.mode === "cpt", me = ccMe(c), F = window.CCF || "", SD = !!window.CCSD, MN = !!window.CCM;
-  const pend = (c.ops || []).filter(o => Math.max(N(o.upd), N(o.rcv)) > N(c.outAt)).length, P = ccPeople(c);
+  const pend = (c.ops || []).filter(o => N(o.lc) > N(c.outAt)).length, P = ccPeople(c);
   const ins = {}, outs = {}; let tin = 0, tout = 0;
   let hero, ppl, extra = "";
   if (cpt){ ccOps(c).forEach(o => { const w = o.au || o.by, m = N(o.mt); if (o.k === "e"){ ins[w] = (ins[w] || 0) + m; tin += m; } else if (o.k === "s"){ outs[w] = (outs[w] || 0) + m; tout += m; } });
@@ -1229,13 +1230,14 @@ function sheetCC(id){ const c = (S.cc || []).find(x => x.id === id); if (!c || c
   if (F) ops = ops.filter(o => (o.au || o.by) === F);
   let lastD = "", list = "";
   ops.slice(0, 80).forEach(o => { if (o.date !== lastD){ lastD = o.date; list += `<div class="ccday">${frFull(o.date)}</div>`; } list += ccRow(c, o); });
+  const lastRcv = N(c.rcvAt) > 0 ? new Date(c.rcvAt).toLocaleDateString("fr-FR", {day:"2-digit", month:"2-digit"}) : "";
   const lastSend = N(c.outAt) > 0 ? new Date(c.outAt).toLocaleDateString("fr-FR", {day:"2-digit", month:"2-digit"}) : "";
   openSheet(`<div class="cctop"><h2 style="margin:0;flex:1">${esc(c.n)}</h2><button class="btn ghost sm" data-act="ccmenu" data-id="${c.id}" aria-label="Options">${MN ? "Fermer ✕" : "Options"}</button></div>
   ${hero}
   <div class="ccppl">${ppl.map(x => `<button class="ccp ${F === x.p.id ? "on" : ""}" style="color:${ccCol(c, x.p.id)}" data-act="ccfilt" data-id="${c.id}" data-p="${x.p.id}">${ccChip(c, x.p.id)}<span style="color:var(--ink)"><b>${esc(x.p.n)}${x.p.id === me ? " (moi)" : ""}</b><small>${x.s}</small></span></button>`).join("")}</div>
   ${extra}
   <div class="btns" style="margin:6px 0">${cpt ? `<button class="btn" data-act="ccop" data-id="${c.id}" data-v="e" style="flex:1">+ Entrée</button><button class="btn ghost" data-act="ccop" data-id="${c.id}" data-v="s" style="flex:1">− Sortie</button>` : `<button class="btn" data-act="ccop" data-id="${c.id}" data-v="d" style="flex:1">+ Dépense</button><button class="btn ghost" data-act="ccop" data-id="${c.id}" data-v="v" style="flex:1">Virement</button>`}</div>
-  <div class="ccsync"><div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px">${pend ? pend + " à envoyer" : "Tout est partagé"}</div><div class="small muted">${lastSend ? "Dernier envoi le " + lastSend : "Pas encore envoyé"}</div></div><button class="btn sm" data-act="ccsend" data-id="${c.id}" data-m="d">Envoyer</button><button class="btn sm ghost" data-act="cagrecv">Coller</button></div>
+  <div class="ccsync"><div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px">${pend ? pend + " modification" + (pend > 1 ? "s" : "") + " de ta part à envoyer" : "Rien de nouveau à envoyer"}</div><div class="small muted">${lastSend ? "Dernier envoi le " + lastSend : "Jamais envoyé"}${lastRcv ? " · Dernière réception le " + lastRcv : ""}</div></div><button class="btn sm" data-act="ccsend" data-id="${c.id}" data-m="d">Envoyer</button><button class="btn sm ghost" data-act="cagrecv">Coller</button></div>
   ${MN ? `<div class="ccmenu"><button class="btn ghost sm" data-act="cccopy" data-id="${c.id}" data-m="d">Copier mes ajouts</button><button class="btn ghost sm" data-act="ccsend" data-id="${c.id}" data-m="f">Envoyer tout</button><button class="btn ghost sm" data-act="cccopy" data-id="${c.id}" data-m="f">Copier tout</button><button class="btn ghost sm" data-act="ccexplain" data-id="${c.id}">Explications</button><button class="btn ghost sm" data-act="ccshowdel" data-id="${c.id}">${SD ? "Masquer supprimées" : "Voir supprimées"}</button><button class="btn ghost sm" data-act="ccparts" data-id="${c.id}">Gérer le compte</button></div>` : ""}
   ${F ? `<div class="small">Filtre : ${esc(ccName(c, F))} · <button class="btn ghost sm" data-act="ccfilt" data-id="${c.id}" data-p="">Tout voir</button></div>` : ""}
   <div>${list || '<div class="empty">Aucune opération pour l\'instant. Ajoute la première avec le bouton ci-dessus.</div>'}</div>
@@ -1269,7 +1271,7 @@ function sheetCCParts(id, confirm){ const c = (S.cc || []).find(x => x.id === id
   openSheet(`<h2>Gérer · ${esc(c.n)}</h2>
   <label class="f">Nom du compte<input id="ccg-n" value="${esc(c.n)}"></label>
   <div class="small"><b>Participants</b> (coche « moi » pour toi ; couleur et contact à droite)</div><div class="btns"><button class="btn ghost sm" data-act="contacts">Mes contacts</button></div>
-  <div class="rows">${ccPeople(c).map(p => `<div class="row" style="gap:8px"><input type="radio" name="ccg-me" value="${p.id}" ${p.id === me ? "checked" : ""} aria-label="C'est moi"><input data-ccp="${p.id}" value="${esc(p.n)}" style="flex:1;min-width:0"><input type="color" data-ccc="${p.id}" value="${ccCol(c, p.id)}" style="width:36px;height:32px;padding:0" aria-label="Couleur"><select data-cct="${p.id}" style="max-width:96px" aria-label="Contact"><option value="">Contact</option>${(S.ct || []).map(x => `<option value="${x.id}" ${p.ct === x.id ? "selected" : ""}>${esc(x.n)}</option>`).join("")}</select><button class="btn danger sm" data-act="ccpdel" data-id="${c.id}" data-p="${p.id}" aria-label="Retirer">✕</button></div>`).join("")}</div>
+  <div class="rows">${ccPeople(c).map(p => `<div class="row" style="gap:8px;flex-wrap:wrap"><input type="radio" name="ccg-me" value="${p.id}" ${p.id === me ? "checked" : ""} aria-label="C'est moi"><input data-ccp="${p.id}" value="${esc(p.n)}" style="flex:1;min-width:0"><input type="color" data-ccc="${p.id}" value="${ccCol(c, p.id)}" style="width:36px;height:32px;padding:0" aria-label="Couleur"><select data-cct="${p.id}" style="max-width:96px" aria-label="Contact"><option value="">Contact</option>${(S.ct || []).map(x => `<option value="${x.id}" ${p.ct === x.id ? "selected" : ""}>${esc(x.n)}</option>`).join("")}</select>${p.ct && ccCt(p) ? "" : `<button class="btn ghost sm" data-act="ccmkct" data-id="${c.id}" data-p="${p.id}" aria-label="Créer le contact">＋ contact</button>`}<button class="btn danger sm" data-act="ccpdel" data-id="${c.id}" data-p="${p.id}" aria-label="Retirer">✕</button></div>`).join("")}</div>
   <label class="f">Ajouter un participant<input id="ccg-new" placeholder="Prénom"></label>
   <div class="btns"><button class="btn" data-act="ccparts-save" data-id="${c.id}" style="flex:1">Enregistrer</button><button class="btn ghost" data-act="ccopen" data-id="${c.id}">Retour</button></div>
   <div class="btns">${confirm ? `<button class="btn danger" data-act="ccdel2" data-id="${c.id}">Oui, supprimer ce compte commun ici</button>` : `<button class="btn ghost sm" data-act="ccdel1" data-id="${c.id}">Supprimer ce compte commun</button>`}</div>
@@ -1302,32 +1304,36 @@ function sheetObj(id){ if (!Array.isArray(S.objectifs)) S.objectifs = []; const 
 function viewSav(){
   const L = livretCalc(), e = S.epargne;
   const moves = L.moves.slice().sort((a,b) => b.date.localeCompare(a.date)).slice(0,30);
-  return `<div class="top"><button class="btn ghost sm" data-act="tab" data-v="home">‹ Accueil</button><div class="app">Épargne</div></div>
+  const cur = ["acc","cc","lv","poc","fut"].includes(V.sav) ? V.sav : (lsGet("mc-sav") || "acc");
+  const head = `<div class="top"><button class="btn ghost sm" data-act="tab" data-v="home">‹ Accueil</button><div class="app">Épargne</div></div>
   <div class="card hero"><div class="lbl">Livret A vraiment à moi</div><div class="big num">${eur(L.aMoi)}</div>
     <div class="sub">Livret A ${eur(L.solde)} moins poches réservées ${eur(L.pochesReste)}</div>
-    <div class="sub">Après les mouvements prévus (FUTUR) : <b class="num">${eur(L.prevu)}</b></div></div>
-  <div class="card" id="sav-accts"><div class="top"><h2>Mes comptes d'épargne</h2><button class="btn sm" data-act="acctnew">Ajouter un compte</button></div>
+    <div class="sub">Après les mouvements prévus (FUTUR) : <b class="num">${eur(L.prevu)}</b></div></div>`;
+  const SV = {
+  acc:`  <div class="card" id="sav-accts"><div class="top"><h2>Mes comptes d'épargne</h2><button class="btn sm" data-act="acctnew">Ajouter un compte</button></div>
     <div class="rows"><div class="row">${dotHtml("Livret A")}<div class="main"><div class="t">Livret A</div><div class="s">détail plus bas</div></div><div class="amt num">${eur(L.solde)}</div></div>
     ${acctLive().filter(a => !isHors(a)).map(a => `<div class="row">${dotHtml(a.n)}<button class="rowbtn" data-act="acctopen" data-id="${a.id}"><div class="t">${esc(a.n)}</div><div class="s">${esc(a.type)}${a.date ? " · départ " + frFull(a.date) : ""}</div></button><div class="amt num">${eur(acctSolde(a))}</div></div>`).join("")}</div>
     <div class="kv tot"><span>Total de l'épargne</span><span class="num">${eur(L.solde + acctTotal())}</span></div>
     ${acctLive().some(isHors) ? `<div style="border:1.5px dashed var(--line);border-radius:16px;padding:8px 12px;margin-top:12px"><div class="small muted" style="margin-bottom:4px"><b>Hors total</b> : pas comptés dans ton épargne (cagnotte d'un proche, liquide à part…)</div><div class="rows">${acctLive().filter(isHors).map(a => `<div class="row">${dotHtml(a.n)}<button class="rowbtn" data-act="acctopen" data-id="${a.id}"><div class="t">${esc(a.n)}</div><div class="s">${esc(a.type)}${a.date ? " · départ " + frFull(a.date) : ""}</div></button><div class="amt num">${eur(acctSolde(a))}</div></div>`).join("")}</div><div class="kv"><span>Total hors épargne</span><span class="num">${eur(cagTotal())}</span></div></div>` : ""}
     <div class="btns" style="margin-top:8px"><button class="btn ghost sm" data-act="cagrecv">Recevoir une cagnotte</button></div>
-    <div class="small muted" style="margin-top:8px">Liquide, cagnotte de ta fille, tirelire… : « Ajouter un compte », puis note les revenus et les dépenses. Pour chaque compte tu choisis s'il compte ou non dans ton total d'épargne : s'il ne compte pas, il est encadré à part.</div></div>
-  ${ccSavCard()}
-  <div class="card"><div class="kv"><span>Épargne prévue (après FUTUR)</span><span class="num">${eur(L.prevu)}</span></div>
+    <div class="small muted" style="margin-top:8px">Liquide, cagnotte de ta fille, tirelire… : « Ajouter un compte », puis note les revenus et les dépenses. Pour chaque compte tu choisis s'il compte ou non dans ton total d'épargne : s'il ne compte pas, il est encadré à part.</div></div>`,
+  cc:`${ccSavCard()}`,
+  lv:`  <div class="card"><div class="kv"><span>Épargne prévue (après FUTUR)</span><span class="num">${eur(L.prevu)}</span></div>
     <div class="small muted">« Livret A vraiment à moi » ne bouge que quand une ligne FUTUR est cochée « fait ». Tant qu'elle ne l'est pas, elle ne change que « Épargne prévue ». Départ : ${eur(S.settings.livretDepart)}${e.dateDepart ? " au " + e.dateDepart.slice(8,10) + "/" + e.dateDepart.slice(5,7) + "/" + e.dateDepart.slice(0,4) : ""}. Les mouvements pointés du journal après cette date s'ajoutent automatiquement.</div></div>
   <div class="card"><div class="top"><h2>Mouvements du Livret A</h2><button class="btn sm" data-act="lvnew">Ajouter</button></div>
     <div class="btns" style="margin:0 0 8px"><button class="btn ghost sm" data-act="lvadj">⚖ Réajuster avec le solde réel</button></div>
     <div class="rows">${moves.length ? moves.map(m => `<div class="row"><button class="rowbtn" ${m.kind === "S" ? `data-act="lvedit" data-id="${m.id}"` : m.kind === "J" ? `data-act="jedit" data-id="${m.id}"` : "disabled"}><div class="t">${esc(m.lib || m.org)}</div><div class="s">${frDate(m.date)} · ${esc(m.org)}</div>${m.note ? `<div class="s" style="font-style:italic">📝 ${esc(m.note)}</div>` : ""}</button>
-      <div class="amt num ${m.vers ? "pos" : "neg"}">${m.vers ? "+ " + eur(m.vers) : "− " + eur(m.ret)}</div></div>`).join("") : '<div class="empty">Aucun mouvement.</div>'}</div></div>
-  <div class="card"><div class="top"><h2>Poches (argent qui n'est pas à moi)</h2><button class="btn sm" data-act="pochenew">Ajouter</button></div>
+      <div class="amt num ${m.vers ? "pos" : "neg"}">${m.vers ? "+ " + eur(m.vers) : "− " + eur(m.ret)}</div></div>`).join("") : '<div class="empty">Aucun mouvement.</div>'}</div></div>`,
+  poc:`  <div class="card"><div class="top"><h2>Poches (argent qui n'est pas à moi)</h2><button class="btn sm" data-act="pochenew">Ajouter</button></div>
     <div class="rows">${L.poches.length ? L.poches.map(p => `<div class="row"><button class="rowbtn" data-act="pocheedit" data-id="${p.id}"><div class="t">${esc(p.n)}</div><div class="s">mis de côté ${eur(p.mis)} · utilisé ${eur(p.util)}</div></button><div class="amt num">${eur(p.reste)}</div></div>`).join("") : '<div class="empty">Aucune poche.</div>'}</div></div>
-  ${objHtml(L)}
-  <div class="card"><div class="top"><h2>FUTUR : sorties et entrées à venir</h2><button class="btn sm" data-act="futnew">Ajouter</button></div>
+  ${objHtml(L)}`,
+  fut:`  <div class="card"><div class="top"><h2>FUTUR : sorties et entrées à venir</h2><button class="btn sm" data-act="futnew">Ajouter</button></div>
     <div class="rows">${e.futur.filter(f => V.futArch || !futArch(f)).length ? e.futur.filter(f => V.futArch || !futArch(f)).map(f => `<div class="row" ${futArch(f) ? 'style="opacity:.6"' : ""}><button class="chk ${f.fait === "x" ? "on" : ""}" data-act="futtoggle" data-id="${f.id}" aria-label="Fait">${ICON.check}</button>
       <button class="rowbtn" data-act="futedit" data-id="${f.id}"><div class="t">${esc(f.lib)}</div><div class="s">${f.date ? frDate(f.date) : "sans date"} · ${f.fait === "x" ? '<span class="chip">fait</span>' : (f.date && f.date <= todayIso() ? '<span class="chip bad">à pointer</span>' : '<span class="chip warn">à venir</span>')}</div></button>
       <div class="amt num ${N(f.entree) ? "pos" : "neg"}">${N(f.entree) ? "+ " + eur(f.entree) : "− " + eur(f.sortie)}</div></div>`).join("") : '<div class="empty">Rien de prévu.</div>'}</div>
-    ${(() => { const n = e.futur.filter(futArch).length, d = e.futur.filter(f => f.fait === "x" && !futArch(f)).length; return (n || d) ? `<div class="btns" style="margin-top:8px">${d ? `<button class="btn ghost sm" data-act="futarch">Archiver les lignes faites (${d})</button>` : ""}${n ? `<button class="btn ghost sm" data-act="futshow">${V.futArch ? "Masquer" : "Voir"} les archivées (${n})</button>` : ""}</div><div class="small muted">Une ligne cochée « faite » est archivée automatiquement après ${FUT_ARCH_DAYS} jours : elle disparaît de la liste mais reste comptée dans le Livret A.</div>` : ""; })()}</div>`;
+    ${(() => { const n = e.futur.filter(futArch).length, d = e.futur.filter(f => f.fait === "x" && !futArch(f)).length; return (n || d) ? `<div class="btns" style="margin-top:8px">${d ? `<button class="btn ghost sm" data-act="futarch">Archiver les lignes faites (${d})</button>` : ""}${n ? `<button class="btn ghost sm" data-act="futshow">${V.futArch ? "Masquer" : "Voir"} les archivées (${n})</button>` : ""}</div><div class="small muted">Une ligne cochée « faite » est archivée automatiquement après ${FUT_ARCH_DAYS} jours : elle disparaît de la liste mais reste comptée dans le Livret A.</div>` : ""; })()}</div>`};
+  const tabs = [["acc","Comptes"],["cc","Communs"],["lv","Livret A"],["poc","Poches"],["fut","FUTUR"]], cu = SV[cur] ? cur : "acc";
+  return head + `<div class="seg rail">${tabs.map(([k,l]) => `<button class="${cu === k ? "on" : ""}" data-act="svtab" data-v="${k}">${l}</button>`).join("")}</div>` + SV[cu];
 }
 function sheetLivret(id){
   const m = id ? e_manuel(id) : {date:todayIso(), lib:"", montant:"", pq:"Versement épargne"};
@@ -2138,6 +2144,7 @@ document.addEventListener("click", ev => {
     case "w-import": S = emptyData(); V.wiz = null; V.tab = "set"; V.sset = "data"; V.msg = "Choisis ton fichier dans « Synchroniser avec Excel » (bouton Importer un fichier)."; persist(); render(); break;
     case "w-demo": S = demoData(); migrate(); V.wiz = null; persist(); render(); break;
     case "mprev": setMonth(-1); break; case "mnext": setMonth(1); break;
+    case "svtab": V.sav = b.dataset.v; lsSet("mc-sav", V.sav); render(); window.scrollTo(0, 0); break;
     case "mview": V.mv = b.dataset.v; lsSet("mc-mview", V.mv); render(); break;
     case "hidepast": V.hidePast = !V.hidePast; render(); break;
     case "fixtoggle": { const r = findFix(k,id), mi = b.dataset.pm !== undefined ? +b.dataset.pm : V.m; r.m[mi] = r.m[mi] === "x" ? "" : "x"; persist(); render(); break; }
@@ -2180,7 +2187,7 @@ document.addEventListener("click", ev => {
     case "ccnew-save": { const n = $("#cc-n").value.trim(), myn = ($("#cc-me").value.trim() || "Moi").slice(0,40), names = [myn].concat($("#cc-p").value.split(/[,;\n]+/).map(x => x.trim()).filter(Boolean)).slice(0,12); try { localStorage.setItem("mc-myname", myn); } catch(e){}
       if (!n) return toast("Donne un nom au compte commun"); const ctc = [...document.querySelectorAll("[data-ctp]")].filter(cb => cb.checked).map(cb => (S.ct || []).find(x => x.id === cb.dataset.ctp)).filter(Boolean); if (names.length + ctc.length < 2) return toast("Ajoute au moins une autre personne : écris un prénom ou coche un contact");
       const parts = names.map(x => { const m = (S.ct || []).find(y => (y.n || "").trim().toLowerCase() === x.trim().toLowerCase()); return Object.assign({id:uid(), n:x.slice(0,40), upd:Date.now()}, m ? {ct:m.id} : {}); }); ctc.forEach(x => { if (!parts.some(q => q.ct === x.id)) parts.push({id:uid(), n:String(x.n).slice(0,40), upd:Date.now(), ct:x.id}); }); const mode = $("#cc-mode").value === "cpt" ? "cpt" : "tri"; const c = {id:uid(), sid:uid(), n:n.slice(0,60), mode, caisse:mode === "tri" && $("#cc-caisse").checked, parts, ops:[], me:parts[0].id, outAt:0, upd:Date.now()};
-      const st0 = parseNum($("#cc-start").value); if (mode === "cpt" && st0 > 0) c.ops.push({id:uid(), k:"e", date:todayIso(), lib:"Solde de départ", mt:r2(st0), by:parts[0].id, to:"", sp:[], cat:"", note:"", au:parts[0].id, mod:parts[0].id, upd:Date.now()});
+      const st0 = parseNum($("#cc-start").value); if (mode === "cpt" && st0 > 0) c.ops.push({id:uid(), k:"e", date:todayIso(), lib:"Solde de départ", mt:r2(st0), by:parts[0].id, to:"", sp:[], cat:"", note:"", au:parts[0].id, mod:parts[0].id, lc:Date.now(), upd:Date.now()});
       S.cc.push(c); persist(); render(); window.CCF = ""; sheetCC(c.id); break; }
     case "ccopen": window.CCF = ""; window.CCM = false; sheetCC(id); break;
     case "ccfilt": window.CCF = b.dataset.p === window.CCF ? "" : b.dataset.p; sheetCC(id); break;
@@ -2195,9 +2202,9 @@ document.addEventListener("click", ev => {
       if (es) row.cat = $("#cco-c").value.trim().slice(0,40);
       else if (k === "v"){ row.to = $("#cco-to").value; if (row.to === row.by) return toast("Choisis deux personnes différentes"); }
       else { row.cat = $("#cco-c").value.trim().slice(0,40); document.querySelectorAll("[data-sp]").forEach(cb => { if (cb.checked){ const w = parseNum(document.querySelector('[data-spw="' + cb.dataset.sp + '"]').value); row.sp.push({p:cb.dataset.sp, w:w > 0 ? w : 1}); } }); if (!row.sp.length) return toast("Coche au moins une personne"); }
-      const ex = b.dataset.o ? c.ops.find(x => x.id === b.dataset.o) : null; if (ex){ Object.assign(ex, row); ex.au = ex.au || ccMe(c) || ""; ex.mod = ccMe(c) || ""; } else c.ops.push(Object.assign({id:uid(), au:ccMe(c) || "", mod:ccMe(c) || ""}, row));
+      const ex = b.dataset.o ? c.ops.find(x => x.id === b.dataset.o) : null; if (ex){ Object.assign(ex, row); ex.au = ex.au || ccMe(c) || ""; ex.mod = ccMe(c) || ""; ex.lc = Date.now(); } else c.ops.push(Object.assign({id:uid(), au:ccMe(c) || "", mod:ccMe(c) || "", lc:Date.now()}, row));
       c.upd = Date.now(); persist(); render(); sheetCC(c.id); break; }
-    case "ccop-del": { const c = S.cc.find(x => x.id === id), o = c && c.ops.find(x => x.id === b.dataset.o); if (o){ o.del = true; o.mod = ccMe(c) || ""; o.upd = Date.now(); persist(); render(); } sheetCC(id); break; }
+    case "ccop-del": { const c = S.cc.find(x => x.id === id), o = c && c.ops.find(x => x.id === b.dataset.o); if (o){ o.del = true; o.mod = ccMe(c) || ""; o.upd = Date.now(); o.lc = Date.now(); persist(); render(); } sheetCC(id); break; }
     case "ccsend": ccSendSheet(id, b.dataset.m === "d"); break;
     case "ccxt": if (window.__cc) ccSendSheet(window.__cc.id, window.__cc.delta, !window.__cc.ex); break;
     case "cagxt": if (window.__cg) cagSendSheet(window.__cg.id, !window.__cg.ex); break;
@@ -2207,12 +2214,15 @@ document.addEventListener("click", ev => {
     case "cagsendto": cagSendSheet(id); break;
     case "cagshare2": if (window.__cg) shareText(window.__cg.subj, window.__cg.body, "Message copié : colle-le dans une application"); break;
     case "mvback": sheetAcct(id); break;
-    case "contacts": sheetContacts(); break;
+    case "contacts": window.__ctRet = null; sheetContacts(); break;
+    case "ccmkct": { const c = S.cc.find(x => x.id === id), pp = c && c.parts.find(x => x.id === b.dataset.p); if (!pp) return; if (DEMO) return toast("Quitte d'abord le mode démo");
+      const x = {id:uid(), n:pp.n, col:ccCol(c, pp.id), tel:"", mail:""}; S.ct.push(x); pp.ct = x.id; persist(); render();
+      window.__ctRet = b.dataset.from === "send" ? () => { if (window.__cc) ccSendSheet(window.__cc.id, window.__cc.delta, window.__cc.ex); } : () => sheetCCParts(id, false); sheetContactEdit(x.id); break; }
     case "ctnew": if (DEMO) return toast("Quitte d'abord le mode démo"); sheetContactEdit(""); break;
-    case "ctedit": sheetContactEdit(id); break;
+    case "ctedit": if (b.dataset.from === "send") window.__ctRet = () => { if (window.__cc) ccSendSheet(window.__cc.id, window.__cc.delta, window.__cc.ex); }; sheetContactEdit(id); break;
     case "ctcol": { $("#ct-col").value = b.dataset.c; break; }
     case "ctsave": { const n = $("#ct-n").value.trim().slice(0,40); if (!n) return toast("Donne un nom au contact"); const row = {n, col:okCol($("#ct-col").value) ? $("#ct-col").value : CC_COL[0], tel:$("#ct-tel").value.trim().slice(0,25), mail:$("#ct-mail").value.trim().slice(0,100)};
-      if (id){ const x = S.ct.find(y => y.id === id); if (x) Object.assign(x, row); } else S.ct.push(Object.assign({id:uid()}, row)); persist(); render(); sheetContacts(); break; }
+      if (id){ const x = S.ct.find(y => y.id === id); if (x) Object.assign(x, row); } else S.ct.push(Object.assign({id:uid()}, row)); persist(); render(); if (window.__ctRet){ const r = window.__ctRet; window.__ctRet = null; r(); } else sheetContacts(); break; }
     case "ctdel": S.ct = S.ct.filter(x => x.id !== id); persist(); render(); sheetContacts(); break;
     case "cccopy": ccSend(id, b.dataset.m === "d", true); break;
     case "ccexplain": ccExplain(id); break;
@@ -2239,7 +2249,7 @@ document.addEventListener("click", ev => {
     case "cagimp": { const t = $("#cg-txt").value; if (!t.trim()) return toast("Colle d'abord le message ou le code"); cagDecode(t).then(j => { if (j){ closeSheet(); cagImport(j); } else toast("Code non reconnu : copie bien tout le message"); }); break; }
     case "cagrecv": if (DEMO) return toast("Quitte d'abord le mode démo"); sheetCagRecv(); break;
     case "gosav": V.tab = "sav"; render(); break;
-    case "go": { if (b.dataset.mv){ V.mv = b.dataset.mv; lsSet("mc-mview", V.mv); } V.tab = b.dataset.v; render(); const sid = b.dataset.s; setTimeout(() => { if (sid){ const t = document.getElementById(sid); if (t){ if (t.tagName === "DETAILS") t.open = true; t.scrollIntoView({behavior:"smooth", block:"start"}); } } else window.scrollTo(0,0); }, 60); break; }
+    case "go": { if (b.dataset.sv){ V.sav = b.dataset.sv; lsSet("mc-sav", V.sav); } if (b.dataset.mv){ V.mv = b.dataset.mv; lsSet("mc-mview", V.mv); } V.tab = b.dataset.v; render(); const sid = b.dataset.s; setTimeout(() => { if (sid){ const t = document.getElementById(sid); if (t){ if (t.tagName === "DETAILS") t.open = true; t.scrollIntoView({behavior:"smooth", block:"start"}); } } else window.scrollTo(0,0); }, 60); break; }
     case "acctnew": sheetAcctEdit(""); break; case "acctedit": sheetAcctEdit(id); break; case "acctopen": sheetAcct(id); break;
     case "mvnew": sheetMv("", id); break; case "mvedit": sheetMv(id, ""); break;
     case "mvsens": { document.querySelectorAll('[data-act=mvsens]').forEach(x => x.classList.toggle("on", x === b)); break; }
@@ -2605,6 +2615,10 @@ document.addEventListener("change", ev => { if (ev.target.id === "sch-a" || ev.t
 applyTheme();
 /* ===== Historique des mises à jour ===== */
 const CHANGELOG = [
+ {v:"4.7", d:"Novembre 2026", t:"Onglets Épargne et corrections", i:[
+  "Épargne : onglets Comptes / Communs / Livret A / Poches / FUTUR (en haut ou sur le côté selon ton réglage), plus besoin de faire défiler toute la page.",
+  "Comptes communs : on peut créer le contact d'un participant depuis « Gérer » ou depuis « Envoyer à qui ? » ; à la réception, un participant dont le nom correspond à un de tes contacts est lié automatiquement.",
+  "Le bloc de partage indique maintenant seulement TES modifications à envoyer (et non celles reçues), avec la date du dernier envoi et de la dernière réception."]},
  {v:"4.6", d:"Novembre 2026", t:"Nouveau design des comptes communs", i:[
   "SMS et mail : le code part seul dans son message, pour qu'il se copie proprement sur iPhone. Un bouton « Envoyer d'abord les explications » envoie le message d'explication à part (sans le code).",
   "Écran du compte refait : gros solde en haut (entrées et sorties), personnes en pastilles colorées à toucher pour filtrer, opérations regroupées par jour avec la couleur de qui les a saisies.",
