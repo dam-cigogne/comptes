@@ -116,7 +116,7 @@ button{cursor:pointer}
 
 .prog{height:8px;border-radius:999px;background:rgba(255,255,255,.28);overflow:hidden}.prog i{display:block;height:100%;background:var(--accent-ink);border-radius:999px;opacity:.95}
 .aside2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:2px 0 10px}.aside2>div{background:var(--bg);border:1px solid var(--line);border-radius:16px;padding:12px}.aside2 span{display:block;font-size:12.5px;color:var(--muted);line-height:1.3;min-height:32px}.aside2 b{display:block;margin-top:4px;font-size:21px}
-.hstats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.hstats>div{background:rgba(0,0,0,.14);border-radius:14px;padding:9px 12px}.hstats b{display:block;font-size:16px;font-weight:700}.hstats span{font-size:12px;opacity:.85}
+.lnk{cursor:pointer}.lnk:active{opacity:.7}.kv.lnk span:first-child{text-decoration:underline;text-decoration-color:rgba(128,128,128,.4);text-underline-offset:3px}.hstats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.hstats>div{background:rgba(0,0,0,.14);border-radius:14px;padding:9px 12px}.hstats b{display:block;font-size:16px;font-weight:700}.hstats span{font-size:12px;opacity:.85}
 .mv{display:flex;align-items:center;gap:12px;min-height:48px;border-top:1px solid var(--line)}.mv:first-child{border-top:0}
 .dt{width:52px;text-align:center;font-size:12px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:8px;padding:5px 0;flex:none}
 .mv .nm{flex:1;min-width:0;overflow-wrap:anywhere}
@@ -164,6 +164,12 @@ button.env{width:100%;text-align:left;background:none;border:0;border-top:1px so
 .bar i{display:block;height:10px;min-width:0;background:var(--accent);border-radius:999px}
 .bar i.warn{background:var(--warn)} .bar i.bad{background:var(--bad)}
 
+body.side #main{padding-right:46px}
+body.side .seg.rail{position:fixed;right:0;top:calc(150px + env(safe-area-inset-top,0px));z-index:30;display:flex;flex-direction:column;flex-wrap:nowrap;gap:8px;align-items:flex-end;max-height:calc(100vh - 290px);overflow-y:auto;scrollbar-width:none}
+body.side.isdemo .seg.rail{top:calc(205px + env(safe-area-inset-top,0px))}
+body.side .seg.rail::-webkit-scrollbar{display:none}
+body.side .seg.rail button{writing-mode:vertical-rl;padding:14px 9px;border-radius:14px 0 0 14px;border-right:0;max-height:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;box-shadow:-2px 2px 8px rgba(0,0,0,.12)}
+body.side .seg.rail button.on{padding-right:13px}
 .seg{display:flex;flex-wrap:wrap;gap:6px}
 .seg button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 12px;font-size:13.5px}
 .seg button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
@@ -248,6 +254,7 @@ body.priv #main,body.priv #tabs{visibility:hidden}
 .ico{width:40px;height:40px;border-radius:12px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-weight:700;font-family:var(--font-display);flex:none;text-transform:uppercase}
 .mini{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 11px;font-size:12.5px;font-weight:600;color:var(--ink);text-decoration:none;display:inline-block}
 </style>
+
 
 
 </head>
@@ -798,9 +805,9 @@ function viewHome(){
       <span class="sin"><input id="solde" inputmode="decimal" placeholder="0,00" value="${isNum(soldeVal) ? String(soldeVal).replace(".",",") : ""}" aria-label="Solde actuel du compte"><b>€</b></span>
       <span class="sh">Recopie le solde de ton appli bancaire. Touche le montant pour le modifier : tout est recalculé.</span></label>
     ${(() => { const P = periodInfo(); return P.active ? `<div class="sub">jusqu'à la paie du ${P.pay} · ${P.left === 0 ? "dernier jour" : P.left + " jour" + (P.left > 1 ? "s" : "") + " restant" + (P.left > 1 ? "s" : "")}</div><div class="prog" role="img" aria-label="Période écoulée : ${P.done} jours sur ${P.total}"><i style="width:${Math.round(P.done / P.total * 100)}%"></i></div>` : ""; })()}
-    ${isNum(soldeVal) ? `<div class="hstats"><div><span>Fixes à payer</span><b class="num">− ${eur(c.d13)}</b></div><div><span>Dépenses non pointées</span><b class="num">− ${eur(c.d14)}</b></div>${c.d15 > 0 ? `<div><span>Épargne non pointée</span><b class="num">− ${eur(c.d15)}</b></div>` : ""}<div><span>Enveloppes restantes</span><b class="num">− ${eur(c.d17)}</b></div></div>` : ""}
+    ${isNum(soldeVal) ? `<div class="hstats"><div class="lnk" data-act="go" data-v="month" data-mv="fix" role="button" tabindex="0"><span>Fixes à payer ›</span><b class="num">− ${eur(c.d13)}</b></div><div class="lnk" data-act="go" data-v="month" data-mv="ops" data-s="m-ops" role="button" tabindex="0"><span>Dépenses non pointées ›</span><b class="num">− ${eur(c.d14)}</b></div>${c.d15 > 0 ? `<div class="lnk" data-act="go" data-v="month" data-mv="ops" data-s="m-ops" role="button" tabindex="0"><span>Épargne non pointée ›</span><b class="num">− ${eur(c.d15)}</b></div>` : ""}<div class="lnk" data-act="go" data-s="home-env" data-v="home" role="button" tabindex="0"><span>Enveloppes restantes ›</span><b class="num">− ${eur(c.d17)}</b></div></div>` : ""}
   </div>
-  <div class="card"><h2>Enveloppes de ${MOIS[V.m].toLowerCase()}</h2><div class="small muted">Touchez une enveloppe pour changer son budget de ce mois seulement.</div><div>${envHtml}</div><div class="btns" style="margin-top:10px"><button class="btn ghost sm" data-act="envmonthnew">+ Enveloppe pour ce mois</button></div></div>
+  <div class="card" id="home-env"><h2>Enveloppes de ${MOIS[V.m].toLowerCase()}</h2><div class="small muted">Touchez une enveloppe pour changer son budget de ce mois seulement.</div><div>${envHtml}</div><div class="btns" style="margin-top:10px"><button class="btn ghost sm" data-act="envmonthnew">+ Enveloppe pour ce mois</button></div></div>
   ${isNum(soldeVal) ? `<div class="card"><h2>À mettre de côté en fin de mois</h2>
     <div class="aside2"><div><span>Possible si tu dépenses tous tes budgets</span><b class="num ${c.d18<0?"neg":"pos"}">${eur(c.d18)}</b></div><div><span>Possible si tu ne dépenses plus rien</span><b class="num ${c.d16<0?"neg":"pos"}">${eur(c.d16)}</b></div></div>
     <div class="kv"><span>Déjà mis de côté ce mois</span><span class="num">${eur(c.epargne)}</span></div>
@@ -812,13 +819,14 @@ function viewHome(){
   ${(() => { const M = nextMoves(); return M.length ? `<div class="card"><h2>Prochains mouvements</h2><div>${M.map(m => `<div class="mv"><span class="dt num">${pad(m.dt.getDate())}/${pad(m.dt.getMonth()+1)}</span><span class="nm">${esc(m.name)}</span><span class="num ${m.sign > 0 ? "pos" : ""}" style="font-weight:700">${m.sign > 0 ? "+ " : "− "}${eur(m.amt)}</span></div>`).join("")}</div></div>` : ""; })()}
   ${granHomeHtml()}
   <div class="card"><div class="top"><h2>Épargne</h2><button class="btn sm" data-act="gosav">Détail</button></div>
-    <div class="kv"><span>Livret A</span><span class="num">${eur(L.solde)}</span></div>
-    <div class="kv"><span>Livret A vraiment à moi</span><span class="num">${eur(L.aMoi)}</span></div>
-    ${acctLive().length ? `<div class="kv"><span>Autres comptes d'épargne</span><span class="num">${eur(acctTotal())}</span></div>` : ""}
-    <div class="kv"><span>Épargne du mois</span><span class="num">${eur(c.epargne)}</span></div>
-    <div class="kv"><span>Résultat prévu du mois</span><span class="num ${c.resultat<0?"neg":"pos"}">${eur(c.resultat)}</span></div>
+    <div class="kv lnk" data-act="go" data-v="sav" role="button" tabindex="0"><span>Livret A ›</span><span class="num">${eur(L.solde)}</span></div>
+    <div class="kv lnk" data-act="go" data-v="sav" role="button" tabindex="0"><span>Livret A vraiment à moi ›</span><span class="num">${eur(L.aMoi)}</span></div>
+    ${acctLive().filter(a => !isCag(a)).length ? `<div class="kv lnk" data-act="go" data-v="sav" data-s="sav-accts" role="button" tabindex="0"><span>Autres comptes d'épargne ›</span><span class="num">${eur(acctTotal())}</span></div>` : ""}
+    ${acctLive().filter(isCag).length ? `<div class="kv lnk" data-act="go" data-v="sav" data-s="sav-accts" role="button" tabindex="0"><span>Cagnottes (pas à moi) ›</span><span class="num">${eur(cagTotal())}</span></div>` : ""}
+    <div class="kv lnk" data-act="go" data-v="month" data-mv="ops" data-s="m-ops" role="button" tabindex="0"><span>Épargne du mois ›</span><span class="num">${eur(c.epargne)}</span></div>
+    <div class="kv lnk" data-act="go" data-v="home" data-s="home-calc" role="button" tabindex="0"><span>Résultat prévu du mois ›</span><span class="num ${c.resultat<0?"neg":"pos"}">${eur(c.resultat)}</span></div>
     <div class="small muted">Revenus moins dépenses et épargne déjà notées. Ne dépend pas du solde du compte.</div></div>
-  <div class="card"><details><summary><span>Détail du calcul</span><span class="muted small">voir</span></summary>
+  <div class="card"><details id="home-calc"><summary><span>Détail du calcul</span><span class="muted small">voir</span></summary>
     <div style="margin-top:8px">
       <div class="kv"><span>Solde actuel du compte</span><span class="num">${eur(N(soldeVal))}</span></div>
       ${kv("Revenus fixes pas encore reçus",c.d11)}${kv("Revenus et remboursements à venir",c.d12)}
@@ -871,9 +879,9 @@ function viewMonth(){
     <div class="btns"><button class="btn ghost sm" data-act="fixmonthnew" data-k="rev">+ Revenu pour ce mois</button><button class="btn ghost sm" data-act="fixmonthnew" data-k="ch">+ Charge pour ce mois</button></div>
     <div><div class="small muted" style="margin-top:4px">Revenus</div><div class="rows">${revRows.length ? revRows.map(r => fixRowHtml("rev",r)).join("") : '<div class="empty">Rien à pointer.</div>'}</div></div>
     <div><div class="small muted">Charges fixes</div><div class="rows">${chRows.length ? chRows.map(r => fixRowHtml("ch",r)).join("") : '<div class="empty">Rien à pointer.</div>'}</div></div></div>`;
-  const opsCard = `  <div class="card"><div class="top"><h2>Opérations du mois</h2><button class="btn ghost sm" data-act="jsearch">🔍 Rechercher</button></div><div class="rows">${jHtml}</div></div>`;
+  const opsCard = `  <div class="card" id="m-ops"><div class="top"><h2>Opérations du mois</h2><button class="btn ghost sm" data-act="jsearch">🔍 Rechercher</button></div><div class="rows">${jHtml}</div></div>`;
   const mvv = V.mv || lsGet("mc-mview") || "all";
-  const mvBar = `<div class="spanall" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin:2px 0 10px"><div class="seg">${[["all","Tout"],["fix","Fixes"],["ops","Opérations"]].map(([k,l]) => `<button class="${mvv === k ? "on" : ""}" data-act="mview" data-v="${k}">${l}</button>`).join("")}</div><div class="seg"><button class="${V.hidePast ? "on" : ""}" data-act="hidepast">Masquer les pointés</button></div></div>`;
+  const mvBar = `<div class="spanall" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin:2px 0 10px"><div class="seg rail">${[["all","Tout"],["fix","Fixes"],["ops","Opérations"]].map(([k,l]) => `<button class="${mvv === k ? "on" : ""}" data-act="mview" data-v="${k}">${l}</button>`).join("")}</div><div class="seg"><button class="${V.hidePast ? "on" : ""}" data-act="hidepast">Masquer les pointés</button></div></div>`;
   return topbar() + `
   <div class="card"><div class="top"><h2>Bilan du mois</h2><button class="btn ghost sm" data-act="exopen">Exporter</button></div>
     <div class="tiles"><div class="tile"><span>Revenus</span><b class="num pos">${eur(c.revenus)}</b></div><div class="tile"><span>Dépenses</span><b class="num">${eur(c.depenses)}</b></div><div class="tile"><span>Résultat</span><b class="num ${c.resultat<0?"neg":"pos"}">${eur(c.resultat)}</b></div></div>
@@ -940,8 +948,9 @@ function granSetHtml(){ const g = gr();
 function livFieldsHtml(d, ed){
   const vers = d.type === "Versement sur Livret A", po = S.epargne.poches.filter(p => p.n), ac = acctLive();
   return `<div class="card" style="background:var(--surface2,rgba(0,0,0,.03));box-shadow:none;border:1px dashed var(--line)"><b>${vers ? "Versement sur le Livret A" : "Retrait du Livret A"}</b>
+    <div class="small muted">${vers ? "L'argent entre sur ton <b>Livret A</b> (ton livret principal), pas sur ton compte courant." : "L'argent sort de ton <b>Livret A</b> (ton livret principal), pas de ton compte courant."}</div>
     <label class="f">${vers ? "Cet argent va dans une poche ?" : "Tu utilises l'argent d'une poche ?"}<select id="f-poche"><option value="">Non, c'est mon argent</option>${po.map(p => `<option value="${esc(p.n)}" ${d.poche === p.n ? "selected" : ""}>Oui : ${esc(p.n)}</option>`).join("")}</select></label>
-    ${ed ? "" : `<label class="f">${vers ? "D'où vient l'argent ?" : "Où va l'argent ?"}<select id="f-acct"><option value="">${vers ? "De mon compte courant" : "Sur mon compte courant"}</option>${ac.map(a => `<option value="${esc(a.id)}" ${d.acct === a.id ? "selected" : ""}>${vers ? "De" : "Sur"} : ${esc(a.n)} (${esc(a.type)})</option>`).join("")}</select></label>
+    ${ed ? "" : `<label class="f">${vers ? "D'où vient l'argent versé sur le Livret A ?" : "Où va l'argent retiré du Livret A ?"}<select id="f-acct"><option value="">${vers ? "De mon compte courant" : "Sur mon compte courant"}</option>${ac.map(a => `<option value="${esc(a.id)}" ${d.acct === a.id ? "selected" : ""}>${vers ? "De" : "Sur"} : ${esc(a.n)} (${esc(a.type)})</option>`).join("")}</select></label>
     <div class="small muted">Si tu choisis un autre compte d'épargne, le mouvement est noté des deux côtés (Livret A et ce compte) et ton compte courant ne bouge pas.</div>`}</div>`; }
 function viewAdd(){
   const ed = V.editId ? S.journal.find(j => j.id === V.editId) : null;
@@ -1000,25 +1009,27 @@ function updateInfo(){
   el.textContent = "Reste dans l'enveloppe ce mois : " + eur(reste) + (mt ? " · après cette dépense : " + eur(apres) : "");
 }
 
-const ACCT_TYPES = ["Livret","Assurance vie","Bourse / PEA","Compte courant","Autre"];
+const ACCT_TYPES = ["Livret","Assurance vie","Bourse / PEA","Compte courant","Liquide","Cagnotte","Autre"];
+const isCag = a => a.type === "Cagnotte", isCash = a => a && (a.type === "Liquide" || a.type === "Cagnotte");
 const frFull = iso => iso ? iso.slice(8,10) + "/" + iso.slice(5,7) + "/" + iso.slice(0,4) : "";
 const acctLive = () => (S.accts || []).filter(a => !a.del);
 const acctMvs = id => (S.acctMv || []).filter(m => !m.del && m.a === id).sort((x,y) => (y.date || "").localeCompare(x.date || "") || (y.upd || 0) - (x.upd || 0));
 const acctSolde = a => N(a.depart) + (S.acctMv || []).filter(m => !m.del && m.a === a.id).reduce((t,m) => t + N(m.mt), 0);
-const acctTotal = () => acctLive().reduce((t,a) => t + acctSolde(a), 0);
+const acctTotal = () => acctLive().filter(a => !isCag(a)).reduce((t,a) => t + acctSolde(a), 0);
+const cagTotal = () => acctLive().filter(isCag).reduce((t,a) => t + acctSolde(a), 0);
 function sheetAcct(id){
   const a = (S.accts || []).find(x => x.id === id); if (!a || a.del) return;
   const mv = acctMvs(id).slice(0,12);
   openSheet(`<h2>${esc(a.n)}</h2>
     <div class="kv"><span>${esc(a.type)}</span><span class="num" style="font-weight:700">${eur(acctSolde(a))}</span></div>
     <div class="small muted">Départ : ${eur(a.depart)}${a.date ? " au " + frFull(a.date) : ""}. Les mouvements s'ajoutent au solde de départ.</div>
-    <div class="rows">${mv.length ? mv.map(m => `<div class="row"><button class="rowbtn" data-act="mvedit" data-id="${m.id}"><div class="t">${esc(m.lib || (m.mt >= 0 ? "Versement" : "Retrait"))}</div><div class="s">${frFull(m.date)}</div></button><div class="amt num ${m.mt >= 0 ? "pos" : "neg"}">${m.mt >= 0 ? "+ " : "− "}${eur(Math.abs(m.mt))}</div></div>`).join("") : '<div class="empty">Aucun mouvement.</div>'}</div>
-    <div class="btns"><button class="btn" data-act="mvnew" data-id="${a.id}" style="flex:1">+ Mouvement</button><button class="btn ghost" data-act="acctedit" data-id="${a.id}">Modifier le compte</button><button class="btn ghost" data-act="sheetclose">Fermer</button></div>`);
+    <div class="rows">${mv.length ? mv.map(m => `<div class="row"><button class="rowbtn" data-act="mvedit" data-id="${m.id}"><div class="t">${esc(m.lib || (m.mt >= 0 ? (isCash(a) ? "Revenu" : "Versement") : (isCash(a) ? "Dépense" : "Retrait")))}</div><div class="s">${frFull(m.date)}</div></button><div class="amt num ${m.mt >= 0 ? "pos" : "neg"}">${m.mt >= 0 ? "+ " : "− "}${eur(Math.abs(m.mt))}</div></div>`).join("") : '<div class="empty">Aucun mouvement.</div>'}</div>
+    <div class="btns"><button class="btn" data-act="mvnew" data-id="${a.id}" style="flex:1">${isCash(a) ? "+ Revenu / dépense" : "+ Mouvement"}</button><button class="btn ghost" data-act="acctedit" data-id="${a.id}">Modifier le compte</button><button class="btn ghost" data-act="sheetclose">Fermer</button></div>`);
 }
 function sheetAcctEdit(id){
   const a = id ? S.accts.find(x => x.id === id) : {n:"", type:"Livret", depart:"", date:todayIso()};
   openSheet(`<h2>${id ? "Modifier le compte" : "Nouveau compte d'épargne"}</h2>
-    <label class="f">Nom<input id="ac-n" placeholder="LDDS, LEP, PEL…" value="${esc(a.n)}"></label>
+    <label class="f">Nom<input id="ac-n" placeholder="LDDS, Liquide, Cagnotte de ma fille…" value="${esc(a.n)}"></label>
     <label class="f">Type<select id="ac-t">${ACCT_TYPES.map(t => `<option ${t === a.type ? "selected" : ""}>${esc(t)}</option>`).join("")}</select></label>
     <div class="grid2"><label class="f">Solde de départ (€)<input id="ac-d" inputmode="decimal" value="${a.depart === "" ? "" : String(a.depart).replace(".",",")}"></label>
     <label class="f">À la date du<input id="ac-dt" type="date" value="${esc(a.date)}"></label></div>
@@ -1028,7 +1039,7 @@ function sheetMv(id, aid){
   const m = id ? S.acctMv.find(x => x.id === id) : {a:aid, date:todayIso(), lib:"", mt:""};
   const neg = isNum(m.mt) && m.mt < 0;
   openSheet(`<h2>${id ? "Modifier le mouvement" : "Nouveau mouvement"}</h2>
-    <div class="seg"><button class="${neg ? "" : "on"}" data-act="mvsens" data-v="+">Versement (+)</button><button class="${neg ? "on" : ""}" data-act="mvsens" data-v="-">Retrait (−)</button></div>
+    ${(() => { const ac = (S.accts || []).find(x => x.id === m.a), cs = isCash(ac); return `<div class="seg"><button class="${neg ? "" : "on"}" data-act="mvsens" data-v="+">${cs ? "Revenu (+)" : "Versement (+)"}</button><button class="${neg ? "on" : ""}" data-act="mvsens" data-v="-">${cs ? "Dépense (−)" : "Retrait (−)"}</button></div>`; })()}
     <div class="grid2"><label class="f">Montant (€)<input id="mv-m" inputmode="decimal" value="${isNum(m.mt) ? String(Math.abs(m.mt)).replace(".",",") : ""}"></label>
     <label class="f">Date<input id="mv-dt" type="date" value="${esc(m.date)}"></label></div>
     <label class="f">Libellé<input id="mv-l" value="${esc(m.lib)}"></label>
@@ -1061,10 +1072,10 @@ function viewSav(){
   <div class="card hero"><div class="lbl">Livret A vraiment à moi</div><div class="big num">${eur(L.aMoi)}</div>
     <div class="sub">Livret A ${eur(L.solde)} moins poches réservées ${eur(L.pochesReste)}</div>
     <div class="sub">Après les mouvements prévus (FUTUR) : <b class="num">${eur(L.prevu)}</b></div></div>
-  <div class="card"><div class="top"><h2>Mes comptes d'épargne</h2><button class="btn sm" data-act="acctnew">Ajouter un compte</button></div>
+  <div class="card" id="sav-accts"><div class="top"><h2>Mes comptes d'épargne</h2><button class="btn sm" data-act="acctnew">Ajouter un compte</button></div>
     <div class="rows"><div class="row">${dotHtml("Livret A")}<div class="main"><div class="t">Livret A</div><div class="s">détail plus bas</div></div><div class="amt num">${eur(L.solde)}</div></div>
     ${acctLive().map(a => `<div class="row">${dotHtml(a.n)}<button class="rowbtn" data-act="acctopen" data-id="${a.id}"><div class="t">${esc(a.n)}</div><div class="s">${esc(a.type)}${a.date ? " · départ " + frFull(a.date) : ""}</div></button><div class="amt num">${eur(acctSolde(a))}</div></div>`).join("")}</div>
-    <div class="kv tot"><span>Total de l'épargne</span><span class="num">${eur(L.solde + acctTotal())}</span></div></div>
+    <div class="kv tot"><span>Total de l'épargne</span><span class="num">${eur(L.solde + acctTotal())}</span></div>${acctLive().some(isCag) ? `<div class="kv"><span>Cagnottes (pas comptées dans l'épargne)</span><span class="num">${eur(cagTotal())}</span></div>` : ""}<div class="small muted">Liquide, cagnotte de ta fille, tirelire… : « Ajouter un compte », type « Liquide » ou « Cagnotte », puis note les revenus et les dépenses. Une cagnotte n'est pas comptée dans ton total d'épargne (ce n'est pas ton argent).</div></div>
   <div class="card"><div class="kv"><span>Épargne prévue (après FUTUR)</span><span class="num">${eur(L.prevu)}</span></div>
     <div class="small muted">« Livret A vraiment à moi » ne bouge que quand une ligne FUTUR est cochée « fait ». Tant qu'elle ne l'est pas, elle ne change que « Épargne prévue ». Départ : ${eur(S.settings.livretDepart)}${e.dateDepart ? " au " + e.dateDepart.slice(8,10) + "/" + e.dateDepart.slice(5,7) + "/" + e.dateDepart.slice(0,4) : ""}. Les mouvements pointés du journal après cette date s'ajoutent automatiquement.</div></div>
   <div class="card"><div class="top"><h2>Mouvements du Livret A</h2><button class="btn sm" data-act="lvnew">Ajouter</button></div>
@@ -1143,7 +1154,7 @@ function viewWeb(){
   return `<div class="top"><div class="app">Comptes en ligne</div><div class="topr"><label class="btn sm ghost" style="cursor:pointer">Importer<input id="webfile" type="file" accept=".xlsx,.xlsm,.xls,.csv" hidden></label><button class="btn sm" data-act="webnew">Ajouter</button></div></div>${V.webMsg ? `<div class="info">${esc(V.webMsg)}</div>` : ""}
   <div class="info">Ne notez jamais de mot de passe ici : les données restent en clair sur le téléphone. Gardez-les dans Mots de passe Apple. Ici : le site, l'identifiant et l'état.</div>
   <input class="search" id="web-q" placeholder="Rechercher un site, un identifiant…" value="${esc(V.wq || "")}" enterkeyhint="search">
-  <div class="seg">${["Tous"].concat(WEB_ST).map(x => `<button class="${f === x ? "on" : ""}" data-act="webf" data-v="${x}">${x}${x === "Tous" ? " (" + all.length + ")" : " (" + cnt(x) + ")"}</button>`).join("")}</div>
+  <div class="seg rail">${["Tous"].concat(WEB_ST).map(x => `<button class="${f === x ? "on" : ""}" data-act="webf" data-v="${x}">${x}${x === "Tous" ? " (" + all.length + ")" : " (" + cnt(x) + ")"}</button>`).join("")}</div>
   <div class="catbar" aria-label="Catégories">${webCats().map(c => { const n = all.filter(x => (f === "Tous" || x.st === f) && x.cat === c).length; return `<button class="${V.wc === c ? "on" : ""}" data-act="webc" data-v="${esc(c)}">${esc(c)}<span>${n}</span></button>`; }).join("")}<button data-act="webcats" aria-label="Modifier les catégories">✎ Catégories</button></div>
   <div class="card"><div class="rows" id="web-list">${webList()}</div></div>`;
 }
@@ -1237,6 +1248,7 @@ function sheetPin(mode){
     ${mode === "off" ? `<div class="small muted">Les données seront de nouveau stockées sans chiffrement sur ce téléphone.</div>` : ""}
     <div class="btns"><button class="btn" data-act="pin-${mode}" style="flex:1">Valider</button><button class="btn ghost" data-act="sheetclose">Annuler</button></div>`);
 }
+const MK = n => "\u0001" + n + "\u0001";
 function viewSet(){
   const p = V.pending;
   const pend = p ? `<div class="card" style="border-color:var(--accent)"><h2>Fichier lu : ${esc(p.name)}</h2>
@@ -1247,42 +1259,55 @@ function viewSet(){
       : `${p.rows.length} ligne(s) de journal.`}</div>
     <div class="btns">${p.kind === "json" ? `<button class="btn" data-act="imp-replace">Restaurer cette sauvegarde</button><button class="btn ghost" data-act="imp-merge">Fusionner le journal seulement</button>` : p.kind === "classeur" || (p.kind === "echange" && (p.full.settings || p.full.fixRev || p.full.epargne)) ? `<button class="btn" data-act="imp-replace">Remplacer mes données</button><button class="btn ghost" data-act="imp-merge">Fusionner (avec choix des différences)</button>` : `<button class="btn" data-act="imp-merge">Fusionner</button>`}
     <button class="btn ghost" data-act="imp-cancel">Annuler</button></div></div>` : "";
-  return `<div class="top"><div class="app">Réglages</div></div>${V.msg ? `<div class="info">${esc(V.msg)}</div>` : ""}${pend}
-  <div class="card"><h2>Guide d'utilisation</h2><div class="small muted">Comment marche chaque partie de l'appli, expliqué simplement. Le bouton ? en haut de chaque écran donne aussi l'aide de l'écran.</div>
+  const raw = `<div class="top"><div class="app">Réglages</div></div>${V.msg ? `<div class="info">${esc(V.msg)}</div>` : ""}${pend}
+
+${MK("guide")}  <div class="card"><h2>Guide d'utilisation</h2><div class="small muted">Comment marche chaque partie de l'appli, expliqué simplement. Le bouton ? en haut de chaque écran donne aussi l'aide de l'écran.</div>
     <div class="btns"><button class="btn" data-act="guide">Ouvrir le guide</button><button class="btn ghost" data-act="upd-hist">Historique des mises à jour</button></div></div>
-  <div class="card"><h2>Mode démo</h2><div class="small muted">Découvre toutes les fonctions avec des données d'exemple. Tes vraies données ne sont ni touchées ni affichées, et rien n'est enregistré pendant la démo. Pratique aussi pour montrer l'appli à quelqu'un.</div>
+
+${MK("demo")}  <div class="card"><h2>Mode démo</h2><div class="small muted">Découvre toutes les fonctions avec des données d'exemple. Tes vraies données ne sont ni touchées ni affichées, et rien n'est enregistré pendant la démo. Pratique aussi pour montrer l'appli à quelqu'un.</div>
     <div class="btns">${DEMO ? `<button class="btn" data-act="demo-exit">Revenir à mes comptes</button>` : `<button class="btn" data-act="demo">Voir le mode démo</button>`}<button class="btn ghost" data-act="fview">Fiche de présentation</button><button class="btn ghost" data-act="vview">Vidéo (3 min)</button></div>
     <div class="small muted">Lien direct à partager : dam-cigogne.github.io/comptes/?demo=1</div></div>
-  ${granSetHtml()}
-  <div class="card"><h2>Installer l'appli</h2>${installHtml()}</div>
-  <div class="card"><h2>Utiliser plusieurs appareils</h2><div class="small muted">${MULTI_WARN}</div><div class="btns"><button class="btn ghost" data-act="multi-open">Voir comment faire</button><button class="btn ghost" data-act="exp-json">Sauvegarder maintenant</button></div></div>
-  <div class="card"><h2>Fiche de l'appli (à partager)</h2><div class="small muted">Une fiche de présentation et des affiches pour faire connaître l'appli à tes proches. Aucune donnée personnelle dedans.</div>
+
+${MK("gran")}  ${granSetHtml()}
+
+${MK("install")}  <div class="card"><h2>Installer l'appli</h2>${installHtml()}</div>
+
+${MK("multi")}  <div class="card"><h2>Utiliser plusieurs appareils</h2><div class="small muted">${MULTI_WARN}</div><div class="btns"><button class="btn ghost" data-act="multi-open">Voir comment faire</button><button class="btn ghost" data-act="exp-json">Sauvegarder maintenant</button></div></div>
+
+${MK("fiche")}  <div class="card"><h2>Fiche de l'appli (à partager)</h2><div class="small muted">Une fiche de présentation et des affiches pour faire connaître l'appli à tes proches. Aucune donnée personnelle dedans.</div>
     <div class="thumbs">${[["affiche-claire.jpg","Affiche claire"],["affiche-sombre.jpg","Affiche sombre"],["affiche-appli.jpg","Affiche avec l'appli"],["apercu.png","Carte d'aperçu"]].map(([f,l]) => `<button data-act="imgopen" data-v="${f}" data-t="${l}"><img src="${f}" alt="${l}" loading="lazy"><span>${l}</span></button>`).join("")}</div>
     <div class="btns"><button class="btn" data-act="fshare">Partager avec le descriptif</button><button class="btn ghost" data-act="fview">Voir la fiche</button><button class="btn ghost" data-act="fcopy">Copier le lien</button></div></div>
-  <div class="card"><h2>Où enregistrer les exports ?</h2>
+
+${MK("dir")}  <div class="card"><h2>Où enregistrer les exports ?</h2>
     ${window.showDirectoryPicker ? `<div class="small muted">Choisis un dossier une seule fois : les exports (journal Excel, sauvegarde, bilan) y seront écrits directement, en remplaçant l'ancien fichier du même nom.</div>
     <div class="small" style="margin-top:6px">Dossier actuel : <b>${esc(lsGet("mc-dirname") || "aucun (le navigateur te demande à chaque fois)")}</b></div>
     <div class="btns"><button class="btn" data-act="dirpick">Choisir un dossier</button>${lsGet("mc-dirname") ? `<button class="btn ghost" data-act="dirclear">Retirer</button>` : ""}</div>`
     : `<div class="small muted">Sur iPhone et iPad, Apple ne permet pas de fixer un dossier d'avance. Quand la feuille de partage s'ouvre, touche « Enregistrer dans Fichiers » : iOS rouvre en général le dernier dossier utilisé. Les fichiers gardent toujours le même nom (journal_appli.xlsx, mes-comptes-sauvegarde.json) : choisis « Remplacer » pour ne pas en multiplier.</div>`}
   </div>
-  <div class="card"><h2>Écran au démarrage</h2><div class="small muted">Choisis l'écran qui s'ouvre quand tu lances l'appli. « Ajouter » est pratique pour noter une dépense tout de suite.</div>
+
+${MK("start")}  <div class="card"><h2>Écran au démarrage</h2><div class="small muted">Choisis l'écran qui s'ouvre quand tu lances l'appli. « Ajouter » est pratique pour noter une dépense tout de suite.</div>
     <div class="seg" style="margin-top:6px">${[["home","Accueil"],["add","Ajouter"]].map(([k,l]) => `<button class="${(lsGet("mc-start") || "home") === k ? "on" : ""}" data-act="start" data-v="${k}">${l}</button>`).join("")}</div></div>
-  <div class="card"><h2>Rappel à l'ouverture</h2><div class="small muted">Au premier lancement de la journée, l'appli affiche ce qui reste à pointer (fixes passés et opérations pas encore pointées).</div>
+
+${MK("remind")}  <div class="card"><h2>Rappel à l'ouverture</h2><div class="small muted">Au premier lancement de la journée, l'appli affiche ce qui reste à pointer (fixes passés et opérations pas encore pointées).</div>
     <div class="btns"><button class="btn ${lsGet("mc-remind") === "off" ? "ghost" : ""}" data-act="remind-toggle">${lsGet("mc-remind") === "off" ? "Rappel désactivé · activer" : "Rappel activé · désactiver"}</button><button class="btn ghost" data-act="pt-open">Voir maintenant</button></div></div>
-  <div class="card"><h2>Synchroniser avec Excel</h2>
+
+${MK("sync")}  <div class="card"><h2>Synchroniser avec Excel</h2>
     <div class="small muted">Le fichier d'échange contient toutes les opérations avec un identifiant. Importez-le à nouveau pour fusionner : les lignes déjà connues sont mises à jour, les nouvelles sont ajoutées.</div>
     <div class="btns"><button class="btn" data-act="exp-journal">Exporter le journal (.xlsx)</button></div>
     <div class="info">📁 Enregistre ce fichier dans le dossier <b>IMPORT</b> d'Excel : c'est là qu'Excel va le chercher.</div>
     <div class="btns"><button class="btn ghost" data-act="exp-json">Sauvegarde complète (.json)</button></div>
     <div class="small muted">${bkpAge() === null ? "Aucune sauvegarde complète faite pour l'instant." : "Dernière sauvegarde complète : " + (bkpAge() === 0 ? "aujourd'hui" : "il y a " + bkpAge() + " jour(s)") + "."} Un rappel s'affiche en haut après 14 jours.</div>
     <label class="f"><b>Importer le journal</b> (fichier venant d'Excel : classeur .xlsm / .xlsx, journal d'échange, ou sauvegarde .json)<input id="file" type="file" accept=".xlsm,.xlsx,.json,.xls"></label></div>
-  <div class="card"><h2>Apparence</h2><div class="small muted">Couleur de l'appli</div><div class="pal">${Object.keys(PALS).map(k => `<button class="${(lsGet("mc-pal") || "emeraude") === k ? "on" : ""}" data-act="pal" data-v="${k}" aria-label="${PALS[k].n}" title="${PALS[k].n}" style="background-color:${k === "emeraude" ? "#0E6B5C" : PALS[k].l[0]}"></button>`).join("")}</div><div class="small muted" style="margin-top:8px">Mode</div><div class="seg">${[["auto","Automatique"],["light","Clair"],["dark","Sombre"],["sched","Horaires"]].map(([k,l]) => `<button class="${(lsGet("mc-theme") || "auto") === k ? "on" : ""}" data-act="theme" data-v="${k}">${l}</button>`).join("")}</div>
+
+${MK("look")}  <div class="card"><h2>Apparence</h2><div class="small muted">Couleur de l'appli</div><div class="pal">${Object.keys(PALS).map(k => `<button class="${(lsGet("mc-pal") || "emeraude") === k ? "on" : ""}" data-act="pal" data-v="${k}" aria-label="${PALS[k].n}" title="${PALS[k].n}" style="background-color:${k === "emeraude" ? "#0E6B5C" : PALS[k].l[0]}"></button>`).join("")}</div><div class="small muted" style="margin-top:8px">Mode</div><div class="seg">${[["auto","Automatique"],["light","Clair"],["dark","Sombre"],["sched","Horaires"]].map(([k,l]) => `<button class="${(lsGet("mc-theme") || "auto") === k ? "on" : ""}" data-act="theme" data-v="${k}">${l}</button>`).join("")}</div>
     <div class="small muted">Automatique suit le réglage de ton téléphone (Réglages → Affichage et luminosité). Horaires : tu choisis toi-même quand l'appli passe en sombre.</div>
     ${lsGet("mc-theme") === "sched" ? `<div class="grid2" style="margin-top:8px"><label class="f">Sombre à partir de<input id="sch-a" type="time" value="${schedGet()[0]}"></label><label class="f">Clair à partir de<input id="sch-b" type="time" value="${schedGet()[1]}"></label></div>` : ""}</div>
-  <div class="card"><h2>Taille de l'affichage</h2><div class="small muted">Automatique agrandit l'appli sur tablette et grand écran. Tu peux aussi choisir toi-même (jusqu'à « Maximum »).</div>
+
+${MK("zoom")}  <div class="card"><h2>Taille de l'affichage</h2><div class="small muted">Automatique agrandit l'appli sur tablette et grand écran. Tu peux aussi choisir toi-même (jusqu'à « Maximum »).</div>
     <div class="seg" style="margin-top:6px">${[["auto","Automatique"],["1","Normal"],["1.25","Grand"],["1.5","Très grand"],["1.75","Maximum"]].map(([k,l]) => `<button class="${(lsGet("mc-zoom") || "auto") === k ? "on" : ""}" data-act="zoom" data-v="${k}">${l}</button>`).join("")}</div>
     <div class="small muted" style="margin-top:10px">Disposition sur grand écran</div><div class="seg" style="margin-top:6px">${[["auto","Colonnes (voir tout)"],["off","Une colonne"]].map(([k,l]) => `<button class="${(lsGet("mc-cols") || "auto") === k ? "on" : ""}" data-act="cols" data-v="${k}">${l}</button>`).join("")}</div></div>
-  <div class="card"><h2>Compte et épargne</h2>
+
+${MK("compte")}  <div class="card"><h2>Compte et épargne</h2>
     <div class="hbody small"><p><b>Solde du compte</b> : ce qu'il y a sur ton compte courant maintenant (regarde dans l'appli de ta banque). C'est le point de départ du reste à vivre.</p>
     <p><b>Jour de paie</b> : 1 = mois normal (du 1er à la fin du mois). Si tu es payé le 25, mets 25 : ton mois va alors du 25 au 24. De 1 à 28.</p>
     <p><b>Livret A au départ</b> et <b>date de ce solde</b> : le solde de ton Livret A à un jour précis. L'appli y ajoute ensuite tous les mouvements <b>après</b> cette date : mets la date du jour où tu as relevé ce solde.</p>
@@ -1293,13 +1318,15 @@ function viewSet(){
     <label class="f">Livret A au départ (€)<input id="s-livret" inputmode="decimal" value="${String(N(S.settings.livretDepart)).replace(".",",")}"></label>
     <label class="f">Date de ce solde du Livret<input id="s-ldate" type="date" value="${esc(S.epargne.dateDepart)}"></label>
     <label class="f">Enveloppe versée sur le Livret<select id="s-lenv"><option value="">—</option>${S.settings.envelopes.map(e => `<option ${e.n === S.epargne.envA ? "selected" : ""}>${esc(e.n)}</option>`).join("")}</select></label></div></div>
-  <div class="card"><div class="top"><h2>Enveloppes (budget mensuel)</h2><button class="btn sm" data-act="envnew">Ajouter</button></div>
+
+${MK("env")}  <div class="card"><div class="top"><h2>Enveloppes (budget mensuel)</h2><button class="btn sm" data-act="envnew">Ajouter</button></div>
     <div class="small muted">Les budgets propres à un mois, importés du classeur, sont conservés.</div>
     ${S.settings.envelopes.map((e,i) => `<div class="grid2" style="grid-template-columns:1fr 110px auto;align-items:end">
       <label class="f">Nom<input data-env="n" data-i="${i}" value="${esc(e.n)}"></label>
       <label class="f">Budget<input data-env="b" data-i="${i}" inputmode="decimal" value="${String(N(e.b)).replace(".",",")}"></label>
       <button class="btn danger sm" data-act="envdel" data-i="${i}" aria-label="Supprimer">✕</button></div>`).join("")}</div>
-  <div class="card"><h2>Rapprochement bancaire</h2><div class="small muted">Importez un relevé (PDF ou CSV) pour pointer vos opérations et retrouver celles qui manquent.${S.undo ? ` Dernier rapprochement : ${esc(S.undo.txt)}.` : ""}</div>
+
+${MK("bank")}  <div class="card"><h2>Rapprochement bancaire</h2><div class="small muted">Importez un relevé (PDF ou CSV) pour pointer vos opérations et retrouver celles qui manquent.${S.undo ? ` Dernier rapprochement : ${esc(S.undo.txt)}.` : ""}</div>
     <div class="hbody small"><p><b>À quoi ça sert ?</b> À vérifier que ton journal correspond à ton relevé de banque : rien d'oublié, rien de faux. Les opérations retrouvées sont pointées pour toi.</p>
     <p><b>Comment faire :</b></p>
     <p>1. Dans l'appli ou sur le site de ta banque, télécharge le <b>relevé de compte</b> du mois (PDF, ou fichier CSV / Excel).</p>
@@ -1309,13 +1336,22 @@ function viewSet(){
     <p><b>Et ma vie privée ?</b> Le fichier est lu sur ton téléphone : il n'est ni envoyé, ni conservé. L'appli ne retient ni ton nom, ni ton adresse, ni ton IBAN, ni ton numéro de compte : elle ne lit que les lignes d'opérations (date, libellé, montant) et le solde. Les opérations que tu choisis de créer deviennent des lignes de ton journal avec le libellé de la banque, qui peut contenir un nom de personne (un virement reçu, par exemple). L'appli garde aussi un repère de chaque opération (date, montant, début du libellé) pour ne pas la compter deux fois. Tout reste sur ton téléphone, mais se retrouve dans ta sauvegarde .json et ton export Excel : ne les partage pas.</p>
     <p><b>Conseil :</b> fais-le de temps en temps, par exemple une fois par mois.</p></div>
     <div class="btns"><button class="btn" data-act="bk-open">Importer un relevé</button>${S.undo ? `<button class="btn ghost" data-act="bk-undo">Annuler le dernier rapprochement</button>` : ""}</div></div>
-  ${secCard()}
-  <div class="card"><h2>Données</h2>
+
+${MK("sec")}  ${secCard()}
+
+${MK("data")}  <div class="card"><h2>Données</h2>
     <div class="btns"><button class="btn ghost" data-act="tab" data-v="hist">Historique des années (${(S.archives || []).length})</button></div>
     ${S.lastClose ? `<div class="btns"><button class="btn ghost sm" data-act="cl-undo">Annuler la dernière clôture de mois</button></div>` : ""}
     ${S.yearRecap ? `<div class="small muted">Dernière remise à zéro annuelle : ${S.yearRecap.year}.</div><div class="btns"><button class="btn ghost sm" data-act="recap">Revoir le récapitulatif</button></div>` : ""}
     ${V.wipe ? `<div class="small">Cette action efface tout ce qui est stocké sur cet appareil.</div><div class="btns"><button class="btn danger" data-act="wipe-yes">Oui, tout effacer</button><button class="btn ghost" data-act="wipe-no">Annuler</button></div>`
              : `<div class="btns"><button class="btn ghost" data-act="wipe">Tout effacer</button></div>`}</div>`;
+  const parts = raw.split("\u0001"), head = parts[0], C = {};
+  for (let i = 1; i < parts.length; i += 2) C[parts[i]] = parts[i+1];
+  C.tabs = `<div class="card"><h2>Onglets</h2><div class="small muted">Place les onglets de filtre (Réglages, Mois, Comptes en ligne, Historique) en haut de l'écran ou sur le côté droit, comme dans AgenDam. Le choix est retenu sur cet appareil.</div>
+    <div class="seg" style="margin-top:6px">${[["top","En haut"],["side","Sur le côté"]].map(([k,l]) => `<button class="${(lsGet("mc-tabs") || "top") === k ? "on" : ""}" data-act="ttabs" data-v="${k}">${l}</button>`).join("")}</div></div>`;
+  const SET_TABS = [["compte","Compte",["compte","env","gran","remind","bank"]],["data","Données",["sync","dir","sec","data"]],["look","Aspect",["look","zoom","start","tabs"]],["aide","Aide",["guide","demo","install","multi","fiche"]]];
+  const cur = SET_TABS.find(x => x[0] === V.sset) ? V.sset : "compte";
+  return head + `<div class="seg rail">${SET_TABS.map(([k,l]) => `<button class="${cur === k ? "on" : ""}" data-act="sset" data-v="${k}">${l}</button>`).join("")}</div>` + SET_TABS.find(x => x[0] === cur)[2].map(k => C[k] || "").join("");
 }
 
 /* ============ Aide « ? » et guide d'utilisation ============ */
@@ -1356,10 +1392,12 @@ const HELP = {
     "<b>FUTUR : lignes faites</b> : quand tu coches une ligne FUTUR « faite », elle compte tout de suite dans le Livret A, puis elle disparaît de la liste après 30 jours (archivée). Le bouton « Archiver les lignes faites » le fait tout de suite ; « Voir les archivées » les réaffiche. Décocher une ligne la remet dans la liste.",
     "<b>Réajuster le Livret A</b> : avec le temps (intérêts, centimes), le total de l'appli peut s'écarter du vrai solde. Bouton « Réajuster avec le solde réel » dans les mouvements : tu saisis le solde de ta banque, l'appli ajoute une ligne « Ajustement » pour la différence (poches et historique intacts).",
     "<b>C'est quoi ?</b> Ton Livret A et tes autres comptes d'épargne.",
+    "<b>Réglages en onglets</b> : Compte (solde, jour de paie, enveloppes, granulés, rapprochement), Données (Excel, sauvegarde, sécurité, tout effacer), Aspect (couleurs, taille, onglets) et Aide (guide, démo, installation, fiche à partager). Dans Aspect › Onglets, tu peux mettre les onglets en haut ou sur le côté.",
+    "<b>Raccourcis de l'Accueil</b> : touche « Fixes à payer », « Dépenses non pointées », « Enveloppes restantes » ou une ligne de la carte Épargne (Livret A, autres comptes, épargne du mois, résultat prévu) pour aller directement à l'endroit correspondant.",
     "<b>Livret A vraiment à moi</b> : le solde du Livret moins l'argent déjà réservé dans les poches. C'est ce dont tu peux disposer librement.",
     "<b>Poche</b> : une réserve à l'intérieur du Livret pour un projet ou une facture à venir (taxe foncière, travaux…). L'argent est dans ton Livret mais « mis de côté » pour ça.",
     "<b>FUTUR</b> : les mouvements prévus (un impôt en novembre, une rentrée d'argent…). Tant que la ligne n'est pas cochée « fait », elle ne change que l'épargne <b>prévue</b>. Une fois cochée, elle compte vraiment dans ton Livret.",
-    "<b>Autres comptes</b> : LDDS, LEP, PEL, assurance vie, bourse… Saisis un solde de départ, puis note les mouvements. Le total de l'épargne s'affiche en haut."]},
+    "<b>Autres comptes</b> : LDDS, LEP, PEL, assurance vie, bourse… et aussi du <b>liquide</b> ou la <b>cagnotte de ta fille</b> (types « Liquide » et « Cagnotte », autant que tu veux, avec des revenus et des dépenses ; une cagnotte n'est pas comptée dans ton épargne). Saisis un solde de départ, puis note les mouvements. Le total de l'épargne s'affiche en haut."]},
   fix:{t:"Revenus et charges fixes", p:[
     "<b>C'est quoi ?</b> Tout ce qui revient chaque mois : salaire, loyer, assurances, abonnements…",
     "Pour chaque ligne : un <b>libellé</b>, un <b>montant habituel</b> et le <b>jour du mois</b>. L'appli s'en sert pour prévoir ton reste à vivre.",
@@ -1584,7 +1622,7 @@ function viewHist(){
   const bud = {}; A.months.forEach(x => (x.envs || []).forEach(e => { bud[e.n] = (bud[e.n] || 0) + N(e.bud); }));
   const kv = (l,v,cl) => `<div class="kv"><span>${l}</span><span class="num ${cl||""}">${v}</span></div>`;
   const pct = v => (Math.round(v / tot * 1000) / 10).toLocaleString("fr-FR") + " %";
-  return back + `<div class="seg" style="margin:0 0 4px">${AR.map(a => `<button class="${a.year === A.year ? "on" : ""}" data-act="hy" data-v="${a.year}">${a.year}</button>`).join("")}</div>
+  return back + `<div class="seg rail" style="margin:0 0 4px">${AR.map(a => `<button class="${a.year === A.year ? "on" : ""}" data-act="hy" data-v="${a.year}">${a.year}</button>`).join("")}</div>
   <div class="card"><h2>Année ${A.year}</h2>
     ${kv("Revenus", eur(rev), "pos")}${kv("Dépenses (fixes + courantes)", eur(dep))}${kv("Épargne", eur(epa))}${kv("Résultat de l'année", eur(res), res < 0 ? "neg" : "pos")}
     ${kv("Dépenses moyennes par mois", eur(dep / (act.length || 1)))}
@@ -1599,6 +1637,7 @@ function render(){
   if (!S) return;
   if (V.wiz){ document.body.classList.add("wiz"); const y0 = window.scrollY; $("#main").innerHTML = viewWiz(); window.scrollTo(0, V.wizTop ? 0 : y0); V.wizTop = false; return; }
   document.body.classList.remove("wiz");
+  document.body.classList.toggle("side", lsGet("mc-tabs") === "side"); document.body.classList.toggle("isdemo", !!DEMO);
   renderTabs();
   const main = $("#main");
   const keepY = (V.lt === V.tab && V.lm === V.m && V.ly === V.y) ? window.scrollY : 0;
@@ -1856,7 +1895,7 @@ document.addEventListener("click", ev => {
     case "w-add": { collectWiz(); const d = V.wiz.d; d[k].push(k === "env" ? {n:"", b:"", on:true} : k === "poches" ? {n:"", f:""} : k === "accts" ? {n:"", type:"Livret", depart:""} : {n:"", t:"", m:"", j:""}); render(); break; }
     case "w-del": { collectWiz(); V.wiz.d[k].splice(+b.dataset.i, 1); if (!V.wiz.d[k].length && (k === "poches" || k === "accts")) V.wiz.d[k].push(k === "poches" ? {n:"", f:""} : {n:"", type:"Livret", depart:""}); render(); break; }
     case "w-finish": wizFinish(); break;
-    case "w-import": S = emptyData(); V.wiz = null; V.tab = "set"; V.msg = "Choisis ton fichier dans « Synchroniser avec Excel » (bouton Importer un fichier)."; persist(); render(); break;
+    case "w-import": S = emptyData(); V.wiz = null; V.tab = "set"; V.sset = "data"; V.msg = "Choisis ton fichier dans « Synchroniser avec Excel » (bouton Importer un fichier)."; persist(); render(); break;
     case "w-demo": S = demoData(); migrate(); V.wiz = null; persist(); render(); break;
     case "mprev": setMonth(-1); break; case "mnext": setMonth(1); break;
     case "mview": V.mv = b.dataset.v; lsSet("mc-mview", V.mv); render(); break;
@@ -1895,7 +1934,10 @@ document.addEventListener("click", ev => {
       if (id) Object.assign(findFix(k,id),o); else (k === "rev" ? S.fixRev : S.fixCh).push(Object.assign({id:uid(), m:Array(12).fill("")},o));
       persist(); closeSheet(); render(); break; }
     case "fx-del": { const arr = k === "rev" ? S.fixRev : S.fixCh; arr.splice(arr.findIndex(r => r.id === id),1); persist(); closeSheet(); render(); break; }
+    case "sset": V.sset = b.dataset.v; render(); window.scrollTo(0,0); break;
+    case "ttabs": lsSet("mc-tabs", b.dataset.v); render(); break;
     case "gosav": V.tab = "sav"; render(); break;
+    case "go": { if (b.dataset.mv){ V.mv = b.dataset.mv; lsSet("mc-mview", V.mv); } V.tab = b.dataset.v; render(); const sid = b.dataset.s; setTimeout(() => { if (sid){ const t = document.getElementById(sid); if (t){ if (t.tagName === "DETAILS") t.open = true; t.scrollIntoView({behavior:"smooth", block:"start"}); } } else window.scrollTo(0,0); }, 60); break; }
     case "acctnew": sheetAcctEdit(""); break; case "acctedit": sheetAcctEdit(id); break; case "acctopen": sheetAcct(id); break;
     case "mvnew": sheetMv("", id); break; case "mvedit": sheetMv(id, ""); break;
     case "mvsens": { document.querySelectorAll('[data-act=mvsens]').forEach(x => x.classList.toggle("on", x === b)); break; }
@@ -2260,6 +2302,13 @@ document.addEventListener("change", ev => { if (ev.target.id === "sch-a" || ev.t
 applyTheme();
 /* ===== Historique des mises à jour ===== */
 const CHANGELOG = [
+ {v:"3.7", d:"Novembre 2026", t:"Réglages en onglets, onglets sur le côté", i:[
+  "Réglages rangés en 4 onglets courts : Compte, Données, Aspect, Aide. Plus besoin de faire défiler une longue page.",
+  "Nouvelle option Réglages › Aspect › Onglets : en haut (comme avant) ou sur le côté droit, avec le texte à la verticale, comme dans AgenDam. Elle s'applique aux onglets de Mois (Tout / Fixes / Opérations), des Réglages, des Comptes en ligne et de l'Historique."]},
+ {v:"3.6", d:"Novembre 2026", t:"Raccourcis, liquide et cagnottes", i:[
+  "Accueil : les cases « Fixes à payer », « Dépenses non pointées », « Enveloppes restantes » et les lignes de la carte Épargne (Livret A, comptes, épargne du mois, résultat prévu) sont maintenant des raccourcis : touche-les pour aller directement au bon endroit.",
+  "Épargne › Ajouter un compte : nouveaux types « Liquide » et « Cagnotte » (par exemple la cagnotte de ta fille). Tu peux en créer plusieurs et noter des revenus (+) et des dépenses (−). Une cagnotte n'est pas comptée dans ton total d'épargne, elle a sa propre ligne.",
+  "Retrait et versement du Livret A : le texte précise maintenant que l'argent sort de (ou entre sur) ton Livret A, ton livret principal, pas ton compte courant."]},
  {v:"3.5", d:"Octobre 2026", t:"Sortir de la démo plus facilement", i:[
   "En mode démo, une barre verte reste en haut de chaque écran avec le bouton « Revenir à mes comptes ». Avant, il n'était visible que sur l'Accueil, le Mois et les Réglages. Tes vrais comptes n'ont jamais été touchés pendant la démo."]},
  {v:"3.4", d:"Octobre 2026", t:"Mode démo et fiche de présentation", i:[
@@ -2465,6 +2514,7 @@ if (secAvailable() && lsGet(ENC) && !/[?&]demo=1/.test(location.search)){ SEC.on
   document.addEventListener("visibilitychange", () => { if (!document.hidden){ setTimeout(fix, 100); setTimeout(() => { try { yearCheck(); } catch(e){} }, 400); } });
   document.addEventListener("focusout", () => setTimeout(fix, 250)); })();
 </script>
+
 
 </body>
 </html>
