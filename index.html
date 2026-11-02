@@ -976,7 +976,7 @@ function livFieldsHtml(d, ed){
 function viewAdd(){
   const ed = V.editId ? S.journal.find(j => j.id === V.editId) : null;
   const d = V.draft || (ed ? {date:ed.date,type:ed.type,cat:ed.cat,lib:ed.lib,mont:String(ed.montant).replace(".",","),pt:ed.pointe==="x",note:ed.note,remb:ed.remb,poche:ed.poche || "",sacs:N(ed.sacs) > 0 ? ed.sacs : ""}
-                           : {date:todayIso(),type:"Dépense",cat:"",lib:"",mont:"",pt:true,note:"",remb:""});
+                           : {date:todayIso(),type:"Dépense",cat:"",lib:"",mont:"",pt:false,note:"",remb:""});
   V.draft = d;
   const livret = d.type.indexOf("Livret") >= 0;
   const yd = new Date(); yd.setDate(yd.getDate() - 1); const yIso = yd.getFullYear() + "-" + pad(yd.getMonth()+1) + "-" + pad(yd.getDate());
@@ -2630,6 +2630,9 @@ document.addEventListener("change", ev => { if (ev.target.id === "sch-a" || ev.t
 applyTheme();
 /* ===== Historique des mises à jour ===== */
 const CHANGELOG = [
+ {v:"4.10", d:"Novembre 2026", t:"Ajout plus logique", i:[
+  "Dans Ajouter, « Déjà passé en banque » n'est plus coché par défaut : une opération saisie à l'instant n'a pas encore été débitée. Tu la pointes quand elle est passée."
+ ]},
  {v:"4.9", d:"Novembre 2026", t:"Mises à jour plus simples", i:[
   "Le bouton Réglages (engrenage) est maintenant en haut à droite de tous les écrans, et le numéro de version s'affiche à côté du titre « Réglages ».",
   "Quand une nouvelle version est prête, un bandeau « Recharger » apparaît : plus besoin de fermer et rouvrir l'appli deux fois.",
