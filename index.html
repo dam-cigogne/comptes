@@ -1063,7 +1063,7 @@ async function shareText(title, text, copiedMsg){ try { if (navigator.share){ aw
 async function cagShare(id){ const a = (S.accts || []).find(x => x.id === id); if (!a) return; if (DEMO) return toast("Quitte d'abord le mode démo");
   shareText("Cagnotte " + a.n, await cagCode(a), "Code copié : colle-le dans un message"); }
 function cagExplain(id){ const a = (S.accts || []).find(x => x.id === id); if (!a) return;
-  shareText("Cagnotte " + a.n, "Cagnotte « " + a.n + " » : je t'envoie le code dans un 2e message. Dans l'appli « Les comptes en poches » (https://dam-cigogne.github.io/comptes/) : Épargne › Recevoir une cagnotte › Coller le code copié.", "Explications copiées"); }
+  shareText("Cagnotte " + a.n, "Cagnotte « " + a.n + " » : je t'envoie le code dans un 2e message. Dans l'appli « Les comptes en poches » (https://dam-cigogne.github.io/comptes/) : Épargne › Recevoir ou mettre à jour une cagnotte › Coller le code copié.", "Explications copiées"); }
 async function cagImportText(txt){ const j = await cagDecode(txt); if (!j) return toast("Code non reconnu : copie bien tout le message ou le code CAG1…"); cagImport(j); }
 function cagExport(id){ const a = (S.accts || []).find(x => x.id === id); if (!a) return;
   if (DEMO) return toast("Quitte d'abord le mode démo");
@@ -1322,7 +1322,7 @@ function viewSav(){
     ${acctLive().filter(a => !isHors(a)).map(a => `<div class="row">${dotHtml(a.n)}<button class="rowbtn" data-act="acctopen" data-id="${a.id}"><div class="t">${esc(a.n)}</div><div class="s">${esc(a.type)}${a.date ? " · départ " + frFull(a.date) : ""}</div></button><div class="amt num">${eur(acctSolde(a))}</div></div>`).join("")}</div>
     <div class="kv tot"><span>Total de l'épargne</span><span class="num">${eur(L.solde + acctTotal())}</span></div>
     ${acctLive().some(isHors) ? `<div style="border:1.5px dashed var(--line);border-radius:16px;padding:8px 12px;margin-top:12px"><div class="small muted" style="margin-bottom:4px"><b>Hors total</b> : pas comptés dans ton épargne (cagnotte d'un proche, liquide à part…)</div><div class="rows">${acctLive().filter(isHors).map(a => `<div class="row">${dotHtml(a.n)}<button class="rowbtn" data-act="acctopen" data-id="${a.id}"><div class="t">${esc(a.n)}</div><div class="s">${esc(a.type)}${a.date ? " · départ " + frFull(a.date) : ""}</div></button><div class="amt num">${eur(acctSolde(a))}</div></div>`).join("")}</div><div class="kv"><span>Total hors épargne</span><span class="num">${eur(cagTotal())}</span></div></div>` : ""}
-    <div class="btns" style="margin-top:8px"><button class="btn ghost sm" data-act="cagrecv">Recevoir une cagnotte</button></div>
+    <div class="btns" style="margin-top:8px"><button class="btn ghost sm" data-act="cagrecv">Recevoir ou mettre à jour une cagnotte</button></div>
     <div class="small muted" style="margin-top:8px">Liquide, cagnotte de ta fille, tirelire… : « Ajouter un compte », puis note les revenus et les dépenses. Pour chaque compte tu choisis s'il compte ou non dans ton total d'épargne : s'il ne compte pas, il est encadré à part.</div></div>`,
   cc:`${ccSavCard()}`,
   lv:`  <div class="card"><div class="kv"><span>Épargne prévue (après FUTUR)</span><span class="num">${eur(L.prevu)}</span></div>
@@ -2630,6 +2630,9 @@ document.addEventListener("change", ev => { if (ev.target.id === "sch-a" || ev.t
 applyTheme();
 /* ===== Historique des mises à jour ===== */
 const CHANGELOG = [
+ {v:"4.11", d:"Novembre 2026", t:"Cagnottes : bouton plus clair", i:[
+  "Épargne : le bouton devient « Recevoir ou mettre à jour une cagnotte » (même bouton pour une première réception et pour une mise à jour)."
+ ]},
  {v:"4.10", d:"Novembre 2026", t:"Ajout plus logique", i:[
   "Dans Ajouter, « Déjà passé en banque » n'est plus coché par défaut : une opération saisie à l'instant n'a pas encore été débitée. Tu la pointes quand elle est passée."
  ]},
@@ -2664,9 +2667,9 @@ const CHANGELOG = [
  {v:"4.1", d:"Novembre 2026", t:"Code de cagnotte envoyé seul", i:[
   "Cagnotte : « Envoyer le code » envoie maintenant le code tout seul dans un message ; « Copier le code » le copie pour le coller dans un SMS ou une autre appli. Facile à copier d'un seul geste sur iPhone. Le bouton « Explications » envoie à part un message avec le lien de l'appli et la marche à suivre, pour quelqu'un qui découvre l'appli."]},
  {v:"4.0", d:"Novembre 2026", t:"Cagnotte par code à copier-coller", i:[
-  "Cagnotte : « Envoyer » ouvre maintenant le partage avec un message prêt (SMS, WhatsApp, mail) qui contient un code. Ton proche copie le message, ouvre Épargne › « Recevoir une cagnotte » et touche « Coller » : plus de fichier à enregistrer. Le fichier reste possible avec le bouton « Fichier »."]},
+  "Cagnotte : « Envoyer » ouvre maintenant le partage avec un message prêt (SMS, WhatsApp, mail) qui contient un code. Ton proche copie le message, ouvre Épargne › « Recevoir ou mettre à jour une cagnotte » et touche « Coller » : plus de fichier à enregistrer. Le fichier reste possible avec le bouton « Fichier »."]},
  {v:"3.9", d:"Novembre 2026", t:"Envoyer et recevoir une cagnotte", i:[
-  "Cagnotte ou liquide : le bouton « Envoyer » partage un petit fichier avec les mouvements de ce compte seulement (WhatsApp, SMS, AirDrop…). Chez l'autre personne, Épargne › « Recevoir une cagnotte » l'ajoute ou la met à jour, sans doublon. Vous pouvez tous les deux noter des revenus et des dépenses, puis vous renvoyer le fichier de temps en temps. Ce n'est pas du direct : rien ne passe par un serveur."]},
+  "Cagnotte ou liquide : le bouton « Envoyer » partage un petit fichier avec les mouvements de ce compte seulement (WhatsApp, SMS, AirDrop…). Chez l'autre personne, Épargne › « Recevoir ou mettre à jour une cagnotte » l'ajoute ou la met à jour, sans doublon. Vous pouvez tous les deux noter des revenus et des dépenses, puis vous renvoyer le fichier de temps en temps. Ce n'est pas du direct : rien ne passe par un serveur."]},
  {v:"3.8", d:"Novembre 2026", t:"Comptes hors total encadrés", i:[
   "Épargne : chaque compte a maintenant l'option « Compter dans mon total d'épargne ? » (Automatique, Oui, Non). Un compte qui ne compte pas (cagnotte d'un proche, liquide à part…) est rangé dans un cadre en pointillés « Hors total », avec son propre total, et la ligne correspondante de l'Accueil est encadrée aussi."]},
  {v:"3.7", d:"Novembre 2026", t:"Réglages en onglets, onglets sur le côté", i:[
