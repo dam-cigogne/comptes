@@ -1050,11 +1050,11 @@ function sheetAcct(id){
   openSheet(`<h2>${esc(a.n)}</h2>
     <div class="kv"><span>${esc(a.type)}</span><span class="num" style="font-weight:700">${eur(acctSolde(a))}</span></div>
     <div class="small muted">Départ : ${eur(a.depart)}${a.date ? " au " + frFull(a.date) : ""}. Les mouvements s'ajoutent au solde de départ.</div>
-    <div class="rows">${mv.length ? mv.map(m => `<div class="row"><button class="rowbtn" data-act="mvedit" data-id="${m.id}"><div class="t">${esc(m.lib || (m.mt >= 0 ? (isCash(a) ? "Revenu" : "Versement") : (isCash(a) ? "Dépense" : "Retrait")))}</div><div class="s">${frFull(m.date)}</div></button><div class="amt num ${m.mt >= 0 ? "pos" : "neg"}">${m.mt >= 0 ? "+ " : "− "}${eur(Math.abs(m.mt))}</div></div>`).join("") : '<div class="empty">Aucun mouvement.</div>'}</div>
+    <div class="rows">${mv.length ? mv.map(m => `<div class="row"><button class="rowbtn" data-act="mvedit" data-id="${m.id}"><div class="t">${esc(m.lib || (m.mt >= 0 ? (isCash(a) ? "Revenu" : "Versement") : (isCash(a) ? "Dépense" : "Retrait")))}</div><div class="s">${frFull(m.date)}</div>${m.note ? `<div class="s" style="font-style:italic">📝 ${esc(m.note)}</div>` : ""}</button><div class="amt num ${m.mt >= 0 ? "pos" : "neg"}">${m.mt >= 0 ? "+ " : "− "}${eur(Math.abs(m.mt))}</div></div>`).join("") : '<div class="empty">Aucun mouvement.</div>'}</div>
     <div class="btns"><button class="btn" data-act="mvnew" data-id="${a.id}" style="flex:1">${isCash(a) ? "+ Revenu / dépense" : "+ Mouvement"}</button>${isCash(a) ? `<button class="btn ghost" data-act="cagsendto" data-id="${a.id}">Envoyer à…</button><button class="btn ghost" data-act="cagcopy" data-id="${a.id}">Copier le code</button><button class="btn ghost" data-act="cagexplain" data-id="${a.id}">Explications</button><button class="btn ghost" data-act="cagsend" data-id="${a.id}">Fichier</button>` : ""}<button class="btn ghost" data-act="acctedit" data-id="${a.id}">Modifier le compte</button><button class="btn ghost" data-act="sheetclose">Fermer</button></div>`);
 }
 function cagPayload(a, indent){ if (!a.sid){ a.sid = uid(); a.upd = Date.now(); persist(); }
-  const mv = (S.acctMv || []).filter(m => m.a === a.id).map(m => ({id:m.id, date:m.date, lib:m.lib || "", mt:m.mt, upd:m.upd || 0, del:!!m.del}));
+  const mv = (S.acctMv || []).filter(m => m.a === a.id).map(m => ({id:m.id, date:m.date, lib:m.lib || "", note:m.note || "", mt:m.mt, upd:m.upd || 0, del:!!m.del}));
   return JSON.stringify({app:"comptes-cagnotte", v:1, sid:a.sid, n:a.n, type:a.type, depart:a.depart, date:a.date, mv}, null, indent); }
 const b64u = u8 => { let t = ""; for (let i = 0; i < u8.length; i += 8192) t += String.fromCharCode.apply(null, u8.subarray(i, i + 8192)); return btoa(t).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); };
 const unb64u = t => { const b = atob(t.replace(/-/g, "+").replace(/_/g, "/")), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; };
@@ -1083,7 +1083,7 @@ function cagImport(text){ let d; try { d = JSON.parse(text); } catch(e){ return 
   if (!a){ a = {id:uid(), sid:d.sid, n:String(d.n || "Cagnotte").slice(0,60), type:ACCT_TYPES.indexOf(d.type) >= 0 ? d.type : "Cagnotte", depart:isNum(d.depart) ? Math.round(d.depart * 100) / 100 : 0, date:/^\d{4}-\d{2}-\d{2}$/.test(d.date || "") ? d.date : todayIso(), upd:Date.now(), hors:true}; S.accts.push(a); created = true; }
   let add = 0, upd = 0;
   for (const r of d.mv){ if (!r || typeof r.id !== "string" || !/^[\w-]{3,60}$/.test(r.id) || !/^\d{4}-\d{2}-\d{2}$/.test(r.date || "") || !isNum(r.mt)) continue;
-    const row = {date:r.date, lib:String(r.lib || "").slice(0,120), mt:Math.round(r.mt * 100) / 100, upd:isNum(r.upd) ? r.upd : Date.now()}, ex = S.acctMv.find(m => m.id === r.id);
+    const row = {date:r.date, lib:String(r.lib || "").slice(0,120), note:String(r.note || "").slice(0,300), mt:Math.round(r.mt * 100) / 100, upd:isNum(r.upd) ? r.upd : Date.now()}, ex = S.acctMv.find(m => m.id === r.id);
     if (!ex){ S.acctMv.push(Object.assign({id:r.id, a:a.id}, row, r.del ? {del:true} : {})); if (!r.del) add++; }
     else if (row.upd > (ex.upd || 0)){ Object.assign(ex, row, {del:!!r.del}); upd++; } }
   persist(); render(); toast((created ? "Cagnotte « " + a.n + " » ajoutée" : "Cagnotte « " + a.n + " » mise à jour") + " : " + add + " nouveau(x), " + upd + " modifié(s)"); }
@@ -1112,6 +1112,7 @@ function sheetMv(id, aid){
     <div class="grid2"><label class="f">Montant (€)<input id="mv-m" inputmode="decimal" value="${isNum(m.mt) ? String(Math.abs(m.mt)).replace(".",",") : ""}"></label>
     <label class="f">Date<input id="mv-dt" type="date" value="${esc(m.date)}"></label></div>
     <label class="f">Libellé<input id="mv-l" value="${esc(m.lib)}"></label>
+    <label class="f">Note (facultatif)<input id="mv-nt" value="${esc(m.note || "")}" maxlength="300"></label>
     <div class="btns"><button class="btn" data-act="mv-save" data-id="${id || ""}" data-a="${esc(m.a)}" style="flex:1">Enregistrer</button>${id ? `<button class="btn danger" data-act="mv-del" data-id="${id}">Supprimer</button>` : ""}<button class="btn ghost" data-act="acctopen" data-id="${esc(m.a)}">Retour</button></div>`);
 }
 /* ============ Comptes communs ============ */
@@ -1226,7 +1227,7 @@ function ccRow(c, o){ const cpt = c.mode === "cpt", who = o.au || o.by, col = cc
   else { const n = ccPeople(c).length; sub = (o.k === "v" ? esc(ccName(c, o.by)) + " → " + esc(ccName(c, o.to)) : "payé par " + esc(ccName(c, o.by)) + ((o.sp || []).length < n ? " · " + (o.sp || []).length + " pers." : "")) + (o.cat ? " · " + esc(o.cat) : "") + (o.au && o.au !== o.by ? " · saisi par " + esc(ccName(c, o.au)) : "") + (o.mod && o.mod !== o.au ? " · modifié par " + esc(ccName(c, o.mod)) : ""); cls = o.k === "v" ? "" : "ccneg"; }
   if (o.del) sub = "supprimé par " + (o.mod ? esc(ccName(c, o.mod)) : "?") + " · " + sub;
   const t = o.lib || (o.k === "e" ? "Entrée" : o.k === "s" ? "Sortie" : o.k === "v" ? "Virement" : "Dépense");
-  return `<div class="ccop" style="${o.del ? "opacity:.5;" : ""}">${ccChip(c, who)}<button class="rowbtn" ${o.del ? "disabled" : ""} data-act="ccopedit" data-id="${c.id}" data-o="${o.id}" style="${o.del ? "text-decoration:line-through" : ""}"><div class="t">${esc(t)}</div><div class="s">${sub}</div></button><div class="num ${cls}" style="font-weight:700;white-space:nowrap">${amt}</div></div>`; }
+  return `<div class="ccop" style="${o.del ? "opacity:.5;" : ""}">${ccChip(c, who)}<button class="rowbtn" ${o.del ? "disabled" : ""} data-act="ccopedit" data-id="${c.id}" data-o="${o.id}" style="${o.del ? "text-decoration:line-through" : ""}"><div class="t">${esc(t)}</div><div class="s">${sub}</div>${o.note && !o.del ? `<div class="s" style="font-style:italic">📝 ${esc(o.note)}</div>` : ""}</button><div class="num ${cls}" style="font-weight:700;white-space:nowrap">${amt}</div></div>`; }
 function sheetCC(id){ const c = (S.cc || []).find(x => x.id === id); if (!c || c.del) return; const cpt = c.mode === "cpt", me = ccMe(c), F = window.CCF || "", SD = !!window.CCSD, MN = !!window.CCM;
   const pend = (c.ops || []).filter(o => N(o.lc) > N(c.outAt)).length, P = ccPeople(c);
   const ins = {}, outs = {}; let tin = 0, tout = 0;
@@ -2281,7 +2282,7 @@ document.addEventListener("click", ev => {
     case "ac-del": { const a = S.accts.find(x => x.id === id), now = Date.now(); a.del = true; a.upd = now; S.acctMv.forEach(m => { if (m.a === id && !m.del){ m.del = true; m.upd = now; } }); persist(); closeSheet(); render(); break; }
     case "mv-save": { const mt = parseNum($("#mv-m").value); if (!mt || mt <= 0) return toast("Saisissez un montant supérieur à 0");
       const plus = document.querySelector('[data-act=mvsens].on').dataset.v === "+", aid = b.dataset.a;
-      const o = {date:$("#mv-dt").value, lib:$("#mv-l").value.trim(), mt:Math.round(mt * 100) / 100 * (plus ? 1 : -1), upd:Date.now()};
+      const o = {date:$("#mv-dt").value, lib:$("#mv-l").value.trim(), note:$("#mv-nt").value.trim().slice(0,300), mt:Math.round(mt * 100) / 100 * (plus ? 1 : -1), upd:Date.now()};
       if (id) Object.assign(S.acctMv.find(x => x.id === id), o); else S.acctMv.push(Object.assign({id:uid(), a:aid}, o));
       persist(); closeSheet(); render(); sheetAcct(aid); break; }
     case "mv-del": { const m = S.acctMv.find(x => x.id === id), aid = m.a; m.del = true; m.upd = Date.now(); S.epargne.manuel.forEach(x => { if (x.lk === id && !x.del){ x.del = true; x.upd = Date.now(); } }); persist(); closeSheet(); render(); sheetAcct(aid); break; }
@@ -2636,6 +2637,10 @@ document.addEventListener("change", ev => { if (ev.target.id === "sch-a" || ev.t
 applyTheme();
 /* ===== Historique des mises à jour ===== */
 const CHANGELOG = [
+ {v:"4.13", d:"Novembre 2026", t:"Notes sur les mouvements", i:[
+  "Cagnottes et comptes en liquide : un champ « Note (facultatif) » sur chaque mouvement, affiché en italique sous la ligne, et transmis avec le code quand tu partages.",
+  "Comptes communs : la note déjà saisissable s'affiche maintenant sous l'opération."
+ ]},
  {v:"4.12", d:"Novembre 2026", t:"Avances remboursées", i:[
   "Avance : en renseignant « Remboursé le », une ligne + Remboursement du même montant apparaît à cette date (à pointer quand l'argent arrive). Elle ne gonfle pas tes revenus du mois : le total reste neutre. Supprimer ou changer l'avance met la ligne à jour."
  ]},
