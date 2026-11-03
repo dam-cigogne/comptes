@@ -465,6 +465,12 @@ function periodOf(iso){ const P = payday(); let y = +iso.slice(0,4), m = +iso.sl
   return {m,y}; }
 const curPeriod = () => periodOf(todayIso());
 function fixDate(jour,m,y){ const P = payday(); let mm = m, yy = y; if (P > 1 && jour >= P){ mm = m - 1; if (mm < 0){ mm = 11; yy--; } } return new Date(yy, mm, Math.min(jour, new Date(yy,mm+1,0).getDate())); }
+const REMB_NOTE = "↩ Remboursement d'avance";
+const isRembRev = j => j.type === "Revenu" && (j.av || String(j.note || "").indexOf(REMB_NOTE) === 0);
+function syncRemb(av){ const ex = S.journal.find(x => !x.del && isRembRev(x) && (x.av === av.id || (!x.av && x.lib === "Remboursement : " + (av.lib || "avance") && x.montant === av.montant))), now = Date.now();
+  if (av.type === "Avance (à rembourser)" && av.remb){ const f = {date:av.remb, type:"Revenu", cat:"", lib:"Remboursement : " + (av.lib || "avance"), montant:av.montant, note:REMB_NOTE, av:av.id, remb:"", upd:now};
+    if (ex) Object.assign(ex, f); else S.journal.push(Object.assign({id:uid(), pointe:""}, f)); }
+  else if (ex){ ex.del = true; ex.upd = now; } }
 function inMonth(j,m,y){ const r = periodRange(m,y); return j.date >= r[0] && j.date <= r[1]; }
 function fixCalc(rows,m,y){
   const nj = new Date(y,m+1,0).getDate(); const today = new Date(); today.setHours(0,0,0,0);
@@ -497,7 +503,7 @@ function calc(m,y){
     return {n:e.n, bud, dep, reste:bud-dep, hide:!N(e.b) && !isNum(e.m[m]) && dep < 0.005};   // enveloppe d'un autre mois : masquée ici
   });
   const rev = fixCalc(S.fixRev,m,y), ch = fixCalc(S.fixCh,m,y);
-  const revExc = sum(j => j.type === "Revenu");
+  const revExc = sum(j => j.type === "Revenu" && !isRembRev(j));
   const depEpargne = sum(j => j.type === "Dépense" && j.cat === "Épargne");
   const depJournal = sum(j => j.type === "Dépense") - depEpargne;
   const vers = sum(j => j.type === "Versement sur Livret A"), ret = sum(j => j.type === "Retrait du Livret A");
@@ -1000,8 +1006,8 @@ function viewAdd(){
     <div class="pills"><button data-act="datepick" data-v="t" class="${d.date === todayIso() ? "on" : ""}">Aujourd'hui</button><button data-act="datepick" data-v="y" class="${d.date === yIso ? "on" : ""}">Hier</button></div>
     <label class="f">Date<input id="f-date" type="date" value="${esc(d.date)}"></label>
     <div class="swrow"><span>Déjà passé en banque</span><label class="sw"><input type="checkbox" id="f-pt" ${d.pt ? "checked" : ""} aria-label="Déjà passé en banque"><i></i></label></div>
-    ${d.type === "Avance (à rembourser)" ? `<div class="info">« Avance » = tu as <b>payé de ta poche</b> pour quelqu'un, et il te rembourse. C'est une sortie d'argent (affichée en −). Si tu <b>attends juste un remboursement</b> (ex. Amazon), choisis plutôt <b>Revenu</b> et laisse « Déjà passé en banque » éteint : ça compte comme un revenu à recevoir et s'ajoute à ton reste à vivre. Coche-le quand l'argent arrive.</div>` : d.type === "Revenu" ? `<div class="small muted">Pour un remboursement attendu : laisse « Déjà passé en banque » éteint, il sera marqué « à recevoir ».</div>` : ""}
-    ${d.type === "Avance (à rembourser)" ? `<label class="f">Remboursé le<input id="f-remb" type="date" value="${esc(d.remb)}"></label>` : ""}
+    ${d.type === "Avance (à rembourser)" ? `<div class="info">« Avance » = tu as <b>payé de ta poche</b> pour quelqu'un, et il te rembourse. C'est une sortie d'argent (affichée en −). Quand tu renseignes <b>« Remboursé le »</b>, une ligne <b>+ Remboursement</b> du même montant est ajoutée à cette date : touche son rond quand l'argent est arrivé. Si tu <b>attends juste un remboursement</b> (ex. Amazon), choisis plutôt <b>Revenu</b> et laisse « Déjà passé en banque » éteint : ça compte comme un revenu à recevoir et s'ajoute à ton reste à vivre. Coche-le quand l'argent arrive.</div>` : d.type === "Revenu" ? `<div class="small muted">Pour un remboursement attendu : laisse « Déjà passé en banque » éteint, il sera marqué « à recevoir ».</div>` : ""}
+    ${d.type === "Avance (à rembourser)" ? `<label class="f">Remboursé le (date prévue ou réelle)<input id="f-remb" type="date" value="${esc(d.remb)}"></label>` : ""}
     <label class="f">Note<input id="f-note" value="${esc(d.note)}"></label>
     <div class="btns"><button class="btn ghost" data-act="modsave" style="flex:1">☆ Garder comme modèle</button></div>
     <div class="btns"><button class="btn" data-act="save" style="flex:1;padding:16px;font-size:17px">${ed ? "Enregistrer les modifications" : "Enregistrer"}</button>
@@ -2022,8 +2028,8 @@ function saveOp(){
   const isLiv = d.type.indexOf("Livret") >= 0, vers = d.type === "Versement sur Livret A", acx = isLiv && !V.editId && d.acct ? acctLive().find(a => a.id === d.acct) : null;
   if (isLiv){ if (d.poche) o.poche = d.poche; else if (V.editId) o.poche = ""; }
   if (acx){ transferLivret({date:d.date, lib:o.lib || (vers ? "Versement depuis " : "Retrait vers ") + acx.n, mt:o.montant, vers, poche:d.poche || "", acct:acx.id}); toast((vers ? "Versement depuis " : "Retrait vers ") + acx.n + " noté"); }
-  else if (V.editId){ Object.assign(S.journal.find(j => j.id === V.editId), o); toast("Opération modifiée"); }
-  else { S.journal.push(Object.assign({id:uid()},o)); toast("Enregistré : " + eur(o.montant)); }
+  else if (V.editId){ const jj = S.journal.find(j => j.id === V.editId); Object.assign(jj, o); syncRemb(jj); toast("Opération modifiée"); }
+  else { const nj = Object.assign({id:uid()},o); S.journal.push(nj); syncRemb(nj); toast("Enregistré : " + eur(o.montant)); }
   if (S.demo && !V.editId) { /* l'exemple reste affiché jusqu'à l'import */ }
   { const pp = periodOf(d.date); V.m = pp.m; V.y = pp.y; }
   V.editId = null; V.draft = null; persist(); V.tab = acx ? "sav" : "month"; render();
@@ -2172,7 +2178,7 @@ document.addEventListener("click", ev => {
     case "jdup": { const j = S.journal.find(x => x.id === V.editId); if (!j) break; collectDraft(); V.editId = null; V.draft = {date:todayIso(), type:j.type, cat:j.cat, lib:j.lib, mont:String(j.montant).replace(".",","), pt:false, note:j.note || "", remb:""}; render(); toast("Copie prête : modifie puis enregistre"); break; }
     case "start": lsSet("mc-start", b.dataset.v); render(); break;
     case "jedit": V.editId = id; V.draft = null; V.tab = "add"; render(); break;
-    case "jdel": { const j = S.journal.find(x => x.id === V.editId); j.del = true; j.upd = Date.now(); V.editId = null; V.draft = null; persist(); toast("Opération supprimée"); V.tab = "month"; render(); break; }
+    case "jdel": { const j = S.journal.find(x => x.id === V.editId); j.del = true; j.upd = Date.now(); S.journal.forEach(x => { if (x.av === j.id && !x.del){ x.del = true; x.upd = Date.now(); } }); V.editId = null; V.draft = null; persist(); toast("Opération supprimée"); V.tab = "month"; render(); break; }
     case "type": collectDraft(); V.draft.type = b.dataset.v; if (b.dataset.v.indexOf("Livret") >= 0) V.draft.cat = ""; render(); break;
     case "save": saveOp(); break;
     case "clear": V.draft = null; render(); break;
@@ -2630,6 +2636,9 @@ document.addEventListener("change", ev => { if (ev.target.id === "sch-a" || ev.t
 applyTheme();
 /* ===== Historique des mises à jour ===== */
 const CHANGELOG = [
+ {v:"4.12", d:"Novembre 2026", t:"Avances remboursées", i:[
+  "Avance : en renseignant « Remboursé le », une ligne + Remboursement du même montant apparaît à cette date (à pointer quand l'argent arrive). Elle ne gonfle pas tes revenus du mois : le total reste neutre. Supprimer ou changer l'avance met la ligne à jour."
+ ]},
  {v:"4.11", d:"Novembre 2026", t:"Cagnottes : bouton plus clair", i:[
   "Épargne : le bouton devient « Recevoir ou mettre à jour une cagnotte » (même bouton pour une première réception et pour une mise à jour)."
  ]},
