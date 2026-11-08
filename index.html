@@ -879,8 +879,7 @@ function fixRowHtml(kind,r,pm){
 }
 function viewMonth(){
   const c = calc(V.m,V.y);
-  const byDay = rows => rows.map((r,i) => [r,i]).sort((a,b) => ((N(a[0].jour) || 99) - (N(b[0].jour) || 99)) || a[1] - b[1]).map(x => x[0]);   // dans l'ordre où ça passe (sans jour : à la fin)
-  const show = (kind,rows) => byDay(rows).filter(r => !V.hidePast || fixState(r,V.m,V.y).k !== "ok");
+  const show = (kind,rows) => rows.filter(r => !V.hidePast || fixState(r,V.m,V.y).k !== "ok");
   const revRows = show("rev",S.fixRev), chRows = show("ch",S.fixCh);
   const J0 = live().filter(j => inMonth(j,V.m,V.y)).sort((a,b) => b.date.localeCompare(a.date) || b.upd - a.upd);
   const J = V.hidePast ? J0.filter(j => j.pointe !== "x") : J0;
@@ -894,7 +893,7 @@ function viewMonth(){
   }).join("") : `<div class="empty">${J0.length ? "Tout est pointé. Touche « Masquer les pointés » pour tout revoir." : "Aucune opération ce mois-ci."}</div>`;
   const kv = (l,v,cl) => `<div class="kv"><span>${l}</span><span class="num ${cl||""}">${eur(v)}</span></div>`;
   const pv = prevMY(V.m,V.y);
-  const carried = cutsOf()[ckey(V.m,V.y)] ? [["rev",S.fixRev],["ch",S.fixCh]].flatMap(([k,rows]) => byDay(rows).filter(r => N(r.montant) > 0 || isNum(r.m[pv.m])).filter(r => fixState(r,pv.m,pv.y).k !== "ok").map(r => fixRowHtml(k,r,pv))) : [];
+  const carried = cutsOf()[ckey(V.m,V.y)] ? [["rev",S.fixRev],["ch",S.fixCh]].flatMap(([k,rows]) => rows.filter(r => N(r.montant) > 0 || isNum(r.m[pv.m])).filter(r => fixState(r,pv.m,pv.y).k !== "ok").map(r => fixRowHtml(k,r,pv))) : [];
   if (cutsOf()[ckey(V.m,V.y)]) for (const j of live().filter(j => inMonth(j,pv.m,pv.y) && j.pointe !== "x" && ["Dépense","Revenu","Versement sur Livret A","Retrait du Livret A"].includes(j.type)).sort((a,b) => b.date.localeCompare(a.date))){
     const sg = j.type === "Revenu" || j.type === "Retrait du Livret A" ? 1 : -1;
     carried.push(`<div class="row"><button class="chk" data-act="jtoggle" data-id="${j.id}" aria-label="Pointer">${ICON.check}</button>${dotHtml(j.cat || TYPE_SHORT[j.type])}
@@ -1628,7 +1627,6 @@ const HELP = {
     "<b>Enveloppe pour ce mois</b> (« + Enveloppe pour ce mois ») : elle n'apparaît que le mois où tu l'as créée. Les autres mois elle est masquée, sauf si tu y as noté une dépense.",
     "<b>À mettre de côté en fin de mois</b> : ce que tu pourrais épargner si tu dépensais tous tes budgets.","<b>Clôture fin de mois</b> : à faire à chaque fin de mois, que tu sois payé à la date habituelle ou plus tôt (exemple : payé le 23 au lieu du 25). Le bouton est en bas de cette carte. Tu indiques : 1) le solde réel de ton compte (paie comprise) ; 2) la paie déjà reçue (case à cocher avec le montant réel, ou le champ « paie / revenu déjà reçu »). L'appli calcule alors : solde − paie − ce qui doit encore partir du compte (charges fixes et dépenses non pointées) = ce que tu peux vraiment mettre de côté. Elle le compare à l'épargne prévue (ton enveloppe d'épargne) et te propose le total, que tu peux modifier.","<b>Quand tu valides</b> : 1) le nouveau mois démarre (aujourd'hui si tu es payé plus tôt, cette fois seulement) ; 2) les opérations non pointées du journal restent datées dans leur mois d'origine (elles comptent dans les enveloppes de ce mois-là) ; 3) leur montant et celui des fixes non pointés sont repris dans le reste à vivre du nouveau mois, dans une carte « Repris de … » : ils ne consomment pas les enveloppes du nouveau mois, et disparaissent de la carte dès que tu les pointes ; 4) le Livret A reçoit tout de suite deux lignes : l'épargne prévue, puis le surplus ; 5) le solde du compte baisse du montant mis de côté, donc l'argent des prélèvements à venir reste sur le compte et tu ne passes pas à découvert. Pense à faire le virement réel vers ton Livret A. Si le montant reçu diffère du prévu, le montant du mois suivant est mis à jour.","<b>Se tromper ?</b> Réglages → Données → « Annuler la dernière clôture de mois » remet tout comme avant (opérations, solde, Livret A)."]},
   month:{t:"Le mois", p:[
-    "<b>Ordre des fixes</b> : les revenus et les charges fixes du mois sont rangés dans l'ordre où ils passent (le 2, le 9, le 10…), pour voir tout de suite ce qui arrive. Ceux sans jour sont à la fin. L'ordre de l'écran Fixes ne change pas.",
     "<b>Tout / Fixes / Opérations</b> : sous le bilan, trois boutons choisissent ce qui s'affiche. « Fixes » montre seulement les fixes et revenus, « Opérations » seulement les opérations du mois (plus besoin de faire défiler les fixes), « Tout » affiche tout. Ton choix est retenu.",
     "<b>Masquer les pointés</b> : ce bouton (à droite des onglets Tout/Fixes/Opérations) cache les lignes déjà pointées, à la fois dans les fixes et dans les opérations du mois : il ne reste que ce qu'il reste à pointer. Touche-le de nouveau pour tout voir.",
     "<b>Rechercher</b> : le bouton « 🔍 Rechercher » (dans Opérations du mois) cherche dans tout le journal, tous mois confondus : un mot (Amazon), un montant (93), une catégorie ou une date. Touche un résultat pour le modifier.",
@@ -2639,9 +2637,9 @@ document.addEventListener("change", ev => { if (ev.target.id === "sch-a" || ev.t
 applyTheme();
 /* ===== Historique des mises à jour ===== */
 const CHANGELOG = [
- {v:"4.14", d:"Novembre 2026", t:"Fixes du mois dans l'ordre", i:[
-  "Mois : les revenus et les charges fixes sont maintenant rangés dans l'ordre où ils passent (jour du mois), pour voir tout de suite ce qui arrive. Ceux sans jour sont à la fin.",
-  "Même ordre pour les fixes repris du mois précédent."]},
+ {v:"4.14", d:"Novembre 2026", t:"Nouveau logo", i:[
+  "Nouvelle icône : « mes COMPTES en poche » sur fond corail, coins arrondis et contour multicolore. Sur iPhone, l'icône d'écran d'accueil ne change qu'en supprimant puis en rajoutant l'appli (Safari › Partager › Sur l'écran d'accueil) : tes données restent sur le téléphone."
+ ]},
  {v:"4.13", d:"Novembre 2026", t:"Notes sur les mouvements", i:[
   "Cagnottes et comptes en liquide : un champ « Note (facultatif) » sur chaque mouvement, affiché en italique sous la ligne, et transmis avec le code quand tu partages.",
   "Comptes communs : la note déjà saisissable s'affiche maintenant sous l'opération."
