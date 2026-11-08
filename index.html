@@ -222,8 +222,8 @@ nav.tabs button.add{color:var(--ink)}
 .hbody p{margin:7px 0;font-size:14.5px}
 body.wiz nav.tabs{display:none}
 body.wiz{padding-bottom:30px}
-#sheetbg{position:fixed;inset:0;height:100dvh;background:rgba(0,0,0,.45);z-index:40;display:flex;align-items:flex-end;justify-content:center}
-#sheet{background:var(--surface);width:100%;max-width:560px;border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));max-height:88%;overflow:auto;display:flex;flex-direction:column;gap:12px}
+#sheetbg{position:fixed;inset:0;height:100dvh;max-height:100%;background:rgba(0,0,0,.45);z-index:40;display:flex;align-items:flex-end;justify-content:center}
+#sheet{background:var(--surface);width:100%;max-width:560px;border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));max-height:88%;overflow:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:12px}
 #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:9px 14px;border-radius:999px;font-size:13.5px;z-index:50;max-width:90%}
 .empty{padding:18px 12px;color:var(--muted);font-size:14px;text-align:center;border:1px dashed var(--line);border-radius:14px;margin:6px 0}
 .dot{width:32px;height:32px;border-radius:50%;flex:none;display:grid;place-items:center;color:#fff;font-size:14px;font-weight:700;font-family:var(--font-display)}
@@ -2637,6 +2637,9 @@ document.addEventListener("change", ev => { if (ev.target.id === "sch-a" || ev.t
 applyTheme();
 /* ===== Historique des mises à jour ===== */
 const CHANGELOG = [
+ {v:"4.15", d:"Novembre 2026", t:"Correctif PC", i:[
+  "Fenêtres (Plusieurs appareils, saisies, réglages…) : sur PC avec un agrandissement du texte, le bas de la fenêtre dépassait de l'écran et restait inaccessible. Elles tiennent maintenant dans l'écran et défilent."
+ ]},
  {v:"4.14", d:"Novembre 2026", t:"Nouveau logo", i:[
   "Nouvelle icône : « mes COMPTES en poche » sur fond corail, coins arrondis et contour multicolore. Sur iPhone, l'icône d'écran d'accueil ne change qu'en supprimant puis en rajoutant l'appli (Safari › Partager › Sur l'écran d'accueil) : tes données restent sur le téléphone."
  ]},
