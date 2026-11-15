@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Les comptes en poches · la visite guidée en vidéo</title>
-<meta name="description" content="3 minutes pour découvrir Les comptes en poches : reste à vivre, enveloppes, ajout rapide, pointage, avance, Livret A et poches, comptes en ligne.">
+<meta name="description" content="Un peu plus de 6 minutes pour tout voir, avec Pochy qui explique : le principe, puis chaque onglet (Accueil, Mois, Ajouter, Épargne, Fixes, Comptes) et les réglages.">
 <meta name="theme-color" content="#0E6B5C">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
 <meta property="og:type" content="video.other">
 <meta property="og:site_name" content="Les comptes en poches">
 <meta property="og:title" content="Les comptes en poches · la visite guidée en vidéo">
-<meta property="og:description" content="3 minutes pour tout comprendre : reste à vivre, enveloppes, Livret A et poches. Gratuit, sans publicité, sans compte.">
+<meta property="og:description" content="Le principe, puis chaque onglet et chaque fonction. Gratuit, sans publicité, sans compte.">
 <meta property="og:image" content="https://dam-cigogne.github.io/comptes/apercu.png">
 <meta property="og:video" content="https://dam-cigogne.github.io/comptes/comptes-en-poches-demo.mp4">
 <meta property="og:video:type" content="video/mp4">
@@ -41,21 +41,19 @@ a{color:var(--accent)}
 </head>
 <body>
 <main>
-  <header><img src="icon-192.png" alt=""><div><h1>Les comptes en poches</h1><p class="sub">La visite guidée en vidéo · 3 min · avec le son</p></div></header>
+  <header><img src="icon-192.png" alt=""><div><h1>Les comptes en poches</h1><p class="sub">La visite guidée en vidéo · 6 min 40 · avec le son</p></div></header>
   <video controls playsinline preload="metadata" poster="poster.jpg" src="comptes-en-poches-demo.mp4"></video>
   <div class="btns">
     <button class="btn p" id="share">Partager cette vidéo</button>
     <a class="btn" href="./?demo=1">Essayer la démo</a>
   </div>
   <div id="msg"></div>
-  <div class="card"><h2>Au programme</h2><ol>
-    <li>Le reste à vivre et les enveloppes</li><li>Ajouter une dépense</li><li>L'ajout rapide (modèles)</li><li>Pointer une opération</li>
-    <li>Un mois pas comme les autres</li><li>Une avance</li><li>Livret A et poches</li><li>Retirer du Livret A</li><li>Les comptes en ligne</li><li>La fin de mois</li></ol></div>
-  <p class="sub" style="margin-top:1rem">Données d'exemple. <a href="presentation.html">Fiche de présentation et installation</a> · <a href="comptes-en-poches-demo.mp4" download>Télécharger la vidéo (12 Mo)</a></p>
+  <div class="card"><h2>Au programme</h2><ol><li>Le principe : appli non connectée, tout reste sur ton téléphone</li><li>Ouvrir son appli de banque et noter le solde à l'instant T</li><li>Accueil : tuiles, jusqu'à la paie, solde, enveloppes, prévision</li><li>Mois : bilan, filtres, où part l'argent, pointage</li><li>Ajouter : ajout rapide, 5 types d'opérations (dépense, revenu, Livret A, retrait, avance), clavier</li><li>Épargne : comptes, communs, Livret A, poches, FUTUR</li><li>Fixes : revenus et charges de chaque mois</li><li>Comptes en ligne, rapprochement bancaire, clôture de fin de mois</li><li>Réglages, styles Classique et Moderne, aide et historique</li></ol></div>
+  <p class="sub" style="margin-top:1rem">Données d'exemple. <a href="presentation.html">Fiche de présentation et installation</a> · <a href="comptes-en-poches-demo.mp4" download>Télécharger la vidéo (9 Mo)</a></p>
 </main>
 <script>
 const URL_PAGE = "https://dam-cigogne.github.io/comptes/video.html";
-const TXT = "Les comptes en poches : la visite guidée en vidéo (3 min).";
+const TXT = "Les comptes en poches : la visite guidée en vidéo (6 min 40).";
 document.getElementById("share").addEventListener("click", async () => {
   const m = document.getElementById("msg");
   try {

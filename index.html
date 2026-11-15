@@ -272,6 +272,82 @@ body.priv #main,body.priv #tabs{visibility:hidden}
 .cchip{width:28px;height:28px}
 a.btn{text-decoration:none;display:inline-flex;align-items:center}
 .ccopt{flex:none;margin:8px 0}.ccopt summary{list-style:none;display:inline-block;cursor:pointer}.ccopt summary::-webkit-details-marker{display:none}.ccopt[open] summary{margin-bottom:8px}
+/* ===== Style Moderne (option) ===== */
+html.fun body{background:var(--bg)}
+#fun-bg{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;background:linear-gradient(180deg,color-mix(in srgb,var(--bg) 100%,#fff) 0%,var(--bg) 100%)}
+#fun-bg i{position:absolute;border-radius:50%;filter:blur(60px);opacity:.55}
+#fun-bg i:nth-child(1){width:360px;height:360px;left:-120px;top:-60px;background:#34D399}
+#fun-bg i:nth-child(2){width:420px;height:420px;right:-160px;top:120px;background:#818CF8}
+#fun-bg i:nth-child(3){width:340px;height:340px;left:10%;bottom:-120px;background:#FDBA74}
+#fun-bg i:nth-child(4){width:260px;height:260px;right:5%;bottom:10%;background:#F9A8D4;opacity:.4}
+:root[data-theme="dark"] #fun-bg i{opacity:.28}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #fun-bg i{opacity:.28}}
+html.fun .card:not(.hero){background:color-mix(in srgb,var(--surface) 80%,transparent);-webkit-backdrop-filter:blur(18px) saturate(1.4);backdrop-filter:blur(18px) saturate(1.4);border:1px solid rgba(255,255,255,.65);border-radius:28px;box-shadow:0 18px 40px -22px rgba(60,70,160,.45)}
+:root[data-theme="dark"].fun .card:not(.hero){border-color:rgba(255,255,255,.08)}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]).fun .card:not(.hero){border-color:rgba(255,255,255,.08)}}
+html.fun .hero{background:linear-gradient(135deg,#0EA37F 0%,#2563EB 50%,#7C3AED 100%);background-size:200% 200%;color:#fff;border-radius:32px;padding:22px 20px;box-shadow:0 26px 50px -22px rgba(80,60,220,.7),inset 0 1px 0 rgba(255,255,255,.35)}
+html.fun .hero::before{content:"";position:absolute;right:-60px;top:-70px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.35),transparent 65%)}
+html.fun .hero .lbl,html.fun .hero .sub,html.fun .hero .sh,html.fun .hero .sl{color:#fff}
+html.fun .hero .lbl{font-weight:700;letter-spacing:.08em}
+html.fun .hero .big{font-size:52px}
+html.fun .hero input{color:#fff}html.fun .hero input::placeholder{color:#fff}
+html.fun .hero .prog i{background:linear-gradient(90deg,#FDE68A,#fff)}
+html.fun .card h2{display:flex;align-items:center;gap:9px;letter-spacing:-.01em}
+.eb{flex:none;width:32px;height:32px;border-radius:11px;display:inline-grid;place-items:center;font-size:17px;background:linear-gradient(135deg,color-mix(in srgb,var(--ec,#2563EB) 22%,transparent),color-mix(in srgb,var(--ec,#2563EB) 8%,transparent));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ec,#2563EB) 25%,transparent)}
+html.fun .btn:not(.ghost):not(.danger){background-image:linear-gradient(135deg,#10B981,#2563EB);color:#fff;border-radius:999px;box-shadow:0 12px 22px -10px rgba(37,99,235,.75)}
+html.fun .btn.ghost{border-radius:999px;background:color-mix(in srgb,var(--surface) 70%,transparent)}
+html.fun .btn:active,html.fun .ftile:active,html.fun nav.tabs button:active,html.fun .fperiod:active{transform:scale(.96)}
+html.fun nav.tabs .in{border-radius:34px;border:1px solid rgba(255,255,255,.6);background:color-mix(in srgb,var(--surface) 78%,transparent);-webkit-backdrop-filter:blur(22px) saturate(1.5);backdrop-filter:blur(22px) saturate(1.5);box-shadow:0 22px 44px -14px rgba(60,60,160,.55)}
+html.fun nav.tabs button:nth-child(1){--c:#16A34A}html.fun nav.tabs button:nth-child(2){--c:#2563EB}html.fun nav.tabs button:nth-child(4){--c:#DB2777}html.fun nav.tabs button:nth-child(5){--c:#F59E0B}html.fun nav.tabs button:nth-child(6){--c:#7C3AED}
+html.fun nav.tabs button:not(.add) svg{color:var(--c)}
+html.fun nav.tabs button.on:not(.add){background:linear-gradient(135deg,var(--c),color-mix(in srgb,var(--c) 55%,#fff));color:#fff;font-weight:700;box-shadow:0 10px 20px -8px var(--c)}
+html.fun nav.tabs button.on:not(.add) svg{color:#fff}
+html.fun nav.tabs button.add span.pl{background:linear-gradient(135deg,#F97316,#EC4899 55%,#7C3AED);color:#fff;box-shadow:0 12px 24px -6px rgba(236,72,153,.75)}
+html.fun .bar{height:12px}html.fun .bar i{height:12px}
+html.fun .bar:not(.bad):not(.warn) i{background:linear-gradient(90deg,#2FD6A0,#3B82F6 60%,#8B5CF6)}
+html.fun .chk{border-width:2.5px}html.fun .chk.on{background:linear-gradient(135deg,#10B981,#2563EB);border-color:transparent;box-shadow:0 6px 14px -4px rgba(37,99,235,.6)}
+html.fun .chip{background:color-mix(in srgb,var(--accent) 14%,transparent)}
+html.fun .monthnav{border-radius:999px;background:color-mix(in srgb,var(--surface) 75%,transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+html.fun .seg button.on,html.fun .pills button.on{background:linear-gradient(135deg,#10B981,#2563EB);color:#fff;border-color:transparent}
+.ftop{display:flex;align-items:center;gap:12px;margin:4px 2px 14px}
+.ftop .av{flex:none;width:52px;height:52px;border-radius:18px;display:grid;place-items:center;font-family:var(--font-display);font-weight:800;font-size:24px;color:#fff;background:linear-gradient(135deg,#F97316,#EC4899 55%,#7C3AED);box-shadow:0 12px 24px -10px rgba(236,72,153,.7)}
+.ftop .hi{font-family:var(--font-display);font-weight:800;font-size:27px;letter-spacing:-.02em;line-height:1.1}.ftop .hi small{display:block;font-family:var(--font-body);font-size:13px;font-weight:500;color:var(--muted);letter-spacing:0;margin-top:3px}
+.ftop .wave{display:inline-block;transform-origin:70% 70%}
+.ftiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0 0 12px}
+.ftile{position:relative;overflow:hidden;border:0;border-radius:26px;padding:15px 15px 14px;color:#fff;text-align:left;min-height:112px;display:flex;flex-direction:column;justify-content:flex-end;gap:3px;font:inherit;box-shadow:0 18px 32px -16px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.35);transition:transform .12s ease}
+.ftile .e{position:absolute;right:10px;top:8px;font-size:38px;filter:drop-shadow(0 6px 8px rgba(0,0,0,.28))}
+.ftile span{font-size:12.5px;font-weight:700;opacity:.95;letter-spacing:.01em}.ftile b{font-family:var(--font-display);font-size:25px;font-weight:800;letter-spacing:-.02em}
+.ftile::after{content:"";position:absolute;inset:auto -30% -55% auto;width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,.17)}
+.ftile::before{content:"";position:absolute;left:-20px;top:-30px;width:90px;height:90px;border-radius:50%;background:rgba(255,255,255,.12)}
+.ftile.t1{background:linear-gradient(135deg,#34D399,#059669)}.ftile.t2{background:linear-gradient(135deg,#FDBA74,#F43F5E)}.ftile.t3{background:linear-gradient(135deg,#60A5FA,#2563EB)}.ftile.t4{background:linear-gradient(135deg,#C084FC,#7C3AED)}
+.fperiod{position:relative;margin:0 0 14px;padding:14px 16px 16px;border-radius:26px;background:linear-gradient(135deg,#FDE68A,#FDBA74 55%,#FB7185);color:#4A1D0A;box-shadow:0 18px 32px -18px rgba(244,63,94,.6),inset 0 1px 0 rgba(255,255,255,.5);transition:transform .12s ease}
+.fperiod .row1{display:flex;justify-content:space-between;align-items:baseline;font-weight:800;font-size:15px}.fperiod .row1 small{font-weight:600;opacity:.8;font-size:12.5px}
+.fperiod .track{position:relative;height:12px;border-radius:99px;background:rgba(255,255,255,.55);margin-top:16px}
+.fperiod .track i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#F97316,#EC4899 60%,#7C3AED);width:var(--p,0%)}
+.fperiod .runner{position:absolute;top:-17px;left:var(--p,0%);transform:translateX(-50%);font-size:24px;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+#fun-confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:90}
+@media (prefers-reduced-motion:no-preference){
+ html.fun .hero{animation:fgrad 10s ease-in-out infinite}
+ @keyframes fgrad{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+ @keyframes fup{from{opacity:0;transform:translateY(20px) scale(.97)}to{opacity:1;transform:none}}
+ @keyframes fgrow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+ @keyframes fwave{0%,60%,100%{transform:rotate(0)}10%,30%{transform:rotate(16deg)}20%,40%{transform:rotate(-10deg)}50%{transform:rotate(10deg)}}
+ @keyframes fpulse{0%,100%{box-shadow:0 12px 24px -6px rgba(236,72,153,.75),0 0 0 0 rgba(236,72,153,.4)}50%{box-shadow:0 12px 24px -6px rgba(236,72,153,.75),0 0 0 13px rgba(236,72,153,0)}}
+ @keyframes fbob{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-5px) rotate(3deg)}}
+ @keyframes fblob1{0%,100%{transform:translate(0,0)}50%{transform:translate(60px,70px)}}
+ @keyframes fblob2{0%,100%{transform:translate(0,0)}50%{transform:translate(-70px,50px)}}
+ @keyframes frun{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-4px)}}
+ @keyframes fshine{from{transform:translateX(-120%)}to{transform:translateX(220%)}}
+ #fun-bg i:nth-child(odd){animation:fblob1 16s ease-in-out infinite}#fun-bg i:nth-child(even){animation:fblob2 20s ease-in-out infinite}
+ html.fun.fun-anim #main>.card,html.fun.fun-anim #main>.ftop,html.fun.fun-anim #main>.fperiod,html.fun.fun-anim #main>.ftiles .ftile{animation:fup .6s cubic-bezier(.2,.8,.2,1) both}
+ html.fun.fun-anim #main>*:nth-child(2){animation-delay:.04s}html.fun.fun-anim #main>*:nth-child(3){animation-delay:.1s}html.fun.fun-anim #main>*:nth-child(4){animation-delay:.16s}html.fun.fun-anim #main>*:nth-child(5){animation-delay:.22s}html.fun.fun-anim #main>*:nth-child(6){animation-delay:.28s}html.fun.fun-anim #main>*:nth-child(n+7){animation-delay:.34s}
+ html.fun.fun-anim .ftile:nth-child(2){animation-delay:.08s!important}html.fun.fun-anim .ftile:nth-child(3){animation-delay:.14s!important}html.fun.fun-anim .ftile:nth-child(4){animation-delay:.2s!important}
+ html.fun.fun-anim .bar i,html.fun.fun-anim .prog i,html.fun.fun-anim .fperiod .track i{transform-origin:left;animation:fgrow 1s cubic-bezier(.2,.8,.2,1) .2s both}
+ html.fun.fun-anim .fperiod .runner{animation:fup .6s .2s both}
+ html.fun .ftop .wave{animation:fwave 2.4s ease-in-out .5s 1}
+ html.fun .ftile .e{animation:fbob 3.4s ease-in-out infinite}.ftile:nth-child(2) .e{animation-delay:-.8s}.ftile:nth-child(3) .e{animation-delay:-1.6s}.ftile:nth-child(4) .e{animation-delay:-2.4s}
+ html.fun .fperiod .runner{animation:frun 1.4s ease-in-out infinite}
+ html.fun nav.tabs button.add span.pl{animation:fpulse 2.8s ease-out infinite}
+ html.fun .ftile::before{animation:fbob 5s ease-in-out infinite}
+}
 </style>
 
 
@@ -729,7 +805,7 @@ async function saveFile(name, data, mime){
 const now0 = new Date();
 const V = { tab:"home", m:now0.getMonth(), y:now0.getFullYear(), hidePast:true, editId:null, draft:null, pending:null, msg:"", wipe:false };
 let toastTimer;
-function toast(t){ const el = $("#toast"); el.textContent = t; el.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => el.hidden = true, 2600); }
+function toast(t){ if (FUN() && /^(Enregistré|Opération ajoutée|Objectif atteint)/.test(String(t))) setTimeout(confetti, 120); const el = $("#toast"); el.textContent = t; el.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => el.hidden = true, 2600); }
 
 const ICON = {
   home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>',
@@ -822,7 +898,7 @@ function viewHome(){
     return `<button class="env" data-act="envmonth" data-i="${ei}"><div class="h"><span>${dotHtml(e.n,true)}${esc(e.n)}${stTxt ? ` <span class="chip ${cls}">${stTxt}</span>` : ""}${isNum(S.settings.envelopes[ei].m[V.m]) ? ' <span class="chip">ce mois</span>' : ""}</span><span class="num ${e.reste<0?"neg":""}">${eur(e.reste)} <span class="muted small">/ ${eur(e.bud)}</span></span></div><div class="bar"><i class="${cls}" style="width:${p}%"></i></div></button>`;
   }).join("") : `<div class="empty">Aucune enveloppe. Ajoutez-en dans Réglages.</div>`;
   const kv = (l,v,neg) => `<div class="kv"><span>${l}</span><span class="num">${neg?"− ":"+ "}${eur(v)}</span></div>`;
-  return topbar() + `
+  return topbar() + (FUN() ? funHome(c, soldeVal) : "") + `
   <div class="card hero">
     <div class="lbl">Reste à vivre après enveloppes</div>
     <div class="big num">${isNum(soldeVal) ? eur(c.d18) : "—"}</div>
@@ -879,7 +955,8 @@ function fixRowHtml(kind,r,pm){
 }
 function viewMonth(){
   const c = calc(V.m,V.y);
-  const show = (kind,rows) => rows.filter(r => !V.hidePast || fixState(r,V.m,V.y).k !== "ok");
+  const byDay = rows => rows.map((r,i) => [r,i]).sort((a,b) => ((N(a[0].jour) || 99) - (N(b[0].jour) || 99)) || a[1] - b[1]).map(x => x[0]);   // dans l'ordre où ça passe (sans jour : à la fin)
+  const show = (kind,rows) => byDay(rows).filter(r => !V.hidePast || fixState(r,V.m,V.y).k !== "ok");
   const revRows = show("rev",S.fixRev), chRows = show("ch",S.fixCh);
   const J0 = live().filter(j => inMonth(j,V.m,V.y)).sort((a,b) => b.date.localeCompare(a.date) || b.upd - a.upd);
   const J = V.hidePast ? J0.filter(j => j.pointe !== "x") : J0;
@@ -893,7 +970,7 @@ function viewMonth(){
   }).join("") : `<div class="empty">${J0.length ? "Tout est pointé. Touche « Masquer les pointés » pour tout revoir." : "Aucune opération ce mois-ci."}</div>`;
   const kv = (l,v,cl) => `<div class="kv"><span>${l}</span><span class="num ${cl||""}">${eur(v)}</span></div>`;
   const pv = prevMY(V.m,V.y);
-  const carried = cutsOf()[ckey(V.m,V.y)] ? [["rev",S.fixRev],["ch",S.fixCh]].flatMap(([k,rows]) => rows.filter(r => N(r.montant) > 0 || isNum(r.m[pv.m])).filter(r => fixState(r,pv.m,pv.y).k !== "ok").map(r => fixRowHtml(k,r,pv))) : [];
+  const carried = cutsOf()[ckey(V.m,V.y)] ? [["rev",S.fixRev],["ch",S.fixCh]].flatMap(([k,rows]) => byDay(rows).filter(r => N(r.montant) > 0 || isNum(r.m[pv.m])).filter(r => fixState(r,pv.m,pv.y).k !== "ok").map(r => fixRowHtml(k,r,pv))) : [];
   if (cutsOf()[ckey(V.m,V.y)]) for (const j of live().filter(j => inMonth(j,pv.m,pv.y) && j.pointe !== "x" && ["Dépense","Revenu","Versement sur Livret A","Retrait du Livret A"].includes(j.type)).sort((a,b) => b.date.localeCompare(a.date))){
     const sg = j.type === "Revenu" || j.type === "Retrait du Livret A" ? 1 : -1;
     carried.push(`<div class="row"><button class="chk" data-act="jtoggle" data-id="${j.id}" aria-label="Pointer">${ICON.check}</button>${dotHtml(j.cat || TYPE_SHORT[j.type])}
@@ -1559,7 +1636,8 @@ ${MK("sync")}  <div class="card"><h2>Synchroniser avec Excel</h2>
     <div class="small muted">${bkpAge() === null ? "Aucune sauvegarde complète faite pour l'instant." : "Dernière sauvegarde complète : " + (bkpAge() === 0 ? "aujourd'hui" : "il y a " + bkpAge() + " jour(s)") + "."} Un rappel s'affiche en haut après 14 jours.</div>
     <label class="f"><b>Importer le journal</b> (fichier venant d'Excel : classeur .xlsm / .xlsx, journal d'échange, ou sauvegarde .json)<input id="file" type="file" accept=".xlsm,.xlsx,.json,.xls"></label></div>
 
-${MK("look")}  <div class="card"><h2>Apparence</h2><div class="small muted">Couleur de l'appli</div><div class="pal">${Object.keys(PALS).map(k => `<button class="${(lsGet("mc-pal") || "emeraude") === k ? "on" : ""}" data-act="pal" data-v="${k}" aria-label="${PALS[k].n}" title="${PALS[k].n}" style="background-color:${k === "emeraude" ? "#0E6B5C" : PALS[k].l[0]}"></button>`).join("")}</div><div class="small muted" style="margin-top:8px">Mode</div><div class="seg">${[["auto","Automatique"],["light","Clair"],["dark","Sombre"],["sched","Horaires"]].map(([k,l]) => `<button class="${(lsGet("mc-theme") || "auto") === k ? "on" : ""}" data-act="theme" data-v="${k}">${l}</button>`).join("")}</div>
+${MK("look")}  <div class="card"><h2>Style de l'appli</h2><div class="small muted">Classique : l'aspect habituel. Moderne : coloré, avec animations et confettis.</div><div class="seg" style="margin-top:8px">${[["classic","Classique"],["fun","Moderne ✨"]].map(([k,l]) => `<button class="${(lsGet("mc-style") || "classic") === k ? "on" : ""}" data-act="style" data-v="${k}">${l}</button>`).join("")}</div>${FUN() ? `<label class="f" style="margin-top:8px">Ton prénom (pour « Bonjour … » sur l'Accueil)<input value="${esc(funName())}" maxlength="40" placeholder="Damien" oninput="try{localStorage.setItem('mc-myname',this.value.trim().slice(0,40))}catch(e){}"></label>` : ""}</div>
+  <div class="card"><h2>Apparence</h2><div class="small muted">Couleur de l'appli</div><div class="pal">${Object.keys(PALS).map(k => `<button class="${(lsGet("mc-pal") || "emeraude") === k ? "on" : ""}" data-act="pal" data-v="${k}" aria-label="${PALS[k].n}" title="${PALS[k].n}" style="background-color:${k === "emeraude" ? "#0E6B5C" : PALS[k].l[0]}"></button>`).join("")}</div><div class="small muted" style="margin-top:8px">Mode</div><div class="seg">${[["auto","Automatique"],["light","Clair"],["dark","Sombre"],["sched","Horaires"]].map(([k,l]) => `<button class="${(lsGet("mc-theme") || "auto") === k ? "on" : ""}" data-act="theme" data-v="${k}">${l}</button>`).join("")}</div>
     <div class="small muted">Automatique suit le réglage de ton téléphone (Réglages → Affichage et luminosité). Horaires : tu choisis toi-même quand l'appli passe en sombre.</div>
     ${lsGet("mc-theme") === "sched" ? `<div class="grid2" style="margin-top:8px"><label class="f">Sombre à partir de<input id="sch-a" type="time" value="${schedGet()[0]}"></label><label class="f">Clair à partir de<input id="sch-b" type="time" value="${schedGet()[1]}"></label></div>` : ""}</div>
 
@@ -1674,6 +1752,7 @@ const HELP = {
     "<b>Suivi des granulés</b> (pour un poêle) : active l'interrupteur, règle le poids d'un sac (15 kg par défaut), ton budget annuel et la période (saison de chauffe septembre → juin, ou année civile). Ensuite, quand tu ajoutes une dépense dont le libellé ou l'enveloppe contient « granulé » (par exemple une enveloppe « Granulés »), l'appli te demande combien de sacs (mets 0 si ce n'est pas un achat de granulés). Le suivi (Accueil › Granulés › Suivi) montre les sacs, les kg, la dépense, le prix moyen, la jauge du budget et la comparaison avec la saison précédente. « Ajouter un achat passé » permet de saisir l'historique des années précédentes : il compte dans le suivi mais pas dans tes enveloppes ni dans Excel.",
     "<b>Fiche de l'appli (à partager)</b> : trois affiches et une carte d'aperçu. Touche une vignette pour la voir en grand et la partager ou l'enregistrer. « Partager avec le descriptif » envoie un court texte et le lien de la fiche de présentation ; en ouvrant une affiche, « Partager avec le texte » envoie l'image avec ce texte (« Copier le texte » si ton appli de messagerie le retire) ; « Voir la fiche » l'ouvre ; « Copier le lien » le copie. Aucune donnée personnelle dans ces images.",
     "<b>Où enregistrer les exports ?</b> Sur PC et Android, choisis un dossier une fois : les exports y sont écrits directement en remplaçant l'ancien fichier. Sur iPhone et iPad, Apple ne le permet pas : dans la feuille de partage, touche « Enregistrer dans Fichiers » (iOS rouvre en général le dernier dossier) et choisis « Remplacer ».",
+    "<b>Style de l'appli</b> : « Classique » est l'aspect habituel. « Moderne ✨ » ajoute des couleurs, un accueil avec 4 tuiles, des animations et des confettis quand tu enregistres. Tu peux revenir à Classique à tout moment, tes données ne changent pas.",
     "<b>Taille de l'affichage</b> : en Automatique, l'appli s'agrandit toute seule sur tablette et grand écran. Si c'est encore trop petit ou trop grand, choisis Normal, Grand, Très grand ou Maximum.",
     "<b>Dossier IMPORT</b> : « Exporter le journal » crée le fichier à donner à Excel. Enregistre-le toujours dans le dossier <b>IMPORT</b> d'Excel (il est déjà créé) pour ne pas te tromper. Pour l'autre sens, « Importer le journal » prend le fichier préparé par Excel.",
     "<b>Écran au démarrage</b> : choisis si l'appli s'ouvre sur l'Accueil ou directement sur Ajouter. Sur ordinateur et Android, un appui long sur l'icône propose aussi « Ajouter une opération » (non disponible sur iPhone).",
@@ -1909,6 +1988,7 @@ function render(){
   if (V.tab === "add") updateInfo();
   V.lt = V.tab; V.lm = V.m; V.ly = V.y;
   window.scrollTo(0, keepY);
+  funAfter();
 }
 
 /* ============ Feuilles modales ============ */
@@ -2123,7 +2203,7 @@ function commitImport(replace){
   if (V.diff && V.diff.length) sheetDiff();
 }
 
-document.addEventListener("click", ev => {
+document.addEventListener("click", ev => { if (FUN()){ const c = ev.target.closest(".chk"); if (c) setTimeout(() => { const e = document.elementFromPoint(ev.clientX, ev.clientY), k = e && e.closest && e.closest(".chk.on"); if (k){ const r = k.getBoundingClientRect(); confetti(r.left + r.width / 2, r.top + r.height / 2, 28); } }, 60); } 
   const b = ev.target.closest("[data-act]"); if (!b) { if (ev.target.id === "sheetbg") closeSheet(); return; }
   const a = b.dataset.act, id = b.dataset.id, k = b.dataset.k;
   if (DEMO && DEMO_BLOCK.includes(a)) return toast("Quitte d'abord le mode démo");
@@ -2395,6 +2475,7 @@ document.addEventListener("click", ev => {
     case "dirclear": dirSet(null); try { localStorage.removeItem("mc-dirname"); } catch(e){} render(); break;
     case "zoom": { const v = b.dataset.v; if (v === "auto") { try { localStorage.removeItem("mc-zoom"); } catch(e){} } else lsSet("mc-zoom", v); applyZoom(); render(); break; }
     case "pal": { const v = b.dataset.v; if (v === "emeraude") { try { localStorage.removeItem("mc-pal"); } catch(e){} } else lsSet("mc-pal", v); applyTheme(); render(); break; }
+    case "style": { lsSet("mc-style", b.dataset.v); applyStyle(); funAnim(true); render(); if (b.dataset.v === "fun") setTimeout(confetti, 250); break; }
     case "theme": { const v = b.dataset.v; if (v === "auto") { try { localStorage.removeItem("mc-theme"); } catch(e){} } else lsSet("mc-theme", v); applyTheme(); render(); break; }
     case "key": { const i = $("#f-mont"); if (!i) break; let v = i.value; const k = b.dataset.v;
       if (k === "del") v = v.slice(0,-1);
@@ -2625,18 +2706,45 @@ function zoomFactor(){ const m = lsGet("mc-zoom") || "auto", W = window.innerWid
 function applyZoom(){ const z = zoomFactor(), W = window.innerWidth || 400, R = document.documentElement;
   R.style.setProperty("--z", String(z)); R.classList.toggle("cols", lsGet("mc-cols") !== "off" && W / z >= 690); }
 applyZoom(); window.addEventListener("resize", () => { clearTimeout(applyZoom.t); applyZoom.t = setTimeout(applyZoom, 150); });
+const FUN = () => lsGet("mc-style") === "fun";
+function applyStyle(){ document.documentElement.classList.toggle("fun", FUN()); let bg = document.getElementById("fun-bg"); if (FUN() && !bg){ bg = document.createElement("div"); bg.id = "fun-bg"; bg.innerHTML = "<i></i><i></i><i></i><i></i>"; document.body.prepend(bg); } else if (!FUN() && bg) bg.remove(); }
+function funName(){ let n = ""; try { n = localStorage.getItem("mc-myname") || ""; } catch(e){} return n === "Moi" ? "" : n; }
+function funHome(c, soldeVal){ const h = new Date().getHours(), hi = h < 5 ? "Bonne nuit" : h < 18 ? "Bonjour" : "Bonsoir", nm = funName();
+  const T = [["t1","💶","Reste à vivre", isNum(soldeVal) ? c.d18 : null, ""],["t2","🧾","Fixes à payer", c.d13, "month|fix"],["t3","📥","À recevoir", c.d11 + c.d12, "month|ops"],["t4","🐷","Épargne du mois", c.epargne, "sav|"]];
+  const P = periodInfo(), pc = P.active && P.total ? Math.max(3, Math.min(100, Math.round(P.done / P.total * 100))) : 0;
+  return `<div class="ftop">${nm ? `<div class="av" aria-hidden="true">${esc(nm.charAt(0).toUpperCase())}</div>` : ""}<div class="hi">${hi}${nm ? " " + esc(nm) : ""} <span class="wave" aria-hidden="true">👋</span><small>${MOIS[V.m]} ${V.y} · voilà où tu en es</small></div></div>
+  <div class="ftiles">${T.map(([k,e,l,v,go]) => `<button class="ftile ${k}" ${go ? `data-act="go" data-v="${go.split("|")[0]}"${go.split("|")[1] ? ` data-mv="${go.split("|")[1]}"` : ""}` : ""}><span class="e" aria-hidden="true">${e}</span><span>${l}</span><b class="num" data-cnt="${v == null ? "" : v}">${v == null ? "—" : eur(v)}</b></button>`).join("")}</div>
+  ${pc ? `<div class="fperiod" style="--p:${pc}%"><div class="row1"><span>Jusqu'à la paie du ${P.pay}</span><small>${P.left === 0 ? "dernier jour" : P.left + " jour" + (P.left > 1 ? "s" : "") + " restant" + (P.left > 1 ? "s" : "")}</small></div><div class="track"><i></i><span class="runner" aria-hidden="true">🚀</span></div></div>` : ""}`; }
+function funAnim(force){ const R = document.documentElement; if (!FUN()) return; R.classList.add("fun-anim"); clearTimeout(funAnim.t); funAnim.t = setTimeout(() => R.classList.remove("fun-anim"), 1300); }
+function funCount(el){ const to = parseFloat(el.dataset.cnt); if (!isFinite(to) || !window.requestAnimationFrame) return; const t0 = performance.now(), D = 900; const step = t => { const k = Math.min(1, (t - t0) / D), e = 1 - Math.pow(1 - k, 3); el.textContent = eur(to * e); if (k < 1) requestAnimationFrame(step); else el.textContent = eur(to); }; requestAnimationFrame(step); }
+const EB = [[/^Enveloppes/i,"🎯","#2563EB"],[/mettre de côté/i,"🐷","#DB2777"],[/Prochains mouvements/i,"📅","#F59E0B"],[/^Épargne|Mes comptes/i,"💰","#16A34A"],[/Bilan/i,"📊","#7C3AED"],[/Où part/i,"🍕","#F97316"],[/Opérations/i,"🧾","#2563EB"],[/Revenus/i,"💚","#16A34A"],[/Charges/i,"🧱","#F43F5E"],[/Nouvelle opération|Modifier/i,"✨","#7C3AED"],[/Comptes en ligne|Prévision|Granulés/i,"🔮","#0EA5E9"],[/Style|Apparence|Taille/i,"🎨","#EC4899"]];
+function funDecorate(){ document.querySelectorAll("#main .card h2").forEach(h => { if (h.querySelector(".eb") || h.closest(".hero")) return; const t = h.textContent.trim(), m = EB.find(x => x[0].test(t)); if (m){ const s = document.createElement("span"); s.className = "eb"; s.style.setProperty("--ec", m[2]); s.textContent = m[1]; s.setAttribute("aria-hidden","true"); h.prepend(s); } }); }
+function funAfter(){ if (!FUN()) return; funDecorate(); const key = V.tab + "|" + V.m + "|" + V.y; if (funAfter.k === key) return; funAfter.k = key;
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return; funAnim(); document.querySelectorAll("#main [data-cnt]").forEach(funCount); }
+function confetti(ox,oy,cnt){ if (matchMedia("(prefers-reduced-motion: reduce)").matches) return; if (typeof ox !== "number") ox = innerWidth / 2, oy = innerHeight * .62; let cv = document.getElementById("fun-confetti"); if (cv) cv.remove(); cv = document.createElement("canvas"); cv.id = "fun-confetti"; document.body.appendChild(cv);
+  const W = cv.width = innerWidth, H = cv.height = innerHeight, g = cv.getContext("2d"), col = ["#10B981","#2563EB","#F59E0B","#EC4899","#7C3AED","#EF4444"], P = [];
+  for (let i = 0; i < (cnt || 110); i++) P.push({x:ox + (Math.random() - .5) * 40, y:oy, vx:(Math.random() - .5) * 11, vy:-(6 + Math.random() * 11), s:5 + Math.random() * 6, r:Math.random() * 6, vr:(Math.random() - .5) * .4, c:col[i % col.length]});
+  let n = 0; const run = () => { g.clearRect(0,0,W,H); n++; for (const p of P){ p.vy += .32; p.x += p.vx; p.y += p.vy; p.r += p.vr; g.save(); g.translate(p.x,p.y); g.rotate(p.r); g.fillStyle = p.c; g.globalAlpha = Math.max(0, 1 - n / 110); g.fillRect(-p.s / 2, -p.s / 3, p.s, p.s * .6); g.restore(); } if (n < 110) requestAnimationFrame(run); else cv.remove(); }; requestAnimationFrame(run); }
 function applyTheme(){ let t = lsGet("mc-theme"); if (t === "sched") t = schedDark() ? "dark" : "light"; const R = document.documentElement; if (t === "light" || t === "dark") R.setAttribute("data-theme", t); else R.removeAttribute("data-theme");
   const pk = lsGet("mc-pal"), P = PALS[pk]; const dark = t === "dark" || (t !== "light" && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
   const v = P && (dark ? P.d : P.l); for (const k of ["--accent","--accent-ink","--accent-soft"]) R.style.removeProperty(k);
   if (v){ R.style.setProperty("--accent", v[0]); R.style.setProperty("--accent-ink", v[1]); R.style.setProperty("--accent-soft", v[2]); }
   try { const m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute("content", getComputedStyle(R).getPropertyValue("--accent").trim() || "#0E6B5C"); } catch(e){} }
 try { matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => applyTheme()); } catch(e){}
+applyStyle();
 setInterval(() => { if (lsGet("mc-theme") === "sched") applyTheme(); }, 60000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden && lsGet("mc-theme") === "sched") applyTheme(); });
 document.addEventListener("change", ev => { if (ev.target.id === "sch-a" || ev.target.id === "sch-b"){ lsSet("mc-sched", ($("#sch-a").value || "20:00") + "|" + ($("#sch-b").value || "07:00")); applyTheme(); } });
 applyTheme();
 /* ===== Historique des mises à jour ===== */
 const CHANGELOG = [
+ {v:"4.17", d:"Novembre 2026", t:"Style Moderne", i:[
+  "Réglages › Aspect › Style de l'appli : « Moderne ✨ » (coloré) en plus de « Classique », qui reste l'aspect habituel et celui par défaut.",
+  "Moderne : accueil « Bonjour … » avec 4 tuiles colorées, nombres qui montent, cartes qui apparaissent, barres animées, barre du bas colorée, confettis quand tu enregistres une opération. Les animations s'arrêtent si ton téléphone réduit les animations. Tes données et tes calculs ne changent pas."
+ ]},
+ {v:"4.16", d:"Novembre 2026", t:"Fixes du mois dans l'ordre", i:[
+  "Mois › Fixes et revenus rangés dans l'ordre où ils passent (jour du mois ; sans jour à la fin ; ordre d'origine conservé à jour égal), y compris les fixes repris du mois précédent. L'écran Fixes et tes données ne changent pas."
+ ]},
  {v:"4.15", d:"Novembre 2026", t:"Correctif PC", i:[
   "Fenêtres (Plusieurs appareils, saisies, réglages…) : sur PC avec un agrandissement du texte, le bas de la fenêtre dépassait de l'écran et restait inaccessible. Elles tiennent maintenant dans l'écran et défilent."
  ]},
