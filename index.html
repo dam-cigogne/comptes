@@ -109,6 +109,7 @@ button{cursor:pointer}
 .soldebox{display:block;margin:6px 0 4px;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3)}
 .soldebox .sl{display:block;font-size:12.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;opacity:.9}
 .soldebox .sin{display:flex;align-items:center;gap:8px;margin:6px 0 4px}
+.soldebox .sinw{flex:1;min-width:0;display:flex;position:relative}.soldebox .pen,.soldebox .penline,.soldebox .bk,.hpill,.heq{display:none}
 .soldebox .sin input{flex:1;width:auto;min-width:0;font-size:24px;font-weight:700;text-align:left;background:rgba(255,255,255,.2);padding:8px 12px}
 .soldebox .sin b{font-size:22px}
 .soldebox .sh{display:block;font-size:12px;opacity:.8;line-height:1.35}
@@ -158,6 +159,20 @@ button{cursor:pointer}
 .env{display:block;padding:8px 0;border-top:1px solid var(--line)}
 .env>.bar{margin-top:6px}
 .env:first-child{border-top:0}
+.envhead{display:flex;align-items:center;justify-content:space-between;gap:8px}.envhead h2{margin:0}.envswap{border:1.5px solid var(--line);background:transparent;color:inherit;font:inherit;font-size:12.5px;font-weight:700;padding:6px 11px;border-radius:99px;cursor:pointer;white-space:nowrap}.envswap:active{transform:scale(.95)}
+.envsum{margin:10px 0 6px}.envseg{display:flex;gap:4px}.envseg i{flex:1;height:10px;border-radius:99px;background:var(--line)}.envseg i.ok{background:var(--accent,#0b6b52)}.envseg i.bad{background:var(--bad,#c0392b)}.envsumt{font-size:13.5px;margin-top:7px;color:var(--muted)}.envsumt b{color:inherit;font-weight:800}
+.egrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0 4px}
+.etile{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;padding:14px 14px 13px;border-radius:24px;border:1.5px solid rgba(255,255,255,.7);background:linear-gradient(160deg,rgba(255,255,255,.92),rgba(238,242,255,.78));box-shadow:0 18px 32px -22px rgba(60,70,160,.6);color:inherit;font:inherit;cursor:pointer;transition:transform .12s ease}
+.etile:active{transform:scale(.96)}.etile.warn{background:linear-gradient(160deg,rgba(255,251,235,.95),rgba(255,237,213,.85))}
+.egauge{position:relative;width:62px;height:62px;margin-bottom:4px}.egauge svg{width:100%;height:100%;transform:rotate(-90deg)}
+.egauge .rt{fill:none;stroke:rgba(100,116,139,.18);stroke-width:5}.egauge .rf{fill:none;stroke-width:5;stroke-linecap:round;stroke-dashoffset:var(--off)}
+.egauge .eem{position:absolute;inset:0;display:grid;place-items:center;font-size:26px}
+.etile .en{font-weight:700;font-size:15px;line-height:1.15}.etile b{font-size:21px;font-weight:800;letter-spacing:-.02em}.etile .es{font-size:11.5px;color:var(--muted);line-height:1.25}.etile .chip{margin-top:3px;font-size:11px}
+:root[data-theme="dark"] .etile{background:linear-gradient(160deg,rgba(255,255,255,.09),rgba(255,255,255,.04));border-color:rgba(255,255,255,.12)}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .etile{background:linear-gradient(160deg,rgba(255,255,255,.09),rgba(255,255,255,.04));border-color:rgba(255,255,255,.12)}}
+.envadd{margin:12px 0 4px;padding:12px 14px;border-radius:16px;background:color-mix(in srgb,var(--accent,#0b6b52) 8%,transparent);border:1px dashed color-mix(in srgb,var(--accent,#0b6b52) 40%,transparent)}.ea-t{font-size:13px;font-weight:700;color:var(--muted);margin-bottom:6px}
+.ea-r,.ea-tot{display:flex;align-items:baseline;gap:8px;padding:3px 0;font-size:15px}.ea-s{flex:none;width:16px;text-align:center;font-weight:800;color:var(--muted)}.ea-n{flex:1;min-width:0}.ea-r .num{font-weight:600}
+.ea-tot{margin-top:6px;padding-top:8px;border-top:2px solid currentColor;font-weight:800;font-size:18px}.ea-tot .num{font-size:22px;font-weight:800}
+.envdone{margin-top:12px}.envd{display:flex;justify-content:space-between;gap:8px;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);color:inherit;font:inherit;font-size:14px;padding:9px 0;cursor:pointer;opacity:.82}.envd.bad .num{color:var(--bad,#c0392b);font-weight:700}
 button.env{width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);color:inherit;font:inherit;cursor:pointer}button.env:first-child{border-top:0}
 .env .h{display:flex;justify-content:space-between;gap:8px}
 .bar{display:block;width:100%;height:10px;min-height:10px;flex:none;border-radius:999px;background:var(--line);overflow:hidden}
@@ -294,6 +309,22 @@ html.fun .card h2{display:flex;align-items:center;gap:9px;letter-spacing:-.01em}
 .eb{flex:none;width:32px;height:32px;border-radius:11px;display:inline-grid;place-items:center;font-size:17px;background:linear-gradient(135deg,color-mix(in srgb,var(--ec,#2563EB) 22%,transparent),color-mix(in srgb,var(--ec,#2563EB) 8%,transparent));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ec,#2563EB) 25%,transparent)}
 html.fun .btn:not(.ghost):not(.danger){background-image:linear-gradient(135deg,#10B981,#2563EB);color:#fff;border-radius:999px;box-shadow:0 12px 22px -10px rgba(37,99,235,.75)}
 html.fun .btn.ghost{border-radius:999px;background:color-mix(in srgb,var(--surface) 70%,transparent)}
+html.fun .envadd{background:linear-gradient(135deg,rgba(16,185,129,.12),rgba(37,99,235,.12));border:1.5px solid rgba(37,99,235,.28);border-radius:20px}html.fun .ea-tot .num{background:linear-gradient(135deg,#10B981,#2563EB 60%,#7C3AED);-webkit-background-clip:text;background-clip:text;color:transparent}html.fun .envseg i{height:12px}html.fun .envseg i.ok{background:linear-gradient(90deg,#34D399,#2563EB)}
+html.fun .soldebox .bk{display:inline}html.fun .soldebox .sin input{padding-right:44px}
+html.fun .soldebox{border-radius:22px;background:rgba(255,255,255,.16);border:1.5px solid rgba(255,255,255,.4)}
+html.fun .soldebox .penline{display:block;position:absolute;left:12px;right:46px;bottom:7px;height:3px;border-radius:3px;background:linear-gradient(90deg,#FDE68A,#fff);transform-origin:left;transform:scaleX(0);pointer-events:none}
+html.fun .soldebox .pen{display:block;position:absolute;right:12px;bottom:6px;font-size:24px;line-height:1;pointer-events:none;transform-origin:2px 90%;filter:drop-shadow(0 3px 3px rgba(0,0,0,.3))}
+html.fun .soldebox:focus-within .pen,html.fun .soldebox:focus-within .penline{opacity:0;animation:none}
+html.fun .hero .frm{display:none}
+html.fun .hero .big.hneg{color:#FFE1E1}
+html.fun .hpill{display:inline-flex;align-self:flex-start;padding:6px 14px;border-radius:99px;background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.35);font-size:13.5px;font-weight:700;margin:2px 0 6px}
+html.fun .heq{display:block;margin-top:12px;padding:4px 14px;border-radius:22px;background:rgba(255,255,255,.14);border:1.5px solid rgba(255,255,255,.3);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+html.fun .heq .r{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid rgba(255,255,255,.18)}html.fun .heq .r:first-child{border-top:0}
+html.fun .heq .ic{flex:none;width:32px;height:32px;border-radius:11px;display:grid;place-items:center;font-size:17px;background:rgba(255,255,255,.2)}
+html.fun .heq .op{flex:none;width:14px;text-align:center;font-weight:800;font-size:18px;opacity:.9}.heq .r:first-child .ic{margin-left:24px}
+html.fun .heq .nm{flex:1;min-width:0;font-size:14.5px;font-weight:600}html.fun .heq b{font-size:16.5px;font-weight:800}
+html.fun .heq .r.res{border-top:2px solid rgba(255,255,255,.75);padding-top:12px}html.fun .heq .r.res .nm{font-weight:800}html.fun .heq .r.res b{font-size:21px}
+html.fun .heq .r.lnk:active{background:rgba(255,255,255,.12)}
 html.fun .btn:active,html.fun .ftile:active,html.fun nav.tabs button:active,html.fun .fperiod:active{transform:scale(.96)}
 html.fun nav.tabs .in{border-radius:34px;border:1px solid rgba(255,255,255,.6);background:color-mix(in srgb,var(--surface) 78%,transparent);-webkit-backdrop-filter:blur(22px) saturate(1.5);backdrop-filter:blur(22px) saturate(1.5);box-shadow:0 22px 44px -14px rgba(60,60,160,.55)}
 html.fun nav.tabs button:nth-child(1){--c:#16A34A}html.fun nav.tabs button:nth-child(2){--c:#2563EB}html.fun nav.tabs button:nth-child(4){--c:#DB2777}html.fun nav.tabs button:nth-child(5){--c:#F59E0B}html.fun nav.tabs button:nth-child(6){--c:#7C3AED}
@@ -328,6 +359,19 @@ html.fun .dot.em{width:38px;height:38px;border-radius:13px;font-size:20px;backgr
 .emoscroll{max-height:52vh;overflow-y:auto;-webkit-overflow-scrolling:touch;margin:0 -4px;padding:0 4px}.emog{margin:10px 0 2px;font-weight:700}.emogrid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin:14px 0}.emogrid button{font-size:24px;aspect-ratio:1;border-radius:14px;border:1.5px solid var(--line);background:var(--surface);padding:0}.emogrid button[hidden],.emogw[hidden]{display:none}.emogrid button.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent)}
 #fun-confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:90}
 @media (prefers-reduced-motion:no-preference){
+
+ @keyframes penline{0%,6%{transform:scaleX(0);opacity:1}62%{transform:scaleX(1);opacity:1}82%,100%{transform:scaleX(1);opacity:0}}
+ @keyframes penwrite{0%{transform:translateX(-170px) rotate(-26deg);opacity:0}6%{opacity:1}14%{transform:translateX(-150px) rotate(-8deg)}22%{transform:translateX(-128px) rotate(-30deg)}30%{transform:translateX(-104px) rotate(-8deg)}38%{transform:translateX(-82px) rotate(-30deg)}46%{transform:translateX(-58px) rotate(-8deg)}54%{transform:translateX(-34px) rotate(-30deg)}62%{transform:translateX(-8px) rotate(-12deg)}78%{transform:translateX(0) rotate(-14deg);opacity:1}88%,100%{transform:translateX(0) rotate(-14deg);opacity:1}}
+ html.fun .soldebox .penline{animation:penline 3.4s ease-in-out infinite}html.fun .soldebox .pen{animation:penwrite 3.4s ease-in-out infinite}
+ html.fun.fun-anim .heq .r{animation:fup .55s cubic-bezier(.2,.8,.2,1) both}html.fun.fun-anim .heq .r:nth-child(2){animation-delay:.08s}html.fun.fun-anim .heq .r:nth-child(3){animation-delay:.16s}html.fun.fun-anim .heq .r:nth-child(4){animation-delay:.24s}html.fun.fun-anim .heq .r:nth-child(5){animation-delay:.32s}html.fun.fun-anim .heq .r:nth-child(6){animation-delay:.4s}
+ @keyframes fpill{50%{transform:translateY(-3px)}}
+ html.fun .hpill{animation:fpill 3.6s ease-in-out infinite}
+ @keyframes ering{from{stroke-dashoffset:113.1}to{stroke-dashoffset:var(--off)}}
+ html.fun.fun-anim .egauge .rf{animation:ering 1.1s cubic-bezier(.2,.8,.2,1) .15s both}html.fun.fun-anim .etile{animation:fup .55s cubic-bezier(.2,.8,.2,1) both}html.fun.fun-anim .etile:nth-child(2){animation-delay:.07s}html.fun.fun-anim .etile:nth-child(3){animation-delay:.14s}html.fun.fun-anim .etile:nth-child(4){animation-delay:.21s}html.fun.fun-anim .etile:nth-child(n+5){animation-delay:.28s}
+ @keyframes envdrop{from{opacity:0;transform:translateY(-26px)}to{opacity:.82;transform:none}}
+ @keyframes envpop{0%{transform:scale(.6)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
+ html.fun.fun-anim .envd{animation:envdrop .7s cubic-bezier(.2,.8,.2,1) both}html.fun.fun-anim .envd:nth-child(3){animation-delay:.08s}html.fun.fun-anim .envd:nth-child(4){animation-delay:.16s}html.fun.fun-anim .envd:nth-child(n+5){animation-delay:.24s}
+ html.fun.fun-anim .envseg i.ok,html.fun.fun-anim .envseg i.bad{animation:envpop .5s ease-out both}
  html.fun .hero{animation:fgrad 10s ease-in-out infinite}
  @keyframes fgrad{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
  @keyframes fup{from{opacity:0;transform:translateY(20px) scale(.97)}to{opacity:1;transform:none}}
@@ -894,25 +938,42 @@ function forecastHtml(c){
 }
 function viewHome(){
   const c = calc(V.m,V.y); const L = livretCalc(); const soldeVal = S.settings.solde;
-  const envHtml = c.envs.some(e => !e.hide) ? c.envs.map((e,ei) => { if (e.hide) return "";
-    const p = e.bud > 0 ? Math.min(100, Math.round(e.dep / e.bud * 100)) : (e.dep > 0 ? 100 : 0);
+  const envLine = (e, ei) => { const p = e.bud > 0 ? Math.min(100, Math.round(e.dep / e.bud * 100)) : (e.dep > 0 ? 100 : 0);
     const cls = e.dep > e.bud ? "bad" : (e.bud > 0 && e.dep / e.bud >= .8 ? "warn" : "");
     const stTxt = cls === "bad" ? "dépassé" : cls === "warn" ? (e.reste < 0.005 ? "atteint" : "presque atteint") : "";
-    return `<button class="env" data-act="envmonth" data-i="${ei}"><div class="h"><span>${dotHtml(e.n,true)}${esc(e.n)}${stTxt ? ` <span class="chip ${cls}">${stTxt}</span>` : ""}${isNum(S.settings.envelopes[ei].m[V.m]) ? ' <span class="chip">ce mois</span>' : ""}</span><span class="num ${e.reste<0?"neg":""}">${eur(e.reste)} <span class="muted small">/ ${eur(e.bud)}</span></span></div><div class="bar"><i class="${cls}" style="width:${p}%"></i></div></button>`;
-  }).join("") : `<div class="empty">Aucune enveloppe. Ajoutez-en dans Réglages.</div>`;
+    return `<button class="env" data-act="envmonth" data-i="${ei}"><div class="h"><span>${dotHtml(e.n,true)}${esc(e.n)}${stTxt ? ` <span class="chip ${cls}">${stTxt}</span>` : ""}${isNum(S.settings.envelopes[ei].m[V.m]) ? ' <span class="chip">ce mois</span>' : ""}</span><span class="num ${e.reste<0?"neg":""}">${eur(e.reste)} <span class="muted small">/ ${eur(e.bud)}</span></span></div><div class="bar"><i class="${cls}" style="width:${p}%"></i></div></button>`; };
+  const envTile = (e, ei) => { const p = e.bud > 0 ? Math.min(100, Math.round(e.dep / e.bud * 100)) : (e.dep > 0 ? 100 : 0), warn = e.bud > 0 && e.dep / e.bud >= .8, C = 113.1, k = emoNorm(e.n).replace(/\s+/g, " ").trim(), em = emoMap()[k] || emoFor(e.n, "", "🎯");
+    return `<button class="etile${warn ? " warn" : ""}" data-act="envmonth" data-i="${ei}"><span class="egauge"><svg viewBox="0 0 44 44" aria-hidden="true"><circle class="rt" cx="22" cy="22" r="18"/><circle class="rf" cx="22" cy="22" r="18" stroke="url(#${warn ? "egw" : "eg"})" stroke-dasharray="${C}" style="--off:${(C * (1 - p / 100)).toFixed(1)}"/></svg><span class="eem emo-edit" data-ek="${esc(k)}" data-el="${esc(e.n)}">${em}</span></span><span class="en">${esc(e.n)}</span><b class="num" data-cnt="${e.reste}">${eur(e.reste)}</b><span class="es">sur ${eur(e.bud)} · ${p} % dépensé</span>${isNum(S.settings.envelopes[ei].m[V.m]) ? '<span class="chip">ce mois</span>' : ""}${warn ? '<span class="chip warn">presque atteint</span>' : ""}</button>`; };
+  const envVis = c.envs.map((e, ei) => ({e, ei})).filter(x => !x.e.hide);
+  const isDone = e => e.reste < 0.005 && (e.bud > 0 || e.dep > 0);
+  const envTodo = envVis.filter(x => !isDone(x.e)), envDone = envVis.filter(x => isDone(x.e)), envAdd = envTodo.filter(x => x.e.reste >= 0.005);
+  const envTot = envAdd.reduce((a, x) => a + x.e.reste, 0);
+  const envTiles = (lsGet("mc-envview") || (FUN() ? "tiles" : "list")) === "tiles";
+  const envHtml = envVis.length ? `
+    <div class="envsum"><div class="envseg" role="img" aria-label="${envDone.length} enveloppes atteintes sur ${envVis.length}">${envVis.map(x => `<i class="${isDone(x.e) ? (x.e.dep > x.e.bud ? "bad" : "ok") : ""}"></i>`).join("")}</div><div class="envsumt"><b>${envDone.length}</b> atteinte${envDone.length > 1 ? "s" : ""} sur ${envVis.length} · <b>${envAdd.length}</b> à dépenser encore</div></div>
+    ${envTiles ? `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="eg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#10B981"/><stop offset="1" stop-color="#7C3AED"/></linearGradient><linearGradient id="egw" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FBBF24"/><stop offset="1" stop-color="#F97316"/></linearGradient></defs></svg><div class="egrid">${envTodo.map(x => envTile(x.e, x.ei)).join("")}</div>` : envTodo.map(x => envLine(x.e, x.ei)).join("")}
+    ${envAdd.length ? `<div class="envadd"><div class="ea-t">Ce qu'il te reste à dépenser</div>${envAdd.map((x, i) => `<div class="ea-r"><span class="ea-s">${i ? "+" : ""}</span><span class="ea-n">${esc(x.e.n)}</span><span class="num">${eur(x.e.reste)}</span></div>`).join("")}<div class="ea-tot"><span class="ea-s">=</span><span class="ea-n">Total à dépenser</span><b class="num" data-cnt="${envTot}">${eur(envTot)}</b></div></div>` : `<div class="envadd"><div class="ea-t">🎉 Plus rien à dépenser : toutes les enveloppes sont atteintes.</div></div>`}
+    ${envDone.length ? `<div class="envdone"><div class="ea-t">Atteintes (${envDone.length})</div>${envDone.map(x => { const e = x.e, over = e.dep > e.bud; return `<button class="envd ${over ? "bad" : ""}" data-act="envmonth" data-i="${x.ei}"><span>${over ? "⚠️" : "✅"} ${esc(e.n)}</span><span class="num">${over ? "dépassé de " + eur(e.dep - e.bud) : eur(e.dep) + " / " + eur(e.bud)}</span></button>`; }).join("")}</div>` : ""}` : `<div class="empty">Aucune enveloppe. Ajoutez-en dans Réglages.</div>`;
   const kv = (l,v,neg) => `<div class="kv"><span>${l}</span><span class="num">${neg?"− ":"+ "}${eur(v)}</span></div>`;
   return topbar() + (FUN() ? funHome(c, soldeVal) : "") + `
   <div class="card hero">
     <div class="lbl">Reste à vivre après enveloppes</div>
-    <div class="big num">${isNum(soldeVal) ? eur(c.d18) : "—"}</div>
-    <div class="sub">${isNum(soldeVal) ? "= solde du compte − fixes à payer − dépenses non pointées − enveloppes restantes" : "Saisissez le solde de votre compte pour le calculer"}</div>
-    <label class="soldebox"><span class="sl">Solde actuel de ton compte</span>
-      <span class="sin"><input id="solde" inputmode="decimal" placeholder="0,00" value="${isNum(soldeVal) ? String(soldeVal).replace(".",",") : ""}" aria-label="Solde actuel du compte"><b>€</b></span>
+    <div class="big num${FUN() && isNum(soldeVal) && c.d18 < 0 ? " hneg" : ""}"${FUN() && isNum(soldeVal) ? ` data-cnt="${c.d18}"` : ""}>${isNum(soldeVal) ? eur(c.d18) : "—"}</div>
+    ${FUN() && isNum(soldeVal) ? (c.d18 < 0 ? `<div class="hpill">⚠️ Tu dépasses de ${eur(-c.d18)}</div>` : `<div class="hpill">✅ Tout va bien : ${eur(c.d18)} de marge</div>`) : ""}
+    <div class="sub frm">${isNum(soldeVal) ? "= solde du compte − fixes à payer − dépenses non pointées − enveloppes restantes" : "Saisissez le solde de votre compte pour le calculer"}</div>
+    <label class="soldebox"><span class="sl"><span class="bk" aria-hidden="true">🏦 </span>Solde actuel de ton compte</span>
+      <span class="sin"><span class="sinw"><input id="solde" inputmode="decimal" placeholder="0,00" value="${isNum(soldeVal) ? String(soldeVal).replace(".",",") : ""}" aria-label="Solde actuel du compte"><i class="penline" aria-hidden="true"></i><span class="pen" aria-hidden="true">✏️</span></span><b>€</b></span>
       <span class="sh">Recopie le solde de ton appli bancaire. Touche le montant pour le modifier : tout est recalculé.</span></label>
     ${(() => { const P = periodInfo(); return P.active ? `<div class="sub">jusqu'à la paie du ${P.pay} · ${P.left === 0 ? "dernier jour" : P.left + " jour" + (P.left > 1 ? "s" : "") + " restant" + (P.left > 1 ? "s" : "")}</div><div class="prog" role="img" aria-label="Période écoulée : ${P.done} jours sur ${P.total}"><i style="width:${Math.round(P.done / P.total * 100)}%"></i></div>` : ""; })()}
-    ${isNum(soldeVal) ? `<div class="hstats"><div class="lnk" data-act="go" data-v="month" data-mv="fix" role="button" tabindex="0"><span>Fixes à payer ›</span><b class="num">− ${eur(c.d13)}</b></div><div class="lnk" data-act="go" data-v="month" data-mv="ops" data-s="m-ops" role="button" tabindex="0"><span>Dépenses non pointées ›</span><b class="num">− ${eur(c.d14)}</b></div>${c.d15 > 0 ? `<div class="lnk" data-act="go" data-v="month" data-mv="ops" data-s="m-ops" role="button" tabindex="0"><span>Épargne non pointée ›</span><b class="num">− ${eur(c.d15)}</b></div>` : ""}<div class="lnk" data-act="go" data-s="home-env" data-v="home" role="button" tabindex="0"><span>Enveloppes restantes ›</span><b class="num">− ${eur(c.d17)}</b></div></div>` : ""}
+    ${isNum(soldeVal) && FUN() ? `<div class="heq"><div class="r"><span class="ic">🏦</span><span class="nm">Solde du compte</span><b class="num" data-cnt="${N(soldeVal)}">${eur(N(soldeVal))}</b></div>
+      <div class="r lnk" data-act="go" data-v="month" data-mv="fix" role="button" tabindex="0"><span class="op">−</span><span class="ic">🧾</span><span class="nm">Fixes à payer ›</span><b class="num" data-cnt="${c.d13}">${eur(c.d13)}</b></div>
+      <div class="r lnk" data-act="go" data-v="month" data-mv="ops" data-s="m-ops" role="button" tabindex="0"><span class="op">−</span><span class="ic">✍️</span><span class="nm">Dépenses non pointées ›</span><b class="num" data-cnt="${c.d14}">${eur(c.d14)}</b></div>
+      ${c.d15 > 0 ? `<div class="r lnk" data-act="go" data-v="month" data-mv="ops" data-s="m-ops" role="button" tabindex="0"><span class="op">−</span><span class="ic">🐷</span><span class="nm">Épargne non pointée ›</span><b class="num" data-cnt="${c.d15}">${eur(c.d15)}</b></div>` : ""}
+      <div class="r lnk" data-act="go" data-s="home-env" data-v="home" role="button" tabindex="0"><span class="op">−</span><span class="ic">🎯</span><span class="nm">Enveloppes restantes ›</span><b class="num" data-cnt="${c.d17}">${eur(c.d17)}</b></div>
+      <div class="r res"><span class="op">=</span><span class="ic">✨</span><span class="nm">Reste à vivre</span><b class="num" data-cnt="${c.d18}">${eur(c.d18)}</b></div></div>` : ""}
+    ${isNum(soldeVal) && !FUN() ? `<div class="hstats"><div class="lnk" data-act="go" data-v="month" data-mv="fix" role="button" tabindex="0"><span>Fixes à payer ›</span><b class="num">− ${eur(c.d13)}</b></div><div class="lnk" data-act="go" data-v="month" data-mv="ops" data-s="m-ops" role="button" tabindex="0"><span>Dépenses non pointées ›</span><b class="num">− ${eur(c.d14)}</b></div>${c.d15 > 0 ? `<div class="lnk" data-act="go" data-v="month" data-mv="ops" data-s="m-ops" role="button" tabindex="0"><span>Épargne non pointée ›</span><b class="num">− ${eur(c.d15)}</b></div>` : ""}<div class="lnk" data-act="go" data-s="home-env" data-v="home" role="button" tabindex="0"><span>Enveloppes restantes ›</span><b class="num">− ${eur(c.d17)}</b></div></div>` : ""}
   </div>
-  <div class="card" id="home-env"><h2>Enveloppes de ${MOIS[V.m].toLowerCase()}</h2><div class="small muted">Touchez une enveloppe pour changer son budget de ce mois seulement.</div><div>${envHtml}</div><div class="btns" style="margin-top:10px"><button class="btn ghost sm" data-act="envmonthnew">+ Enveloppe pour ce mois</button></div></div>
+  <div class="card" id="home-env"><div class="envhead"><h2>Enveloppes de ${MOIS[V.m].toLowerCase()}</h2><button class="envswap" data-act="envswap" aria-label="Changer l'affichage des enveloppes">${envTiles ? "☰ Liste" : "▦ Tuiles"}</button></div><div class="small muted">Touchez une enveloppe pour changer son budget de ce mois seulement.</div><div>${envHtml}</div><div class="btns" style="margin-top:10px"><button class="btn ghost sm" data-act="envmonthnew">+ Enveloppe pour ce mois</button></div></div>
   ${isNum(soldeVal) ? `<div class="card"><h2>À mettre de côté en fin de mois</h2>
     <div class="aside2"><div><span>Possible si tu dépenses tous tes budgets</span><b class="num ${c.d18<0?"neg":"pos"}">${eur(c.d18)}</b></div><div><span>Possible si tu ne dépenses plus rien</span><b class="num ${c.d16<0?"neg":"pos"}">${eur(c.d16)}</b></div></div>
     <div class="kv"><span>Déjà mis de côté ce mois</span><span class="num">${eur(c.epargne)}</span></div>
@@ -2446,6 +2507,7 @@ document.addEventListener("click", ev => { if (FUN()){ const c = ev.target.close
     case "futtoggle": { const f = S.epargne.futur.find(x => x.id === id); f.fait = f.fait === "x" ? "" : "x"; if (f.fait === "x") f.doneAt = todayIso(); else { delete f.doneAt; delete f.arch; } persist(); render(); break; }
     case "futarch": { S.epargne.futur.forEach(f => { if (f.fait === "x") f.arch = true; }); persist(); render(); toast("Lignes faites archivées"); break; }
     case "futshow": V.futArch = !V.futArch; render(); break;
+    case "envswap": lsSet("mc-envview", (lsGet("mc-envview") || (FUN() ? "tiles" : "list")) === "tiles" ? "list" : "tiles"); render(); break;
     case "envmonth": sheetEnvMonth(+b.dataset.i); break;
     case "envmonthnew": sheetEnvNew(); break;
     case "fixmonthnew": sheetFixMonthNew(k); break;
@@ -2503,7 +2565,7 @@ document.addEventListener("change", ev => {
   if (V.wiz && t.dataset.w !== undefined){ collectWiz(); if (t.dataset.w === "livret.on") render(); return; }
   if (t.id === "file" && t.files[0]) { if (DEMO){ t.value = ""; return toast("Quitte d'abord le mode démo"); } onFile(t.files[0]); t.value = ""; return; }
   if (t.id === "cg-file" && t.files[0]){ const f = t.files[0]; t.value = ""; if (DEMO) return toast("Quitte d'abord le mode démo"); closeSheet(); f.text().then(cagImport).catch(() => toast("Fichier illisible")); return; }
-  if (t.id === "solde" || t.id === "s-solde"){ const v = parseNum(t.value); S.settings.solde = t.value.trim() === "" ? null : v; persist(); if (V.tab === "home") render(); return; }
+  if (t.id === "solde" || t.id === "s-solde"){ const v = parseNum(t.value); if (FUN() && t.id === "solde" && t.value.trim() !== "" && isNum(v) && v !== S.settings.solde){ const r = t.getBoundingClientRect(); confetti(r.left + r.width / 2, r.top + r.height / 2, 34); } S.settings.solde = t.value.trim() === "" ? null : v; persist(); if (V.tab === "home") render(); return; }
   if (t.id === "webfile" && t.files[0]){ const f = t.files[0]; t.value = "";
     f.arrayBuffer().then(buf => { const wb = XLSX.read(buf,{type:"array"}); V.webPending = parseWeb(wb); if (!V.webPending.rows.length) throw new Error("Aucun compte trouvé."); sheetWebImport(); })
       .catch(e => { V.webMsg = "Lecture impossible : " + e.message; render(); }); return; }
@@ -2763,6 +2825,13 @@ document.addEventListener("change", ev => { if (ev.target.id === "sch-a" || ev.t
 applyTheme();
 /* ===== Historique des mises à jour ===== */
 const CHANGELOG = [
+ {v:"4.21", d:"Novembre 2026", t:"Enveloppes plus lisibles", i:[
+  "Accueil, carte Enveloppes : les enveloppes atteintes ou dépassées descendent en bas (section « Atteintes »), il ne reste en haut que celles où tu peux encore dépenser.",
+  "Style Moderne, carte du haut de l'Accueil : le calcul du reste à vivre devient une vraie opération (solde − fixes − non pointées − enveloppes = reste), chaque ligne est cliquable et se compte en s'animant. Un crayon écrit en boucle sur la case du solde de ta banque (il disparaît quand tu touches le champ), des confettis partent quand tu mets le solde à jour, et une pastille dit si tu dépasses ou si tout va bien.",
+  "Style Moderne : chaque enveloppe devient une tuile avec une jauge ronde animée (ce que tu as dépensé), l'icône de l'enveloppe au centre (modifiable par appui long) et le reste en gros.",
+  "Une barre de petits blocs montre combien d'enveloppes sont atteintes sur le total.",
+  "Ce qu'il te reste à dépenser s'affiche comme une addition, avec le total en bas (il correspond à « Enveloppes restantes » en haut de l'Accueil). En style Moderne, le total se compte en s'animant."
+ ]},
  {v:"4.20", d:"Novembre 2026", t:"Recherche d'icône et partage sans doublon", i:[
   "Choix d'icône : un champ de recherche en français (bébé, fille, coiffeur, voiture, pharmacie…) pour retrouver une icône sans faire défiler toute la liste.",
   "« Partager avec le texte » (Réglages › Fiche de l'appli) n'envoie plus l'image en double : tu envoies le texte et le lien, et l'aperçu du lien affiche déjà la carte. « Image seule » envoie toujours juste l'image."
