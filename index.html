@@ -92,6 +92,7 @@ button{cursor:pointer}
 .small{font-size:13px}
 
 .top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.top.stick{position:sticky;top:0;z-index:30;padding:calc(env(safe-area-inset-top,0px) + 6px) 0 8px;margin-top:-14px;background:color-mix(in srgb,var(--bg) 82%,transparent);-webkit-backdrop-filter:blur(14px) saturate(1.4);backdrop-filter:blur(14px) saturate(1.4)}
 .top .app{font-family:var(--font-display);font-weight:700;font-size:20px}
 .catbar{display:flex;flex-wrap:wrap;gap:6px;padding:2px 0 12px}.catbar button{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:6px 12px;font:inherit;font-size:13px;font-weight:500}.catbar button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}.catbar button span{opacity:.6;margin-left:4px}
 .monthnav{display:flex;align-items:center;gap:2px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:2px}
@@ -896,7 +897,7 @@ function splitCard(c){
 function bkpAge(){ return S.lastBackup ? Math.floor((Date.now() - S.lastBackup) / 864e5) : null; }
 function bkpBanner(){ if (S.demo) return ""; const a = bkpAge(); if (a !== null && a < 14) return "";
   return `<div class="banner">${a === null ? "Aucune sauvegarde faite pour l'instant." : "Dernière sauvegarde il y a " + a + " jours."} <button class="btn sm" data-act="exp-json">Sauvegarder</button></div>`; }
-function topbar(){ return `<div class="top"><div class="app tt">Les comptes<br>en poches</div><div class="topr">${monthNav()}<button class="gear" data-act="tab" data-v="set" aria-label="Réglages">${ICON.set}</button></div></div>` + (DEMO ? "" : bkpBanner()) + (S.demo && !DEMO ? `<div class="banner">Données d'exemple. Importez votre classeur Excel dans <b>Réglages</b> pour travailler avec vos vrais comptes.</div>` : ""); }
+function topbar(){ return `<div class="top stick"><div class="app tt">Les comptes<br>en poches</div><div class="topr">${monthNav()}<button class="gear" data-act="tab" data-v="set" aria-label="Réglages">${ICON.set}</button></div></div>` + (DEMO ? "" : bkpBanner()) + (S.demo && !DEMO ? `<div class="banner">Données d'exemple. Importez votre classeur Excel dans <b>Réglages</b> pour travailler avec vos vrais comptes.</div>` : ""); }
 
 function periodInfo(){
   const r = periodRange(V.m, V.y), t = todayIso();
@@ -2796,6 +2797,10 @@ const EMO_KW = {"🚗": "voiture auto vehicule", "🚙": "voiture suv 4x4 auto",
 function emoSheet(k, lib){ const cur = emoMap()[k]; openSheet(`<h2>Icône pour « ${esc(lib)} »</h2><div class="small muted">Choisis l'icône. Elle sera gardée pour ce libellé, sur cet appareil.</div><div class="btns" style="margin:10px 0"><button class="btn ghost" data-act="emoset" data-k="${esc(k)}" data-v="">Automatique</button><button class="btn ghost" data-act="sheetclose">Fermer</button></div><input id="emosearch" type="search" placeholder="Rechercher : bébé, fille, coiffeur, voiture…" autocomplete="off" style="width:100%;margin:0 0 8px"><div class="emoscroll">${Object.entries(EMO_GROUPS).map(([g, L]) => `<div class="emogw"><div class="small muted emog">${g}</div><div class="emogrid">${L.split(" ").map(e => `<button data-act="emoset" data-k="${esc(k)}" data-v="${e}" data-kw="${esc(emoNorm(g + " " + (EMO_KW[e] || "")))}" class="${cur === e ? "on" : ""}">${e}</button>`).join("")}</div></div>`).join("")}<div id="emonone" class="small muted" hidden style="padding:14px 4px">Aucune icône pour cette recherche.</div></div>`); }
 document.addEventListener("input", ev => { if (!ev.target || ev.target.id !== "emosearch") return; const q = emoNorm(ev.target.value).trim().split(/\s+/).filter(Boolean); let any = 0; document.querySelectorAll(".emogw").forEach(w => { let n = 0; w.querySelectorAll("button").forEach(bt => { const ok = !q.length || q.some(t => bt.dataset.kw.includes(t)); bt.hidden = !ok; if (ok) n++; }); w.hidden = !n; any += n; }); const no = document.getElementById("emonone"); if (no) no.hidden = !!any; });
 let emoLP = 0, emoT = null, emoXY = null;
+/* Glisser gauche/droite sur Accueil et Mois = changer de mois */
+{ let sx = 0, sy = 0, st = 0, ok = false;
+  document.addEventListener("touchstart", ev => { ok = false; if ((V.tab !== "home" && V.tab !== "month") || ev.touches.length !== 1 || !$("#sheetbg").hidden) return; const t = ev.target; if (t.closest && t.closest("input,textarea,select,.rows .row,.monthnav,[data-noswipe],.btns,canvas")) return; sx = ev.touches[0].clientX; sy = ev.touches[0].clientY; st = Date.now(); ok = true; }, {passive:true});
+  document.addEventListener("touchend", ev => { if (!ok) return; ok = false; const t = ev.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy; if (Date.now() - st > 700 || Math.abs(dx) < 80 || Math.abs(dx) < Math.abs(dy) * 2) return; if (window.getSelection && String(getSelection())) return; const w = document.querySelector(".wrap"); setMonth(dx < 0 ? 1 : -1); if (w && w.animate && !matchMedia("(prefers-reduced-motion:reduce)").matches) { const n = document.querySelector(".wrap"); n.animate([{opacity:.2, transform:`translateX(${dx < 0 ? 36 : -36}px)`},{opacity:1, transform:"none"}], {duration:260, easing:"cubic-bezier(.2,.8,.2,1)"}); } }, {passive:true}); }
 document.addEventListener("pointerdown", ev => { if (!FUN()) return; const el = ev.target.closest && ev.target.closest(".emo-edit"); if (!el) return; emoXY = [ev.clientX, ev.clientY]; clearTimeout(emoT); emoT = setTimeout(() => { emoLP = Date.now(); if (navigator.vibrate) try { navigator.vibrate(15); } catch(e){} emoSheet(el.dataset.ek, el.dataset.el); }, 520); });
 document.addEventListener("pointermove", ev => { if (emoXY && Math.hypot(ev.clientX - emoXY[0], ev.clientY - emoXY[1]) > 10){ clearTimeout(emoT); emoXY = null; } });
 ["pointerup","pointercancel","scroll"].forEach(n => document.addEventListener(n, () => { clearTimeout(emoT); emoXY = null; }, true));
@@ -2826,6 +2831,10 @@ document.addEventListener("change", ev => { if (ev.target.id === "sch-a" || ev.t
 applyTheme();
 /* ===== Historique des mises à jour ===== */
 const CHANGELOG = [
+ {v:"4.23", d:"Novembre 2026", t:"Changer de mois en glissant", i:[
+  "Sur Accueil et Mois, glisse le doigt à gauche ou à droite pour passer au mois suivant ou précédent.",
+  "Le bandeau du haut (titre, mois, réglages) reste fixe quand tu fais défiler la page.",
+ ]},
  {v:"4.22", d:"Novembre 2026", t:"Enveloppes : vrai total", i:[
   "Les enveloppes qu'il reste à dépenser sont classées : celles où il reste le plus en haut.",
   "Le total retire maintenant les enveloppes dépassées (lignes en rouge avec le signe −), pour que le chiffre soit celui que tu peux vraiment dépenser.",
