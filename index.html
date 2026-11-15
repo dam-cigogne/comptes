@@ -619,6 +619,7 @@ function fixState(r,m,y){
   return dp < today ? {k:"late", t:"à pointer", amt:N(r.montant)} : {k:"wait", t:"à venir", amt:N(r.montant)};
 }
 function keepX(oldEnv, oldObj, oldGran){ try { S.objectifs = Array.isArray(oldObj) ? oldObj : []; if (oldGran) S.gran = oldGran; } catch(x){} }
+function isFutureMonth(m, y){ const cp = curPeriod(); return y * 12 + m > cp.y * 12 + cp.m; }
 function calc(m,y){
   const J = live().filter(j => inMonth(j,m,y));
   const sum = (f) => J.filter(f).reduce((a,j) => a + N(j.montant), 0);
@@ -633,7 +634,7 @@ function calc(m,y){
   const depJournal = sum(j => j.type === "Dépense") - depEpargne;
   const vers = sum(j => j.type === "Versement sur Livret A"), ret = sum(j => j.type === "Retrait du Livret A");
   const epargne = vers - ret + depEpargne;
-  const solde = S.settings.solde;
+  const solde = isFutureMonth(m, y) ? 0 : S.settings.solde;
   let cD11 = 0, cD12 = 0, cD13 = 0, cD14 = 0, cD15 = 0;
   let d11 = Math.max(0, rev.prevu - rev.passe);
   const avances = live().filter(j => j.type === "Avance (à rembourser)" && !j.remb && j.pointe === "x").reduce((a,j) => a + N(j.montant), 0);
@@ -939,7 +940,7 @@ function forecastHtml(c){
     <div class="small muted">Prévision à partir de ton solde, des fixes qui restent à passer (à leur date) et des enveloppes restantes dépensées régulièrement jusqu'à la paie. Ce n'est pas ta banque : c'est une estimation.</div></div>`;
 }
 function viewHome(){
-  const c = calc(V.m,V.y); const L = livretCalc(); const soldeVal = S.settings.solde;
+  const fut = isFutureMonth(V.m, V.y), c = calc(V.m,V.y); const L = livretCalc(); const soldeVal = fut ? 0 : S.settings.solde;
   const envLine = (e, ei) => { const p = e.bud > 0 ? Math.min(100, Math.round(e.dep / e.bud * 100)) : (e.dep > 0 ? 100 : 0);
     const cls = e.dep > e.bud ? "bad" : (e.bud > 0 && e.dep / e.bud >= .8 ? "warn" : "");
     const stTxt = cls === "bad" ? "dépassé" : cls === "warn" ? (e.reste < 0.005 ? "atteint" : "presque atteint") : "";
@@ -963,9 +964,9 @@ function viewHome(){
     <div class="big num${FUN() && isNum(soldeVal) && c.d18 < 0 ? " hneg" : ""}"${FUN() && isNum(soldeVal) ? ` data-cnt="${c.d18}"` : ""}>${isNum(soldeVal) ? eur(c.d18) : "—"}</div>
     ${FUN() && isNum(soldeVal) ? (c.d18 < 0 ? `<div class="hpill">⚠️ Tu dépasses de ${eur(-c.d18)}</div>` : `<div class="hpill">✅ Tout va bien : ${eur(c.d18)} de marge</div>`) : ""}
     <div class="sub frm">${isNum(soldeVal) ? "= solde du compte − fixes à payer − dépenses non pointées − enveloppes restantes" : "Saisissez le solde de votre compte pour le calculer"}</div>
-    <label class="soldebox"><span class="sl"><span class="bk" aria-hidden="true">🏦 </span>Solde actuel de ton compte</span>
-      <span class="sin"><span class="sinw"><input id="solde" inputmode="decimal" placeholder="0,00" value="${isNum(soldeVal) ? String(soldeVal).replace(".",",") : ""}" aria-label="Solde actuel du compte"><i class="penline" aria-hidden="true"></i><span class="pen" aria-hidden="true">✏️</span></span><b>€</b></span>
-      <span class="sh">Recopie le solde de ton appli bancaire. Touche le montant pour le modifier : tout est recalculé.</span></label>
+    <label class="soldebox"><span class="sl"><span class="bk" aria-hidden="true">${fut ? "📅" : "🏦"} </span>${fut ? "Mois à venir : solde à zéro" : "Solde actuel de ton compte"}</span>
+      <span class="sin"><span class="sinw"><input id="solde" inputmode="decimal" placeholder="0,00"${fut ? " readonly" : ""} value="${isNum(soldeVal) ? String(soldeVal).replace(".",",") : ""}" aria-label="Solde actuel du compte"><i class="penline" aria-hidden="true"></i><span class="pen" aria-hidden="true">✏️</span></span><b>€</b></span>
+      <span class="sh">${fut ? "Tu prépares ce mois à l'avance : le solde du compte ne compte pas encore. Le reste à vivre = revenus prévus − fixes − enveloppes. Tu peux régler tes enveloppes de ce mois ci-dessous." : "Recopie le solde de ton appli bancaire. Touche le montant pour le modifier : tout est recalculé."}</span></label>
     ${(() => { const P = periodInfo(); return P.active ? `<div class="sub">jusqu'à la paie du ${P.pay} · ${P.left === 0 ? "dernier jour" : P.left + " jour" + (P.left > 1 ? "s" : "") + " restant" + (P.left > 1 ? "s" : "")}</div><div class="prog" role="img" aria-label="Période écoulée : ${P.done} jours sur ${P.total}"><i style="width:${Math.round(P.done / P.total * 100)}%"></i></div>` : ""; })()}
     ${isNum(soldeVal) && FUN() ? `<div class="heq"><div class="r"><span class="ic">🏦</span><span class="nm">Solde du compte</span><b class="num" data-cnt="${N(soldeVal)}">${eur(N(soldeVal))}</b></div>
       <div class="r lnk" data-act="go" data-v="month" data-mv="fix" role="button" tabindex="0"><span class="op">−</span><span class="ic">🧾</span><span class="nm">Fixes à payer ›</span><b class="num" data-cnt="${c.d13}">${eur(c.d13)}</b></div>
@@ -2047,7 +2048,7 @@ function render(){
   document.body.classList.toggle("side", lsGet("mc-tabs") === "side"); document.body.classList.toggle("isdemo", !!DEMO);
   renderTabs();
   const main = $("#main");
-  const keepY = (V.lt === V.tab && V.lm === V.m && V.ly === V.y) ? window.scrollY : 0;
+  const keepY = ((V.lt === V.tab && V.lm === V.m && V.ly === V.y) || (V.keep && V.lt === V.tab)) ? window.scrollY : 0; V.keep = false;
   main.innerHTML = V.tab === "home" ? viewHome() : V.tab === "month" ? viewMonth() : V.tab === "add" ? viewAdd() : V.tab === "fix" ? viewFix() : V.tab === "sav" ? viewSav() : V.tab === "web" ? viewWeb() : V.tab === "bank" ? viewBank() : V.tab === "hist" ? viewHist() : viewSet();
   { const hk = {home:"home",month:"month",add:"add",fix:"fix",sav:"sav",web:"web",set:"set",bank:"bank",hist:"hist"}[V.tab]; const tp = hk && main.querySelector(".top"); if (tp){ const r = tp.querySelector(".app"); (r || tp).insertAdjacentHTML("beforeend", helpBtn(hk)); } }
   if (DEMO) main.insertAdjacentHTML("afterbegin", `<div class="banner demo" id="demobar"><span><b>Mode démo</b> · rien n'est enregistré</span><button class="btn sm" data-act="demo-exit">Revenir à mes comptes</button></div>`);
@@ -2165,7 +2166,7 @@ function sheetFix(k,id){
 }
 
 /* ============ Actions ============ */
-function setMonth(d){ V.m += d; if (V.m < 0){ V.m = 11; V.y--; } if (V.m > 11){ V.m = 0; V.y++; } render(); }
+function setMonth(d){ V.keep = true; V.m += d; if (V.m < 0){ V.m = 11; V.y--; } if (V.m > 11){ V.m = 0; V.y++; } render(); }
 function saveOp(){
   collectDraft(); const d = V.draft; const mt = parseNum(d.mont);
   if (!d.date) return toast("Choisissez une date");
@@ -2834,6 +2835,8 @@ const CHANGELOG = [
  {v:"4.23", d:"Novembre 2026", t:"Changer de mois en glissant", i:[
   "Sur Accueil et Mois, glisse le doigt à gauche ou à droite pour passer au mois suivant ou précédent.",
   "Le bandeau du haut (titre, mois, réglages) reste fixe quand tu fais défiler la page.",
+  "En changeant de mois, la page reste au même endroit : pratique pour comparer les mois.",
+  "Mois à venir : le solde du compte est à zéro (non modifiable) pour préparer tes enveloppes à l'avance.",
  ]},
  {v:"4.22", d:"Novembre 2026", t:"Enveloppes : vrai total", i:[
   "Les enveloppes qu'il reste à dépenser sont classées : celles où il reste le plus en haut.",
