@@ -92,7 +92,8 @@ button{cursor:pointer}
 .small{font-size:13px}
 
 .top{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.top.stick{position:sticky;top:0;z-index:30;padding:calc(env(safe-area-inset-top,0px) + 6px) 0 8px;margin-top:-14px;background:color-mix(in srgb,var(--bg) 82%,transparent);-webkit-backdrop-filter:blur(14px) saturate(1.4);backdrop-filter:blur(14px) saturate(1.4)}
+.rvbar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px;padding:6px 14px;border-radius:99px;font-size:13.5px;font-weight:600;background:rgba(16,185,129,.16);color:var(--ink)}.rvbar b{font-size:16px;font-weight:800;color:#0b7a55}.rvbar.neg{background:rgba(220,38,38,.14)}.rvbar.neg b{color:#c0392b}
+.stick{position:sticky;top:0;z-index:30;padding:calc(env(safe-area-inset-top,0px) + 6px) 0 8px;margin-top:-14px;background:color-mix(in srgb,var(--bg) 93%,transparent);-webkit-backdrop-filter:blur(14px) saturate(1.4);backdrop-filter:blur(14px) saturate(1.4)}
 .top .app{font-family:var(--font-display);font-weight:700;font-size:20px}
 .catbar{display:flex;flex-wrap:wrap;gap:6px;padding:2px 0 12px}.catbar button{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:6px 12px;font:inherit;font-size:13px;font-weight:500}.catbar button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}.catbar button span{opacity:.6;margin-left:4px}
 .monthnav{display:flex;align-items:center;gap:2px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:2px}
@@ -898,7 +899,8 @@ function splitCard(c){
 function bkpAge(){ return S.lastBackup ? Math.floor((Date.now() - S.lastBackup) / 864e5) : null; }
 function bkpBanner(){ if (S.demo) return ""; const a = bkpAge(); if (a !== null && a < 14) return "";
   return `<div class="banner">${a === null ? "Aucune sauvegarde faite pour l'instant." : "Dernière sauvegarde il y a " + a + " jours."} <button class="btn sm" data-act="exp-json">Sauvegarder</button></div>`; }
-function topbar(){ return `<div class="top stick"><div class="app tt">Les comptes<br>en poches</div><div class="topr">${monthNav()}<button class="gear" data-act="tab" data-v="set" aria-label="Réglages">${ICON.set}</button></div></div>` + (DEMO ? "" : bkpBanner()) + (S.demo && !DEMO ? `<div class="banner">Données d'exemple. Importez votre classeur Excel dans <b>Réglages</b> pour travailler avec vos vrais comptes.</div>` : ""); }
+function rvBar(){ if (V.tab !== "home" && V.tab !== "month") return ""; const fu = isFutureMonth(V.m, V.y), ok = fu || isNum(S.settings.solde); if (!ok) return ""; const d = calc(V.m, V.y).d18; return `<div class="rvbar${d < 0 ? " neg" : ""}" id="rvbar"><span>💶 Reste à vivre${fu ? " (mois à venir)" : ""}</span><b class="num">${eur(d)}</b></div>`; }
+function topbar(){ return `<div class="stick"><div class="top"><div class="app tt">Les comptes<br>en poches</div><div class="topr">${monthNav()}<button class="gear" data-act="tab" data-v="set" aria-label="Réglages">${ICON.set}</button></div></div>${rvBar()}</div>` + (DEMO ? "" : bkpBanner()) + (S.demo && !DEMO ? `<div class="banner">Données d'exemple. Importez votre classeur Excel dans <b>Réglages</b> pour travailler avec vos vrais comptes.</div>` : ""); }
 
 function periodInfo(){
   const r = periodRange(V.m, V.y), t = todayIso();
@@ -2078,6 +2080,7 @@ function sheetEnvMonth(i){
   openSheet(`<h2>${esc(e.n)} · ${MOIS[V.m]}</h2>
     <div class="small muted">Budget habituel : ${eur(N(e.b))}. Saisissez un autre montant pour ${MOIS[V.m].toLowerCase()} seulement (vide = budget habituel). Les autres mois ne changent pas.</div>
     <label class="f">Budget de ce mois (€)<input id="em-val" inputmode="decimal" value="${isNum(c) ? String(c).replace(".",",") : ""}"></label>
+    <div class="kv" id="em-prev" style="padding:10px 12px;border-radius:14px;background:rgba(16,185,129,.12)"><span>Reste à vivre du mois</span><b class="num" id="em-rv">${eur(calc(V.m, V.y).d18)}</b></div>
     <div class="btns"><button class="btn" data-act="em-save" data-i="${i}" style="flex:1">Enregistrer</button>${isNum(c) ? `<button class="btn ghost" data-act="em-reset" data-i="${i}">Budget habituel</button>` : ""}<button class="btn ghost" data-act="sheetclose">Fermer</button></div>`);
 }
 function sheetEnvNew(){
@@ -2586,6 +2589,7 @@ document.addEventListener("change", ev => {
     else e.b = parseNum(t.value) || 0; persist(); return; }
   if (V.tab === "add" && /^f-/.test(t.id)) updateInfo();
 });
+document.addEventListener("input", ev => { const t = ev.target; if (t.id !== "em-val") return; { const rv = $("#em-rv"); if (rv && t.id === "em-val"){ const i = +(document.querySelector('[data-act="em-save"]') || {dataset:{}}).dataset.i, c = calc(V.m, V.y), e = c.envs[i], v = t.value.trim() === "" ? N(S.settings.envelopes[i].b) : parseNum(t.value); if (e && isNum(v)){ const nr = e.reste + (v - e.bud), d = c.d18 - (Math.max(0, nr) - Math.max(0, e.reste)); rv.textContent = eur(d); rv.style.color = d < 0 ? "#c0392b" : ""; } } } });
 document.addEventListener("input", ev => { if (ev.target.id === "f-lib" || ev.target.id === "f-sacs") granInfo(); });
 document.addEventListener("input", ev => { if (ev.target.id === "adj-real") adjUpdate(); if (ev.target.id === "sq") $("#sq-res").innerHTML = searchHtml(ev.target.value); });
 document.addEventListener("input", ev => { if (ev.target.id === "cl-amt") ev_amt_auto = false; else if (ev.target.closest && ev.target.closest("#clsheet")) clUpdate(); });
@@ -2835,6 +2839,7 @@ const CHANGELOG = [
  {v:"4.23", d:"Novembre 2026", t:"Changer de mois en glissant", i:[
   "Sur Accueil et Mois, glisse le doigt à gauche ou à droite pour passer au mois suivant ou précédent.",
   "Le bandeau du haut (titre, mois, réglages) reste fixe quand tu fais défiler la page.",
+  "Un bandeau « Reste à vivre » reste affiché en haut (Accueil et Mois) pour régler tes enveloppes en gardant le chiffre sous les yeux ; dans la fenêtre d'une enveloppe il se met à jour en direct pendant que tu tapes le montant.",
   "En changeant de mois, la page reste au même endroit : pratique pour comparer les mois.",
   "Mois à venir : le solde du compte est à zéro (non modifiable) pour préparer tes enveloppes à l'avance.",
  ]},
