@@ -92,6 +92,7 @@ button{cursor:pointer}
 .small{font-size:13px}
 
 .top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.ptbtn{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;margin:0 0 12px;padding:13px 16px;border-radius:18px;border:1.5px solid rgba(245,158,11,.5);background:rgba(245,158,11,.14);color:inherit;font:inherit;font-weight:700;font-size:15px;cursor:pointer}.ptbtn b{min-width:28px;text-align:center;padding:3px 9px;border-radius:99px;background:#f59e0b;color:#fff;font-size:14px}.ptbtn.ok{border-color:rgba(16,185,129,.4);background:rgba(16,185,129,.12);font-weight:600;font-size:14px}.ptbtn:active{transform:scale(.98)}
 .rvbar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px;padding:6px 14px;border-radius:99px;font-size:13.5px;font-weight:600;background:rgba(16,185,129,.16);color:var(--ink)}.rvbar b{font-size:16px;font-weight:800;color:#0b7a55}.rvbar.neg{background:rgba(220,38,38,.14)}.rvbar.neg b{color:#c0392b}
 .stick{position:sticky;top:0;z-index:30;padding:calc(env(safe-area-inset-top,0px) + 6px) 0 8px;margin-top:-14px;background:color-mix(in srgb,var(--bg) 93%,transparent);-webkit-backdrop-filter:blur(14px) saturate(1.4);backdrop-filter:blur(14px) saturate(1.4)}
 .top .app{font-family:var(--font-display);font-weight:700;font-size:20px}
@@ -961,6 +962,7 @@ function viewHome(){
     ${envDone.length ? `<div class="envdone"><div class="ea-t">Atteintes (${envDone.length})</div>${envDone.map(x => { const e = x.e, over = e.dep > e.bud; return `<button class="envd ${over ? "bad" : ""}" data-act="envmonth" data-i="${x.ei}"><span>${over ? "⚠️" : "✅"} ${esc(e.n)}</span><span class="num">${over ? "dépassé de " + eur(e.dep - e.bud) : eur(e.dep) + " / " + eur(e.bud)}</span></button>`; }).join("")}</div>` : ""}` : `<div class="empty">Aucune enveloppe. Ajoutez-en dans Réglages.</div>`;
   const kv = (l,v,neg) => `<div class="kv"><span>${l}</span><span class="num">${neg?"− ":"+ "}${eur(v)}</span></div>`;
   return topbar() + (FUN() ? funHome(c, soldeVal) : "") + `
+  ${(() => { const n = pointItems().length; return n ? `<button class="ptbtn" data-act="ptopen"><span>📋 À pointer sur ton compte</span><b>${n}</b></button>` : `<button class="ptbtn ok" data-act="ptopen"><span>✅ Tout est pointé</span></button>`; })()}
   <div class="card hero">
     <div class="lbl">Reste à vivre après enveloppes</div>
     <div class="big num${FUN() && isNum(soldeVal) && c.d18 < 0 ? " hneg" : ""}"${FUN() && isNum(soldeVal) ? ` data-cnt="${c.d18}"` : ""}>${isNum(soldeVal) ? eur(c.d18) : "—"}</div>
@@ -2297,6 +2299,7 @@ document.addEventListener("click", ev => { if (FUN()){ const c = ev.target.close
     case "upd-all": sheetUpdHist(true); break;
     case "pt-open": sheetPoint(); break;
     case "remind-toggle": lsSet("mc-remind", lsGet("mc-remind") === "off" ? "on" : "off"); render(); break;
+    case "ptopen": sheetPoint(); break;
     case "pt-tog": { if (b.dataset.kk === "fix"){ const r = findFix(b.dataset.k, b.dataset.id), mi = +b.dataset.pm; r.m[mi] = "x"; } else { const j = S.journal.find(x => x.id === b.dataset.id); if (j){ j.pointe = "x"; j.upd = Date.now(); } }
       persist(); render(); sheetPoint(); break; }
     case "multi-ok": lsSet("mc-multi","1"); closeSheet(); break;
@@ -2836,6 +2839,9 @@ document.addEventListener("change", ev => { if (ev.target.id === "sch-a" || ev.t
 applyTheme();
 /* ===== Historique des mises à jour ===== */
 const CHANGELOG = [
+ {v:"4.25", d:"Novembre 2026", t:"À pointer quand tu veux", i:[
+  "Un bouton « À pointer sur ton compte » en haut de l'Accueil ouvre à tout moment la liste de tout ce qui est passé et qu'il reste à pointer, avec le nombre. Tu la compares à ton appli bancaire et tu pointes d'un coup, sans attendre le rappel du matin.",
+ ]},
  {v:"4.23", d:"Novembre 2026", t:"Changer de mois en glissant", i:[
   "Sur Accueil et Mois, glisse le doigt à gauche ou à droite pour passer au mois suivant ou précédent.",
   "Le bandeau du haut (titre, mois, réglages) reste fixe quand tu fais défiler la page.",
